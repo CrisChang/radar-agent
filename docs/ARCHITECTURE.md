@@ -10,9 +10,12 @@
 
 ### 1. Seller: paywalled Signal API
 
-Adapted from [circlefin/arc-nanopayments](https://github.com/circlefin/arc-nanopayments) (Next.js + x402 middleware + Circle Gateway).
+Implemented as a Next.js route using the official
+[circlefin/arc-nanopayments](https://github.com/circlefin/arc-nanopayments)
+Circle Gateway verification and settlement flow.
 
-- Endpoint `GET /signals/latest?type=price_alert` returns signals in a production price-radar format:
+- Endpoint `GET /api/signals/latest?symbol=ETH-USD` converts public Coinbase
+  Exchange one-minute candles into the production price-radar format:
 
 ```json
 {
@@ -27,11 +30,14 @@ Adapted from [circlefin/arc-nanopayments](https://github.com/circlefin/arc-nanop
 ```
 
 - Unpaid request → HTTP 402 with payment requirements.
-- Paid request → EIP-3009 payment authorization verified against Circle Gateway (offchain, <1s), response served, payment queued for batch on-chain settlement.
+- Paid request → EIP-3009 payment authorization verified against Circle
+  Gateway, response served, payment queued for batch on-chain settlement.
+- Live-feed failure → an explicit stale, non-actionable signal. Treasury
+  movement is forbidden for stale data.
 
 ### 2. Buyer: Radar Agent
 
-Python. Loop:
+TypeScript (`agent/radar.mts`). Loop:
 
 ```
 wake → discipline.preflight()            # position safety, budget remaining, breaker state
@@ -40,27 +46,29 @@ wake → discipline.preflight()            # position safety, budget remaining, 
      → decision rules (explainable):
          e.g. sharp_drop ≥ 150bps & confidence ≥ 0.9 → shift 20% treasury USDC → reserve vault
      → discipline.authorize(action)      # cap check + idempotency key
-     → execute via App Kits (swap / transfer on Arc testnet)
+     → execute via App Kit Send on Arc testnet
      → audit.log(signal, decision, tx)   # end-to-end traceability
      → verify settlement, reconcile balances
 ```
 
-### 3. Discipline layer (`agent/discipline/`)
+### 3. Discipline layer (`lib/discipline.ts`)
 
 Ported patterns from production trading bots:
 
 - `SpendingCap` — separate daily budgets for data purchases vs. treasury moves; hard refuse on breach.
 - `IdempotencyGuard` — deterministic action keys (date + signal_id + action type); persisted; replay-safe.
-- `PositionSafety` — snapshot expected balances; unexpected state → refuse to act, alert.
+- `PositionSafety` — requires a reconciled active-wallet balance and preserves
+  a configured minimum reserve before any App Kit send.
 - `CircuitBreaker` — N consecutive failures or anomalous signal rate → halt, require human reset.
 - `AuditLog` — append-only JSONL; every entry links signal → decision → tx hash.
 
 ### 4. Treasury actions
 
-Circle App Kits (Send / Swap) against Arc testnet. MVP action set is deliberately small:
+Circle App Kit Send against Arc testnet. The current MVP action set is
+deliberately small:
 
-- `rebalance(pct)` — move a percentage of USDC between the "active" wallet and a "reserve" wallet.
-- `settle(invoice)` — pay a fixed-amount USDC invoice (demo of agent-to-service settlement).
+- `rebalance_to_reserve(amount)` — move a capped amount of USDC between the
+  developer-controlled active and reserve wallets.
 
 ## Trust & failure model
 
@@ -73,7 +81,7 @@ Circle App Kits (Send / Swap) against Arc testnet. MVP action set is deliberatel
 
 | Criterion | Where |
 |---|---|
-| Clear decision logic tied to real signals | `agent/` rules + real price-radar signal format |
+| Clear decision logic tied to real signals | `lib/decision.ts` + Coinbase candle signal |
 | Autonomous spending / settlement in USDC | x402 signal purchases + App Kits treasury actions |
 | Agent Stack usage | wallet + payment wiring |
 | Nanopayments / App Kits usage | seller paywall + treasury execution |

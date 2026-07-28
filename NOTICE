@@ -1,0 +1,8 @@
+Radar Agent
+
+The Circle Gateway x402 integration in lib/x402.ts is adapted from
+circlefin/arc-nanopayments:
+https://github.com/circlefin/arc-nanopayments
+
+Copyright 2026 Circle Internet Group, Inc.
+Licensed under the Apache License, Version 2.0. See LICENSE-APACHE-2.0.

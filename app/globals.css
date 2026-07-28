@@ -1,0 +1,284 @@
+:root {
+  --ink: #101414;
+  --muted: #66706f;
+  --paper: #f3f0e8;
+  --line: rgba(16, 20, 20, 0.18);
+  --signal: #d5ff3f;
+  --arc: #2667ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+main {
+  min-height: 100vh;
+}
+
+nav {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 24px 36px;
+}
+
+.brand {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+}
+
+.brand span {
+  color: var(--arc);
+  margin: 0 3px;
+}
+
+.network {
+  align-items: center;
+  display: flex;
+  font-family: monospace;
+  font-size: 12px;
+  gap: 9px;
+  letter-spacing: 0.08em;
+}
+
+.network i {
+  background: var(--signal);
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  display: block;
+  height: 9px;
+  width: 9px;
+}
+
+.hero {
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 100px 36px 84px;
+}
+
+.eyebrow {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+h1 {
+  font-size: clamp(52px, 8vw, 110px);
+  letter-spacing: -0.065em;
+  line-height: 0.9;
+  margin: 34px 0;
+  max-width: 1120px;
+}
+
+h1 em {
+  color: var(--arc);
+  font-style: normal;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.5;
+  max-width: 820px;
+}
+
+.endpoint {
+  align-items: center;
+  background: var(--ink);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 52px;
+  max-width: 850px;
+  padding: 20px 22px;
+}
+
+.endpoint div {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.endpoint code {
+  font-size: 14px;
+}
+
+.method {
+  background: var(--signal);
+  color: var(--ink);
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 8px;
+}
+
+.endpoint strong {
+  color: var(--signal);
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.flow {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0 auto;
+  max-width: 1280px;
+}
+
+.flow article {
+  min-height: 260px;
+  padding: 34px;
+}
+
+.flow article + article {
+  border-left: 1px solid var(--line);
+}
+
+.flow span {
+  color: var(--arc);
+  font-family: monospace;
+  font-weight: 800;
+}
+
+.flow h2 {
+  font-size: 30px;
+  letter-spacing: -0.04em;
+  margin: 60px 0 12px;
+}
+
+.flow p,
+.discipline p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.discipline {
+  display: grid;
+  gap: 80px;
+  grid-template-columns: 1fr 1.2fr;
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 100px 36px;
+}
+
+.discipline h2 {
+  font-size: clamp(38px, 5vw, 70px);
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  margin: 28px 0;
+}
+
+.discipline ul {
+  border-top: 1px solid var(--line);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.discipline li {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 0;
+}
+
+.discipline li b {
+  font-size: 18px;
+}
+
+.discipline li span {
+  color: var(--muted);
+  font-family: monospace;
+  font-size: 12px;
+  text-align: right;
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 34px 36px;
+}
+
+@media (max-width: 800px) {
+  nav,
+  .hero,
+  .discipline {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .hero {
+    padding-top: 72px;
+  }
+
+  .endpoint,
+  .endpoint div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .flow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .flow article:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .flow article:nth-child(4) {
+    border-top: 1px solid var(--line);
+  }
+
+  .discipline {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .flow {
+    grid-template-columns: 1fr;
+  }
+
+  .flow article + article {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .discipline li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .discipline li span {
+    text-align: left;
+  }
+}
+

@@ -1,6 +1,12 @@
 state/
+agent/state/
+seller/state/
 __pycache__/
 .env
+.env.local
+.env.*.local
 *.log
 node_modules/
 .next/
+coverage/
+*.tsbuildinfo
