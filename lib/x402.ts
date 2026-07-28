@@ -14,6 +14,9 @@ const ARC_TESTNET_NETWORK = "eip155:5042002";
 const ARC_TESTNET_USDC = "0x3600000000000000000000000000000000000000";
 const ARC_TESTNET_GATEWAY_WALLET =
   "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
+// Gateway nanopayment authorizations need at least seven days of validity.
+// Keep the small buffer used by Circle's current seller quickstart.
+const GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS = 604_900;
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 
 const facilitator = new BatchFacilitatorClient();
@@ -46,7 +49,7 @@ export function buildPaymentRequirements(priceUsdc: string) {
     asset: ARC_TESTNET_USDC,
     amount: Math.round(numericPrice * 1_000_000).toString(),
     payTo: sellerAddress(),
-    maxTimeoutSeconds: 345_600,
+    maxTimeoutSeconds: GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS,
     extra: {
       name: "GatewayWalletBatched",
       version: "1",
@@ -177,4 +180,3 @@ export function withGateway(
     }
   };
 }
-

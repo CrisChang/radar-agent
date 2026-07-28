@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { createRequire } from "node:module";
 import { GatewayClient } from "@circle-fin/x402-batching/client";
 import type { PriceSignal } from "../lib/signals";
 import { buildDemoSignal, getLatestSignal } from "../lib/signals";
@@ -10,6 +11,7 @@ const dryRun = args.has("--dry-run");
 const demoSignal = args.has("--demo-signal");
 const resetBreaker = args.has("--reset-breaker");
 const root = resolve(import.meta.dirname, "..");
+const require = createRequire(import.meta.url);
 
 function envNumber(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -146,10 +148,13 @@ async function executeTreasurySend(
   amountUsdc: number,
   config: TreasuryConfig,
 ) {
-  const [{ AppKit }, { createCircleWalletsAdapter }] = await Promise.all([
-    import("@circle-fin/app-kit"),
-    import("@circle-fin/adapter-circle-wallets"),
-  ]);
+  const { AppKit } = await import("@circle-fin/app-kit");
+  // tsx resolves the adapter's ESM build against the SDK's CJS entrypoint,
+  // which drops the runtime Blockchain export. The adapter publishes a
+  // compatible CommonJS entrypoint, so load that entrypoint explicitly.
+  const { createCircleWalletsAdapter } = require(
+    "@circle-fin/adapter-circle-wallets",
+  ) as typeof import("@circle-fin/adapter-circle-wallets");
   const adapter = createCircleWalletsAdapter({
     apiKey: config.apiKey,
     entitySecret: config.entitySecret,
