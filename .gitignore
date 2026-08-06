@@ -8,5 +8,8 @@ __pycache__/
 *.log
 node_modules/
 .next/
+.vinext/
+dist/
+.wrangler/
 coverage/
 *.tsbuildinfo
