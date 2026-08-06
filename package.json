@@ -2,6 +2,7 @@
   "name": "radar-agent",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.7",
   "type": "module",
   "scripts": {
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
