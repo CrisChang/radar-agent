@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { VERIFIED_ARC_PROOF } from "@/lib/proof";
 
+const DEMO_VIDEO_URL =
+  "https://raw.githubusercontent.com/CrisChang/radar-agent/main/public/demo/radar-agent-demo.mp4";
+
 export const metadata: Metadata = {
   title: "Radar Agent — 70-second demo",
   description:
@@ -27,12 +30,12 @@ export default function DemoVideoPage() {
       </section>
       <section className="video-shell">
         <video controls playsInline preload="metadata" poster="/og.png">
-          <source src="/demo/radar-agent-demo.mp4" type="video/mp4" />
+          <source src={DEMO_VIDEO_URL} type="video/mp4" />
           Your browser does not support HTML5 video.
         </video>
         <div className="video-links">
-          <a href="/demo/radar-agent-demo.mp4" download>
-            Download MP4
+          <a href={DEMO_VIDEO_URL} target="_blank" rel="noreferrer">
+            Open MP4 ↗
           </a>
           <a
             href={VERIFIED_ARC_PROOF.settlement.explorerUrl}
