@@ -13,3 +13,5 @@ dist/
 .wrangler/
 coverage/
 *.tsbuildinfo
+tmp/
+outputs/

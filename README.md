@@ -6,6 +6,17 @@
 
 Built for the **Encode Club × Circle [Programmable Money Hackathon](https://www.encodeclub.com/programmes/arc-hackathon)** — Agentic Economy track. July–August 2026.
 
+## Final submission
+
+- **Live demo:** <https://radar-agent-arc-2026.chrischang2026.chatgpt.site>
+- **Demo video:** <https://radar-agent-arc-2026.chrischang2026.chatgpt.site/demo>
+- **Presentation:** <https://github.com/CrisChang/radar-agent/blob/main/docs/deck.pdf>
+- **Arc Testnet receipt:** <https://testnet.arcscan.app/tx/0xb552e86788532a48013355c5165e68bd50b56a24e0dd6ec2a5d28b005e687726>
+
+The public demo exposes no buyer private key or Circle custody secret. It lets
+judges verify the deployed x402 payment boundary, replay the recorded execution
+proof, watch the final video and inspect the successful Arc receipt.
+
 ## Working MVP
 
 Radar Agent is a two-sided agentic-economy demo on
@@ -85,6 +96,11 @@ For a deterministic but still x402-paid judge demo, set
 npm run agent -- --demo-signal
 ```
 
+The deployed judge experience is deliberately non-custodial. It verifies that
+the public seller advertises a Circle Gateway x402 requirement and exposes a
+read-only proof endpoint. The already verified treasury transaction is replayed
+for inspection instead of broadcasting another transfer from a public button.
+
 ## Decision and discipline
 
 The default rule rebalances only when all conditions are true:
@@ -114,8 +130,8 @@ npm run build
 
 - [x] **Checkpoint 1 (Jul 19)** — project, team, idea
 - [x] **Checkpoint 2 (Jul 26)** — architecture and discipline-layer skeleton
-- [ ] **Checkpoint 3 (Aug 9)** — run the implemented MVP with funded wallets,
-  capture Arc transaction hashes, deploy the seller, and record the demo
+- [x] **Checkpoint 3 (Aug 10)** — funded-wallet execution, public Arc receipt,
+  deployed x402 seller, public proof replay, final video and deck
 - [ ] **Demo Day (Aug 20)**
 
 ## Repo layout
@@ -127,13 +143,15 @@ agent/radar.mts      autonomous buyer + Circle App Kit executor
 agent/discipline/    original Python discipline reference
 tests/               deterministic rule and safety tests
 docs/                architecture and checkpoint deck
+public/demo/         compressed final-submission video
 ```
 
 ## Status
 
-Week 3 build phase. The code path is implemented and testable locally. The
-remaining external proof is wallet configuration, funded Arc transactions,
-deployment, demo video and the final deck.
+Final submission ready. The complete path has purchased a $0.001 x402 signal,
+made an explainable decision, passed deterministic custody guards and settled a
+1 USDC treasury action on Arc Testnet. The public deployment, video, deck,
+source and ArcScan receipt are linked above.
 
 ## License
 
