@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "radar-agent-arc-2026",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "no_bundle": true,
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.js", "**/*.mjs"]
+    }
+  ],
+  "assets": {
+    "directory": "dist/client"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "SELLER_ADDRESS": "0x00902065f410A5B9Af8e80BF663790744D378a0C",
+    "SIGNAL_PRICE_USDC": "0.001",
+    "RADAR_ALLOW_DEMO_SIGNALS": "true",
+    "NEXT_PUBLIC_SITE_URL": "https://radar-agent-arc-2026.chrischang2026.workers.dev"
+  }
+}

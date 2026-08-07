@@ -35,7 +35,7 @@ stored in the repository.
 
 ## Link to Demo Video
 
-<https://radar-agent-arc-2026.chrischang2026.chatgpt.site/demo>
+<https://radar-agent-arc-2026.chrischang2026.workers.dev/demo>
 
 ## Link to Presentation
 
@@ -43,7 +43,7 @@ stored in the repository.
 
 ## Live Demo Link
 
-<https://radar-agent-arc-2026.chrischang2026.chatgpt.site>
+<https://radar-agent-arc-2026.chrischang2026.workers.dev>
 
 ## Track
 
