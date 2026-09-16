@@ -20,7 +20,13 @@ Tameion is only a candidate until full rules and continuation eligibility are kn
   the successful rerun; do not cherry-pick it out of availability claims.
 - Local independent HTTP client passed health → OpenAPI → unpaid 402 checks.
   This is our own integration example, NOT third-party adoption or paid delivery.
-- 23 automated tests passed at this checkpoint; typecheck and production build passed.
+- Integration hardening adds D1 request/response persistence, unique request and
+  authorization claims, exact accepted-response replay, single-host buyer locking,
+  outstanding signal-fee reservations, and guarded paid HTTP transport.
+- 42 automated tests are in the current suite, including mocked payment failures
+  and real SQLite constraint/restart checks; no mocked acceptance is live evidence.
+- The built Worker and D1 adapter also passed an isolated Miniflare/workerd smoke
+  test with outbound HTTP disabled. Cloud deployment is still pending.
 - No private keys loaded by the diagnostic/probe scripts, no payment signed,
   no transaction broadcast, no mainnet deposit, no application submitted.
 
@@ -53,13 +59,15 @@ Setting `RADAR_NETWORK=mainnet` does not enable payment or treasury movement.
 - [x] Publishable OpenAPI and a no-wallet external HTTP example.
 - [x] Fail before payment for invalid queries and stale/unavailable content.
 - [x] Label unknown settlement as unsafe to repay automatically.
-- [ ] Durable seller request/payment state and recoverable response storage. The
-  optional JSONL log is local diagnostics, not Cloudflare durable persistence.
-- [ ] Atomic buyer budget reservation including pending/unknown payments; process
-  concurrency protection. The legacy file ledger is single-process and insufficient
-  for production. Never erase its prior spend/action state during migration.
-- [ ] Enforce same-origin paid transport, full input/output validation and bounded
-  timeouts. Quote validation must hold at signing, not only at discovery.
+- [x] D1 seller state and stored-response recovery implemented and locally tested.
+  Binding/migration and cloud end-to-end validation are a separate pending gate.
+- [x] Persist signal-fee reservations before signing; preserve unknown amounts
+  across restart/day rollover. Single-host CLI lock prevents overlapping cycles.
+  Multi-host buyers need a shared budget coordinator; legacy state is preserved.
+- [x] Paid HTTP refuses redirects, pins the recipient, bounds timeout/body size,
+  validates the original quote and verifies output digest, fields and freshness.
+- [ ] Operator workflow for resolving unknown Gateway acceptance/batch settlement.
+  No automatic reset, expiry or re-payment is allowed on unresolved records.
 - [ ] Reconcile real treasury balances and account for gas before sends. A configured
   `TREASURY_AVAILABLE_USDC` is not independently verified live balance evidence.
 - [ ] Check App Kit send outcome/receipt before calling it complete. SDK chain enum
@@ -68,6 +76,10 @@ Setting `RADAR_NETWORK=mainnet` does not enable payment or treasury movement.
   limit (service fees + gas + any transferred principal), with explicit approval.
   No existing key or wallet is presumed approved for mainnet use.
 - [ ] Stage a separate mainnet deployment/config; preserve testnet proof history.
+
+Default CLI mode now stops after purchasing and validating the signal. Legacy
+treasury execution is a separate `--execute-treasury` testnet experiment and is
+excluded from the first service-delivery pilot. See [staging runbook](STAGING_AND_PILOT.md).
 
 ## Real-delivery acceptance experiment
 

@@ -1,0 +1,26 @@
+// LOCAL EXAMPLE ONLY. Replace database_id and seller before any remote deployment.
+// Separate name/storage preserves the historical testnet deployment.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "radar-agent-integration-staging",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.js", "**/*.mjs"] }],
+  "assets": { "directory": "dist/client" },
+  "d1_databases": [{
+    "binding": "RADAR_PAYMENTS",
+    "database_name": "radar-payments-staging",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "migrations_dir": "migrations"
+  }],
+  "vars": {
+    "RADAR_NETWORK": "testnet",
+    "SELLER_ADDRESS": "0x1111111111111111111111111111111111111111",
+    "SIGNAL_PRICE_USDC": "0.001",
+    "RADAR_ALLOW_DEMO_SIGNALS": "false"
+  }
+}

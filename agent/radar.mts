@@ -1,17 +1,22 @@
 import { resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
-import { GatewayClient } from "@circle-fin/x402-batching/client";
+import { BatchEvmScheme, GatewayClient } from "@circle-fin/x402-batching/client";
+import { privateKeyToAccount } from "viem/accounts";
 import type { PriceSignal } from "../lib/signals";
 import { buildDemoSignal, getLatestSignal } from "../lib/signals";
 import { decide } from "../lib/decision";
 import { DisciplineEngine } from "../lib/discipline";
-import { assertExecutionNetwork, getArcNetwork } from "../lib/network";
-import { assertUnchangedOffer, classifyPaymentReference, validateOffer } from "../lib/agent-contract";
+import { acquireAgentLock } from "../lib/agent-lock";
+import { assertExecutionNetwork, getArcNetwork, usdcAtomic } from "../lib/network";
+import { assertUnchangedOffer, classifyPaymentReference } from "../lib/agent-contract";
+import { discoverSignal, paySignal, signalEndpoint } from "../lib/agent-http";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const demoSignal = args.has("--demo-signal");
 const resetBreaker = args.has("--reset-breaker");
+const executeTreasury = args.has("--execute-treasury");
 const root = resolve(import.meta.dirname, "..");
 const require = createRequire(import.meta.url);
 const network = getArcNetwork();
@@ -29,18 +34,20 @@ function envNumber(name: string, fallback: number): number {
   return value;
 }
 
-const discipline = new DisciplineEngine(
+const releaseLock = acquireAgentLock(resolve(root, stateRoot, "cycle.lock"));
+const discipline = (() => { try { return new DisciplineEngine(
   resolve(root, stateRoot, "discipline.json"),
   resolve(root, stateRoot, "audit.jsonl"),
   {
     data: envNumber("DATA_DAILY_CAP_USDC", 0.1),
     treasury: envNumber("TREASURY_DAILY_CAP_USDC", 25),
   },
-);
+); } catch (error) { releaseLock(); throw error; } })();
 
 if (resetBreaker) {
   discipline.resetBreaker();
   console.log("Circuit breaker reset by human CLI.");
+  releaseLock();
   process.exit(0);
 }
 
@@ -66,20 +73,17 @@ async function buySignal(): Promise<{
   }
 
   const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
-  const endpoint = new URL("/api/signals/latest", baseUrl);
-  if (demoSignal) endpoint.searchParams.set("demo", "sharp_drop");
+  const endpoint = signalEndpoint(baseUrl, demoSignal);
+  const requestId = randomUUID();
+  const quote = await discoverSignal(endpoint, network, process.env.EXPECTED_SELLER_ADDRESS ?? "",
+    usdcAtomic(process.env.SIGNAL_MAX_PRICE_USDC ?? "0.001"), requestId);
 
   const gateway = new GatewayClient({
     chain: "arcTestnet",
     privateKey,
   });
-  const support = await gateway.supports(endpoint.toString());
-  if (!support.supported) {
-    throw new Error("seller does not advertise Circle Gateway batching");
-  }
-  const approvedOffer = validateOffer({ x402Version: 2, accepts: [support.requirements] }, network,
-    Math.round(envNumber("SIGNAL_MAX_PRICE_USDC", 0.001) * 1_000_000).toString());
-  const advertisedAtomic = Number(support.requirements?.amount);
+  const approvedOffer = quote.offer;
+  const advertisedAtomic = Number(approvedOffer.amountAtomic);
   if (!Number.isSafeInteger(advertisedAtomic) || advertisedAtomic <= 0) {
     throw new Error("seller advertised an invalid x402 amount");
   }
@@ -92,49 +96,38 @@ async function buySignal(): Promise<{
     );
   }
   discipline.authorizeSpend("data", advertisedPrice);
-  // pay() fetches a second quote: enforce the same terms at the actual signing
-  // boundary as well, not only in supports() or after funds were accepted.
-  gateway.onBeforePaymentCreation(async ({ selectedRequirements }) => {
+  const spendKey = `signal:${requestId}`;
+  const signer = new BatchEvmScheme(privateKeyToAccount(privateKey));
+  signer.onBeforePaymentCreation(async ({ selectedRequirements }) => {
     assertUnchangedOffer(selectedRequirements, approvedOffer, network);
-    discipline.authorizeSpend("data", advertisedPrice);
+    discipline.reserveSpend(spendKey, "data", advertisedPrice);
   });
 
-  let balances = await gateway.getBalances();
-  if (Number(balances.gateway.formattedAvailable) < advertisedPrice) {
-    const depositAmount = envNumber("GATEWAY_AUTO_DEPOSIT_USDC", 0);
-    if (depositAmount <= 0) {
-      throw new Error(
-        "Gateway balance is too low; deposit USDC or set GATEWAY_AUTO_DEPOSIT_USDC",
-      );
-    }
-    if (Number(balances.wallet.formatted) < depositAmount) {
-      throw new Error(
-        `wallet has ${balances.wallet.formatted} USDC, below the ` +
-          `${depositAmount} USDC auto-deposit`,
-      );
-    }
-    const deposit = await gateway.deposit(depositAmount.toString());
-    discipline.audit("gateway_deposit", {
-      amount_usdc: deposit.formattedAmount,
-      transaction: deposit.depositTxHash,
-      wallet: gateway.address,
-    });
-    balances = await gateway.getBalances();
+  const balances = await gateway.getBalances();
+  if (!Number.isFinite(Number(balances.gateway.formattedAvailable)) || Number(balances.gateway.formattedAvailable) < advertisedPrice) {
+    throw new Error("Gateway balance is too low; explicit separately approved testnet funding is required. Automatic deposits are disabled.");
   }
 
-  const result = await gateway.pay<PriceSignal>(endpoint.toString());
-  const actualPrice = Number(result.formattedAmount);
-  if (actualPrice !== advertisedPrice) {
-    throw new Error(
-      `settled ${actualPrice} USDC but seller advertised ${advertisedPrice} USDC`,
-    );
+  try {
+    const result = await paySignal(endpoint, network, quote, requestId, {
+      async createPaymentPayload(version, requirements) {
+        const payload = await signer.createPaymentPayload(version, requirements);
+        discipline.audit("payment_authorization_created", { request_id: requestId,
+          nonce: payload.payload.authorization.nonce, payer: payload.payload.authorization.from,
+          amount_atomic: requirements.amount, pay_to: requirements.payTo, network: requirements.network });
+        return payload;
+      },
+    });
+    const actualPrice = result.amountUsdc;
+    if (actualPrice !== advertisedPrice || !result.transaction) throw new Error("Payment result requires reconciliation");
+    discipline.settleSpend(spendKey, actualPrice, result.transaction);
+    discipline.audit("signal_delivery_validated", { request_id: requestId, response_sha256: result.responseHash,
+      payment_reference: classifyPaymentReference(result.transaction), client_received: true });
+    return { signal: result.signal, amountUsdc: actualPrice, transaction: result.transaction };
+  } catch (error) {
+    discipline.markSpendUnknown(spendKey);
+    throw error;
   }
-  discipline.recordSpend("data", actualPrice);
-  return {
-    signal: result.data,
-    amountUsdc: actualPrice,
-    transaction: result.transaction,
-  };
 }
 
 interface TreasuryConfig {
@@ -211,6 +204,13 @@ async function main(): Promise<void> {
 
   if (decision.action === "hold") {
     discipline.recordSuccess();
+    return;
+  }
+
+  if (!dryRun && !executeTreasury) {
+    discipline.audit("treasury_execution_skipped", { reason: "signal-service mode; treasury is a separate opt-in testnet experiment" });
+    discipline.recordSuccess();
+    console.log("Signal received and validated. Treasury execution is off; no principal will be moved.");
     return;
   }
 
@@ -292,4 +292,4 @@ try {
   discipline.recordFailure(message);
   console.error(`Radar Agent failed safely: ${message}`);
   process.exitCode = 1;
-}
+} finally { releaseLock(); }

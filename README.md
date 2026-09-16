@@ -14,16 +14,19 @@ We are continuing the existing Arc project in this order:
    and updated SDK chain definitions. This is not a security audit or a paid test.
 2. **External-agent integration — in progress.** `/api/openapi`, an independent
    no-wallet HTTP probe, response digests, explicit unknown-payment handling,
-   and 23 regression tests. No third-party adoption or new paid delivery claimed.
+   durable D1 request/response records, pending-budget reservations and 42
+   regression tests. No third-party adoption or new paid delivery claimed.
 3. **Microgrants / Agent Marketplace — not submitted.** Mainnet money movement
    stays code-blocked pending durable accounting/recovery, real delivery tests,
    confirmed wallet identities and an owner-approved total spending budget.
 
 See [launch plan, evidence and application gates](docs/ARC_MAINNET_PLAN.md) and
 the [external-agent example](examples/external-agent/README.md).
+The [staging and pilot runbook](docs/STAGING_AND_PILOT.md) lists remaining work.
 
 ```bash
 npm run check:mainnet   # public read-only probes; no keys, signing or payments
+npm run build && npm run check:worker # isolated local Worker + D1; outbound HTTP disabled
 npm run agent:probe -- --url http://127.0.0.1:3000 --network testnet --save
 ```
 
@@ -65,11 +68,15 @@ controls, not a production custody guarantee:
 
 | Guard | What it does |
 |---|---|
-| **Spending cap** | Checks recorded daily spend before a single-process action. Atomic pending-spend reservation is still required. |
+| **Spending cap** | Signal fees are reserved durably before signing. Pending/unknown fees still consume budget after restart or UTC rollover. Treasury/gas accounting remains a separate release gate. |
 | **Idempotency** | Persistent keys refuse repeat treasury actions in the single-process CLI. Distributed payment recovery is still required. |
 | **Reserve check** | Checks a configured available balance and minimum reserve. Independent live balance reconciliation is still required. |
 | **Circuit breaker** | Three consecutive failures halt the CLI until a manual reset. No external paging integration is claimed. |
-| **Audit trail** | Local purchase/decision/action events; optional seller JSONL. Gateway references are not automatically onchain receipts. |
+| **Audit trail** | D1 seller records and exact response recovery; local buyer audit includes request, nonce and received digest. Gateway references are not automatically onchain receipts. |
+
+The CLI locks its state directory for the entire cycle. Unknown payments block
+future cycles until reconciled; a breaker reset does not release reserved money.
+This is single-host protection, not distributed coordination between multiple buyers.
 
 Circle Gateway batches sub-cent USDC payments; Arc uses USDC for gas. Gateway
 deposits, withdrawals and treasury sends still need explicit cost accounting.
@@ -77,8 +84,8 @@ No zero-total-cost or measured mainnet economics claim is made here.
 
 ## Run locally
 
-Prerequisites: Node.js 22+, an Arc Testnet seller address, and an x402 buyer
-wallet funded with testnet USDC.
+Prerequisites: Node.js 22.22+ for the current local verification tools.
+Unpaid previews and automated tests do not need a wallet.
 
 ```bash
 npm install
@@ -86,10 +93,10 @@ cp .env.example .env.local
 npm run dev
 ```
 
-In a second terminal:
+For unpaid integration checks in a second terminal:
 
 ```bash
-npm run agent
+npm run agent:probe -- --url http://localhost:3000 --network testnet
 ```
 
 Run the complete decision and safety path without keys or funds:
@@ -113,13 +120,19 @@ existing real testnet ledger. Do not delete or reset old state during migration.
 1. Run `npm run generate-wallet`, then put the buyer private key in
    `.env.local`. This is testnet-only.
 2. Fund the address through the Circle faucet.
-3. Deposit testnet USDC into Gateway. Automatic deposit is off by default;
-   configure `GATEWAY_AUTO_DEPOSIT_USDC` only for an intentional testnet run.
-4. Configure `SELLER_ADDRESS`.
+3. Fund Gateway separately with explicit approval. Automatic deposits have been
+   removed; service fees, funding gas and any principal must be budgeted separately.
+4. Configure `SELLER_ADDRESS` on the server and independently pin
+   `EXPECTED_SELLER_ADDRESS` in the buyer. Paid serving requires `RADAR_PAYMENTS`
+   plus migration `0001`; the Node-only preview supports unpaid discovery, not paid serving.
 5. For real treasury execution, configure the Circle API key, entity secret,
    active developer-controlled wallet address and reserve address.
 6. Set `TREASURY_AVAILABLE_USDC` to the reconciled active-wallet balance used
-   by the position-safety check.
+   by the position-safety check. This is a supplied value, not a live RPC check.
+
+Normal `npm run agent` now stops after signal purchase/validation. The historical
+testnet treasury experiment requires `--execute-treasury`; live balance/gas and
+receipt reconciliation are unfinished, so do not use it as production evidence.
 
 For a deterministic but still x402-paid judge demo, set
 `RADAR_ALLOW_DEMO_SIGNALS=true` on the seller and run:
@@ -162,7 +175,13 @@ Invalid request parameters are rejected before demanding payment. After payment
 verification, the seller prepares fresh content **before** accepting settlement;
 stale/unavailable data returns 503 without a new settlement attempt. If settlement
 times out, a 502 response marks the payment unknown and unsafe to repay blindly.
-Durable crash recovery remains a mainnet release blocker.
+Cloud persistence validation and unknown-settlement reconciliation remain mainnet release blockers.
+
+Exact accepted retries recover the saved response without a new settlement.
+Changed request terms or authorization return 409. Unknown/settling records never
+auto-retry payment. Their final disposition still needs operator reconciliation.
+The guarded deploy command refuses the old config until durable storage is wired;
+do not overwrite the historical public site to test this release.
 
 ## Historical roadmap (hackathon checkpoints)
 
@@ -190,8 +209,8 @@ public/demo/         compressed final-submission video
 
 The historical demo purchased a $0.001 x402 signal and settled a 1 USDC treasury
 action on **Arc Testnet**, using a labelled sharp-drop fixture. Its video and
-receipt are preserved above. The September continuation changes are local until
-explicitly deployed; the old public site is not evidence of these new features.
+receipt are preserved above. The September continuation is being pushed to this
+repository but is not publicly deployed; the old site is not evidence of these new features.
 Mainnet execution, external paid-client evidence and ecosystem applications are
 pending the launch gates, not complete.
 

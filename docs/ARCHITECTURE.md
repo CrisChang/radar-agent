@@ -13,9 +13,16 @@ evidence is [ARC_MAINNET_PLAN.md](ARC_MAINNET_PLAN.md).
 - Seller content is prepared before settlement, with invalid/stale content
   rejected before charging. A Gateway acceptance reference, a prepared response
   digest and an onchain verified receipt are different evidence levels.
-- The buyer rechecks the quote at the signing hook. Its file-based accounting is
-  still single-process, and does not provide atomic concurrent pending-spend
-  reservation or durable seller response recovery. These are release blockers.
+- The buyer rechecks the quote at the signing hook, reserves signal fees before
+  signing, and holds a single-host filesystem lock for the full cycle. Unknown
+  fees survive UTC rollover and prevent another cycle. Multi-host coordination
+  and principal/gas accounting are not claimed by this local ledger.
+- The D1 seller stores a unique authorization key and a unique payer/request key,
+  the exact prepared response, and atomic payment-state transitions. Accepted
+  retries recover the original bytes; pending/unknown attempts never resettle.
+  D1 binding, migrations, cloud testing and operator reconciliation are required.
+- Paid HTTP refuses redirects, pins the seller, enforces a timeout and body size,
+  checks response digest/correlation, and validates signal fields and freshness.
 - Mainnet RPC/contract/SDK checks do not verify a Circle custody account's send
   capability. Actual balances, gas limits, final receipts and delivery evidence
   must be reconciled before the service can be described as production-ready.
@@ -94,10 +101,11 @@ deliberately small:
 
 - Agent keys live in env, never in the repo. Testnet only for the hackathon.
 - The seller cannot drain the buyer: nanopayment authorizations are amount-bounded per query.
-- Local caps are checked before signing, but concurrent reservations and unknown
-  payment reconciliation remain unfinished; mainnet execution is blocked.
-- Unknown settlement must not be blindly repaid. Durable recovery and external
-  alerting are not provided by the historical prototype.
+- Signal fee reservations are persisted before signing; unknown outcomes retain
+  their reservation. Reconciliation tooling and gas/principal accounting remain
+  unfinished; mainnet execution is blocked.
+- Unknown settlement must not be blindly repaid. Exact accepted-response recovery
+  is implemented; unknown-state resolution and external alerting are not automatic.
 
 ## Judging-criteria mapping
 

@@ -5,7 +5,7 @@ export function buildOpenApi() {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Radar Agent Signal API", version: "0.2.0-preflight",
+      title: "Radar Agent Signal API", version: "0.2.0-integration",
       description: "Structured ETH/BTC signals for other agents. Testnet payment prototype; mainnet execution is blocked. Signals are heuristic market observations, not calibrated probabilities or investment advice. Gateway acceptance is not onchain settlement proof.",
     },
     servers: [{ url: "/", description: "Same origin as this document" }],
@@ -19,6 +19,7 @@ export function buildOpenApi() {
           description: "First request without payment. Validate the 402 offer against your chain, USDC asset, seller allowlist and budget. Only pay with explicit wallet policy. Mainnet payments are disabled in this release. Never automatically repay an unknown settlement. A server response hash records prepared output, not proof the client received it. Demo fixtures are testnet-only and opt-in.",
           parameters: [
             { name: "symbol", in: "query", schema: { type: "string", enum: ["ETH-USD", "BTC-USD"], default: "ETH-USD" } },
+            { name: "x-radar-request-id", in: "header", required: false, description: "A caller-generated UUID, required on paid requests. Keep the same ID and exact authorization when retrying the same logical request. Never create a new payment for an unknown outcome.", schema: { type: "string", format: "uuid" } },
             { name: "payment-signature", in: "header", required: false, description: "Base64 x402 v2 authorization. Never include in public reports or logs.", schema: { type: "string" } },
           ],
           responses: {
@@ -29,13 +30,15 @@ export function buildOpenApi() {
                 "x-radar-request-id": { schema: { type: "string", format: "uuid" } },
                 "x-radar-response-sha256": { description: "SHA-256 of the exact UTF-8 response body", schema: { type: "string", pattern: "^[a-f0-9]{64}$" } },
                 "x-radar-payment-state": { schema: { type: "string", const: "gateway_accepted_not_onchain_verified" } },
+                "x-radar-replayed": { description: "True when serving the original stored response; not a second paid delivery", schema: { type: "string", const: "true" } },
               },
               content: { "application/json": { schema: { $ref: "#/components/schemas/PriceSignal" } } },
             },
             "400": { description: "Invalid query or payment payload; no payment accepted" },
             "402": { description: "Payment required or rejected", headers: { "payment-required": { description: "Base64 x402 v2 challenge (on the initial unpaid request)", schema: { type: "string" } } } },
+            "409": { description: "Request/authorization conflict or pending outcome: do not repay. Exact accepted retries may recover the stored response." },
             "502": { description: "Provider failure; unknown_do_not_repay means investigate before retrying payment" },
-            "503": { description: "Mainnet execution disabled, seller misconfigured, or fresh data unavailable" },
+            "503": { description: "Mainnet execution disabled, durable store missing, seller misconfigured, or fresh data unavailable" },
           },
         },
       },

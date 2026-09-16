@@ -4,12 +4,15 @@ import {
   handleImageOptimization,
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { withPaymentDatabase } from "../lib/payment-context";
+import type { PaymentDatabase } from "../lib/payment-store";
 
 interface Fetcher {
   fetch(request: Request): Promise<Response>;
 }
 
 interface Env {
+  RADAR_PAYMENTS?: PaymentDatabase;
   ASSETS: Fetcher;
   IMAGES: {
     input(stream: ReadableStream): {
@@ -48,7 +51,7 @@ const worker = {
         allowedWidths,
       );
     }
-    return handler.fetch(request, env, ctx);
+    return withPaymentDatabase(env.RADAR_PAYMENTS, () => handler.fetch(request, env, ctx));
   },
 };
 

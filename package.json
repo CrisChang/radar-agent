@@ -12,11 +12,12 @@
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json",
     "test": "node --import tsx --test tests/*.test.ts",
     "check:mainnet": "node --import tsx scripts/check-mainnet.mts",
+    "check:worker": "node --import tsx scripts/check-worker.mts",
     "agent:probe": "node --import tsx examples/external-agent/probe.mts",
     "agent": "tsx --env-file=.env.local agent/radar.mts",
-    "agent:dry": "tsx agent/radar.mts --dry-run --demo-signal",
+    "agent:dry": "node --import tsx agent/radar.mts --dry-run --demo-signal",
     "generate-wallet": "tsx scripts/generate-wallet.mts",
-    "deploy:workers": "npm run build && wrangler deploy --config wrangler.direct.jsonc"
+    "deploy:workers": "node --import tsx scripts/check-deploy.mts && npm run build && wrangler deploy --config wrangler.direct.jsonc"
   },
   "dependencies": {
     "@circle-fin/adapter-circle-wallets": "1.8.0",
@@ -31,11 +32,12 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
-    "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
     "@types/node": "^25.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "miniflare": "4.20260515.0",
     "react-server-dom-webpack": "19.2.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

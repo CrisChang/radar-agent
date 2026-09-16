@@ -12,7 +12,8 @@
     "lib/**/*.ts",
     "scripts/**/*.mts",
     "seller/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "worker/**/*.ts"
   ],
   "exclude": [
     "node_modules",

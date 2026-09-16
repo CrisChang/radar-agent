@@ -21,7 +21,12 @@ prices and (when `--seller` is supplied) substituted recipients. HTTPS is requir
 except for loopback development. Redirects are refused. No automatic payment
 retry exists. Mainnet execution is deliberately blocked in the seller release.
 
-For the paid pilot, additionally implement durable request reservation and payment
-recovery, validate fresh output and its response digest, reconcile batch settlement,
-and get explicit owner approval for the participating wallets and total budget.
+The paid client implementation in `lib/agent-http.ts` additionally pins the seller,
+uses a caller UUID, prohibits redirect forwarding and automatic retries, and validates
+the response digest, metadata and signal. The CLI reserves signal fees before signing.
+No secrets, signatures or payments are needed to run this example.
+
+For the paid pilot, first bind/migrate the seller D1 store, validate it in staging,
+finish the unknown-payment reconciliation procedure, and obtain explicit owner
+approval for the participating wallets and total budget.
 See [the launch gates](../../docs/ARC_MAINNET_PLAN.md).
