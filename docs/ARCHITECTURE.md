@@ -1,5 +1,25 @@
 # Architecture
 
+## September continuation and current boundaries
+
+The following sections describe the historical **testnet prototype**, not a
+production mainnet service. The source of truth for current release gates and
+evidence is [ARC_MAINNET_PLAN.md](ARC_MAINNET_PLAN.md).
+
+- `lib/network.ts` validates explicit network selection and blocks mainnet money
+  movement independently of configuration. No real-funds run was authorized.
+- `/api/openapi` describes the signal service for other agents; the independent
+  `examples/external-agent/probe.mts` client only observes unpaid HTTP responses.
+- Seller content is prepared before settlement, with invalid/stale content
+  rejected before charging. A Gateway acceptance reference, a prepared response
+  digest and an onchain verified receipt are different evidence levels.
+- The buyer rechecks the quote at the signing hook. Its file-based accounting is
+  still single-process, and does not provide atomic concurrent pending-spend
+  reservation or durable seller response recovery. These are release blockers.
+- Mainnet RPC/contract/SDK checks do not verify a Circle custody account's send
+  capability. Actual balances, gas limits, final receipts and delivery evidence
+  must be reconciled before the service can be described as production-ready.
+
 ## Design goals
 
 1. **Real autonomy** — the agent decides *when to spend money* (buy a signal) and *when to move money* (rebalance), based on explainable rules tied to real market signals. Not an LLM relaying human commands.
@@ -48,7 +68,7 @@ wake → discipline.preflight()            # position safety, budget remaining, 
      → discipline.authorize(action)      # cap check + idempotency key
      → execute via App Kit Send on Arc testnet
      → audit.log(signal, decision, tx)   # end-to-end traceability
-     → verify settlement, reconcile balances
+     → settlement/balance reconciliation remains a production release gate
 ```
 
 ### 3. Discipline layer (`lib/discipline.ts`)
@@ -57,10 +77,10 @@ Ported patterns from production trading bots:
 
 - `SpendingCap` — separate daily budgets for data purchases vs. treasury moves; hard refuse on breach.
 - `IdempotencyGuard` — deterministic action keys (date + signal_id + action type); persisted; replay-safe.
-- `PositionSafety` — requires a reconciled active-wallet balance and preserves
-  a configured minimum reserve before any App Kit send.
-- `CircuitBreaker` — N consecutive failures or anomalous signal rate → halt, require human reset.
-- `AuditLog` — append-only JSONL; every entry links signal → decision → tx hash.
+- `PositionSafety` — checks the configured balance and reserve. Independent
+  live balance verification is not implemented by this check itself.
+- `CircuitBreaker` — N consecutive failures → halt, require human reset.
+- `AuditLog` — local append-only JSONL; a Gateway reference is not a tx hash.
 
 ### 4. Treasury actions
 
@@ -74,8 +94,10 @@ deliberately small:
 
 - Agent keys live in env, never in the repo. Testnet only for the hackathon.
 - The seller cannot drain the buyer: nanopayment authorizations are amount-bounded per query.
-- The agent cannot drain itself: caps are enforced locally *before* signing anything.
-- Every failure path ends in either a safe retry (bounded) or a halted agent + human alert — never a silent partial state.
+- Local caps are checked before signing, but concurrent reservations and unknown
+  payment reconciliation remain unfinished; mainnet execution is blocked.
+- Unknown settlement must not be blindly repaid. Durable recovery and external
+  alerting are not provided by the historical prototype.
 
 ## Judging-criteria mapping
 

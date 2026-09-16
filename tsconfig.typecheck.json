@@ -8,6 +8,7 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "agent/**/*.mts",
+    "examples/**/*.mts",
     "lib/**/*.ts",
     "scripts/**/*.mts",
     "seller/**/*.ts",

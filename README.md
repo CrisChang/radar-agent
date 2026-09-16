@@ -1,12 +1,39 @@
 # Radar Agent
 
-> An autonomous agent that buys real-time market signals via USDC
-> nanopayments and manages a USDC treasury on Arc, with hard-coded risk
-> discipline learned from production trading bots.
+> Structured market signals for other agents, with USDC per-request payments,
+> explicit delivery evidence and guarded treasury experiments on Arc.
+> Current execution is **testnet-only**; mainnet compatibility has been checked,
+> but production payments and grant/marketplace submissions are not enabled.
+
+## September 2026 continuation
+
+We are continuing the existing Arc project in this order:
+
+1. **Read-only mainnet compatibility — checked.** Arc RPC identity/recent block,
+   USDC/Gateway contract presence and token decimals, Gateway supported kinds,
+   and updated SDK chain definitions. This is not a security audit or a paid test.
+2. **External-agent integration — in progress.** `/api/openapi`, an independent
+   no-wallet HTTP probe, response digests, explicit unknown-payment handling,
+   and 23 regression tests. No third-party adoption or new paid delivery claimed.
+3. **Microgrants / Agent Marketplace — not submitted.** Mainnet money movement
+   stays code-blocked pending durable accounting/recovery, real delivery tests,
+   confirmed wallet identities and an owner-approved total spending budget.
+
+See [launch plan, evidence and application gates](docs/ARC_MAINNET_PLAN.md) and
+the [external-agent example](examples/external-agent/README.md).
+
+```bash
+npm run check:mainnet   # public read-only probes; no keys, signing or payments
+npm run agent:probe -- --url http://127.0.0.1:3000 --network testnet --save
+```
+
+Probe reports under `docs/evidence/` explicitly distinguish unpaid HTTP checks
+from accepted payments, delivered content and independently verified settlement.
+An earlier connectivity failure is retained alongside the successful mainnet rerun.
 
 Built for the **Encode Club × Circle [Programmable Money Hackathon](https://www.encodeclub.com/programmes/arc-hackathon)** — Agentic Economy track. July–August 2026.
 
-## Final submission
+## Historical hackathon submission (Arc Testnet)
 
 - **Live demo:** <https://radar-agent-arc-2026.chrischang2026.workers.dev>
 - **Demo video:** <https://radar-agent-arc-2026.chrischang2026.workers.dev/demo>
@@ -31,19 +58,22 @@ Radar Agent is a two-sided agentic-economy demo on
 - **Reliable demo mode** — the paid endpoint can expose a clearly labelled
   sharp-drop fixture so judging is not dependent on a live market crash.
 
-### What makes it not-a-wrapper: the discipline layer
+### Prototype discipline layer
 
-Every action the agent takes passes through a hard-coded discipline layer — patterns we already run in production trading bots, ported to Arc:
+The prototype uses deterministic policy checks. These are local, single-process
+controls, not a production custody guarantee:
 
 | Guard | What it does |
 |---|---|
-| **Spending cap** | Hard daily budget for signal purchases and treasury moves. Exceed → refuse + alert. |
-| **Idempotency** | Every action carries a deterministic key; the same decision can never execute twice. |
-| **Position safety** | Refuses to act if unexpected balances/positions exist that the agent didn't create. |
-| **Circuit breaker** | Consecutive failures or anomalous signal patterns → agent halts and pages a human. |
-| **Audit trail** | Every signal purchase, decision, and settlement is logged and traceable end-to-end. |
+| **Spending cap** | Checks recorded daily spend before a single-process action. Atomic pending-spend reservation is still required. |
+| **Idempotency** | Persistent keys refuse repeat treasury actions in the single-process CLI. Distributed payment recovery is still required. |
+| **Reserve check** | Checks a configured available balance and minimum reserve. Independent live balance reconciliation is still required. |
+| **Circuit breaker** | Three consecutive failures halt the CLI until a manual reset. No external paging integration is claimed. |
+| **Audit trail** | Local purchase/decision/action events; optional seller JSONL. Gateway references are not automatically onchain receipts. |
 
-Arc's USDC-denominated gas and sub-second settlement are what make this viable: an agent paying $0.001 per signal query only works when fees and latency are near zero.
+Circle Gateway batches sub-cent USDC payments; Arc uses USDC for gas. Gateway
+deposits, withdrawals and treasury sends still need explicit cost accounting.
+No zero-total-cost or measured mainnet economics claim is made here.
 
 ## Run locally
 
@@ -75,14 +105,16 @@ npm run agent -- --reset-breaker
 ```
 
 Runtime state and the append-only audit are written under `agent/state/` and
-are ignored by git.
+are ignored by git. Dry runs use `agent/state/dry-run/` and do not mutate the
+existing real testnet ledger. Do not delete or reset old state during migration.
 
 ## Arc testnet setup
 
 1. Run `npm run generate-wallet`, then put the buyer private key in
    `.env.local`. This is testnet-only.
 2. Fund the address through the Circle faucet.
-3. Deposit USDC into Gateway, or set `GATEWAY_AUTO_DEPOSIT_USDC`.
+3. Deposit testnet USDC into Gateway. Automatic deposit is off by default;
+   configure `GATEWAY_AUTO_DEPOSIT_USDC` only for an intentional testnet run.
 4. Configure `SELLER_ADDRESS`.
 5. For real treasury execution, configure the Circle API key, entity secret,
    active developer-controlled wallet address and reserve address.
@@ -126,7 +158,13 @@ npm run typecheck
 npm run build
 ```
 
-## Roadmap (hackathon checkpoints)
+Invalid request parameters are rejected before demanding payment. After payment
+verification, the seller prepares fresh content **before** accepting settlement;
+stale/unavailable data returns 503 without a new settlement attempt. If settlement
+times out, a 502 response marks the payment unknown and unsafe to repay blindly.
+Durable crash recovery remains a mainnet release blocker.
+
+## Historical roadmap (hackathon checkpoints)
 
 - [x] **Checkpoint 1 (Jul 19)** — project, team, idea
 - [x] **Checkpoint 2 (Jul 26)** — architecture and discipline-layer skeleton
@@ -140,6 +178,8 @@ npm run build
 app/                Next.js landing page + paid signal endpoint
 lib/                live signal feed, x402 wrapper, rules and discipline
 agent/radar.mts      autonomous buyer + Circle App Kit executor
+examples/           independent no-payment agent integration probe
+scripts/            read-only mainnet diagnostics and testnet wallet setup
 agent/discipline/    original Python discipline reference
 tests/               deterministic rule and safety tests
 docs/                architecture and checkpoint deck
@@ -148,10 +188,12 @@ public/demo/         compressed final-submission video
 
 ## Status
 
-Final submission ready. The complete path has purchased a $0.001 x402 signal,
-made an explainable decision, passed deterministic custody guards and settled a
-1 USDC treasury action on Arc Testnet. The public deployment, video, deck,
-source and ArcScan receipt are linked above.
+The historical demo purchased a $0.001 x402 signal and settled a 1 USDC treasury
+action on **Arc Testnet**, using a labelled sharp-drop fixture. Its video and
+receipt are preserved above. The September continuation changes are local until
+explicitly deployed; the old public site is not evidence of these new features.
+Mainnet execution, external paid-client evidence and ecosystem applications are
+pending the launch gates, not complete.
 
 ## License
 

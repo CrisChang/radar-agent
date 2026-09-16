@@ -45,6 +45,7 @@ export default function Home() {
         <div className="hero-actions">
           <a href="#live-demo" className="primary-link">Run the public demo</a>
           <a href="/demo">Watch the 70-second video</a>
+          <a href="/api/openapi">Agent API specification</a>
           <a
             href={VERIFIED_ARC_PROOF.settlement.explorerUrl}
             target="_blank"
@@ -58,7 +59,7 @@ export default function Home() {
       <section className="proof-strip" aria-label="Verified results">
         <div><strong>$0.001</strong><span>x402 signal purchase</span></div>
         <div><strong>1 USDC</strong><span>Arc treasury settlement</span></div>
-        <div><strong>5 / 5</strong><span>automated tests passing</span></div>
+        <div><strong>Testnet</strong><span>historical demo evidence only</span></div>
         <div><strong>5042002</strong><span>Arc Testnet chain ID</span></div>
       </section>
 
@@ -66,7 +67,7 @@ export default function Home() {
         <article>
           <span>01</span>
           <h2>Observe</h2>
-          <p>Build a two-minute alert from public Coinbase Exchange candles.</p>
+          <p>Build a short-window observation from public Coinbase Exchange candles.</p>
         </article>
         <article>
           <span>02</span>
@@ -123,7 +124,7 @@ export default function Home() {
           <h2>One decision. One guarded settlement.</h2>
         </div>
         <dl>
-          <div><dt>Signal</dt><dd>sharp drop · −180 bps · 94% confidence</dd></div>
+          <div><dt>Signal</dt><dd>labelled demo fixture · −180 bps · 0.94 heuristic score</dd></div>
           <div><dt>x402 payment</dt><dd>0.001 USDC</dd></div>
           <div><dt>Treasury action</dt><dd>1 USDC to reserve</dd></div>
           <div><dt>Finality</dt><dd>success on Arc Testnet</dd></div>

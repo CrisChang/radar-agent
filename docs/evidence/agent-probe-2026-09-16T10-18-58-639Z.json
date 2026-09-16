@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-09-16T10:18:58.639Z",
+  "kind": "unpaid_agent_contract_probe",
+  "targetOrigin": "http://127.0.0.1:3016",
+  "network": "eip155:5042002",
+  "offer": {
+    "network": "eip155:5042002",
+    "amountAtomic": "1000",
+    "asset": "0x3600000000000000000000000000000000000000",
+    "payTo": "0x1111111111111111111111111111111111111111"
+  },
+  "sellerAllowlistChecked": true,
+  "observations": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "elapsedMs": 24
+    },
+    {
+      "path": "/api/openapi",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "path": "/api/signals/latest?symbol=ETH-USD",
+      "status": 402,
+      "elapsedMs": 1
+    }
+  ],
+  "signedRequests": 0,
+  "payments": 0,
+  "deliveredPaidSignals": 0,
+  "onchainVerified": false,
+  "note": "HTTP challenge compatibility only; not an external customer, paid delivery, or production-readiness proof"
+}

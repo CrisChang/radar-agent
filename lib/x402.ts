@@ -7,19 +7,17 @@
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { mkdir } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
 import { BatchFacilitatorClient } from "@circle-fin/x402-batching/server";
 import { NextRequest, NextResponse } from "next/server";
+import { assertExecutionNetwork, getArcNetwork, usdcAtomic } from "./network";
+import { classifyPaymentReference, validateOffer } from "./agent-contract";
 
-const ARC_TESTNET_NETWORK = "eip155:5042002";
-const ARC_TESTNET_USDC = "0x3600000000000000000000000000000000000000";
-const ARC_TESTNET_GATEWAY_WALLET =
-  "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
 // Gateway nanopayment authorizations need at least seven days of validity.
 // Keep the small buffer used by Circle's current seller quickstart.
 const GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS = 604_900;
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 
-const facilitator = new BatchFacilitatorClient();
 
 interface PaymentPayload {
   x402Version: number;
@@ -31,29 +29,26 @@ interface PaymentPayload {
 
 function sellerAddress(): `0x${string}` {
   const address = process.env.SELLER_ADDRESS;
-  if (!address || !ADDRESS_PATTERN.test(address)) {
-    throw new Error("SELLER_ADDRESS must be a valid Arc Testnet EVM address");
+  if (!address || !ADDRESS_PATTERN.test(address) || /^0x0{40}$/.test(address)) {
+    throw new Error("SELLER_ADDRESS must be a valid nonzero EVM address");
   }
   return address as `0x${string}`;
 }
 
 export function buildPaymentRequirements(priceUsdc: string) {
-  const numericPrice = Number(priceUsdc);
-  if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
-    throw new Error(`invalid x402 price: ${priceUsdc}`);
-  }
+  const network = getArcNetwork();
 
   return {
     scheme: "exact" as const,
-    network: ARC_TESTNET_NETWORK,
-    asset: ARC_TESTNET_USDC,
-    amount: Math.round(numericPrice * 1_000_000).toString(),
+    network: network.caip2,
+    asset: network.usdc,
+    amount: usdcAtomic(priceUsdc),
     payTo: sellerAddress(),
     maxTimeoutSeconds: GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS,
     extra: {
       name: "GatewayWalletBatched",
       version: "1",
-      verifyingContract: ARC_TESTNET_GATEWAY_WALLET,
+      verifyingContract: network.gatewayWallet,
     },
   };
 }
@@ -76,10 +71,13 @@ export function withGateway(
   handler: (request: NextRequest) => Promise<NextResponse>,
   priceUsdc: string,
   endpoint: string,
+  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle"> } = {},
 ) {
   return async (request: NextRequest) => {
+    const requestId = randomUUID();
     let requirements: ReturnType<typeof buildPaymentRequirements>;
     try {
+      assertExecutionNetwork(getArcNetwork());
       requirements = buildPaymentRequirements(priceUsdc);
     } catch (error) {
       return NextResponse.json(
@@ -113,10 +111,22 @@ export function withGateway(
       });
     }
 
+    let paymentPayload: PaymentPayload;
     try {
-      const paymentPayload = JSON.parse(
+      if (signature.length > 16_384) throw new Error("payment header too large");
+      paymentPayload = JSON.parse(
         Buffer.from(signature, "base64").toString("utf8"),
       ) as PaymentPayload;
+      if (!paymentPayload.payload || typeof paymentPayload.payload !== "object") throw new Error("invalid payload");
+      const offer = validateOffer({ x402Version: paymentPayload.x402Version, accepts: [paymentPayload.accepted] }, getArcNetwork(), requirements.amount);
+      if (offer.amountAtomic !== requirements.amount || offer.payTo.toLowerCase() !== requirements.payTo.toLowerCase()) throw new Error("payment terms changed");
+    } catch {
+      return NextResponse.json({ error: "invalid payment payload", request_id: requestId }, { status: 400 });
+    }
+
+    let settlementAttempted = false;
+    try {
+      const facilitator = dependencies.facilitator ?? new BatchFacilitatorClient({ url: getArcNetwork().facilitatorUrl });
       const verification = await facilitator.verify(
         paymentPayload,
         requirements,
@@ -131,6 +141,12 @@ export function withGateway(
         );
       }
 
+      // Prepare content before accepting payment: invalid/stale data is not a
+      // successful paid delivery. This handler must remain read-only.
+      const response = await handler(request);
+      if (!response.ok) return response;
+      const outputHash = createHash("sha256").update(await response.clone().text()).digest("hex");
+      settlementAttempted = true;
       const settlement = await facilitator.settle(
         paymentPayload,
         requirements,
@@ -149,13 +165,19 @@ export function withGateway(
       const amountUsdc = Number(requirements.amount) / 1_000_000;
       await recordPayment({
         endpoint,
+        request_id: requestId,
         payer,
         amount_usdc: amountUsdc,
         network: requirements.network,
-        transaction: settlement.transaction ?? null,
+        payment: classifyPaymentReference(settlement.transaction),
+        payment_status: "gateway_accepted",
+        delivery_status: "response_prepared",
+        response_sha256: outputHash,
       });
 
-      const response = await handler(request);
+      response.headers.set("x-radar-request-id", requestId);
+      response.headers.set("x-radar-response-sha256", outputHash);
+      response.headers.set("x-radar-payment-state", "gateway_accepted_not_onchain_verified");
       response.headers.set(
         "payment-response",
         Buffer.from(
@@ -169,13 +191,19 @@ export function withGateway(
       );
       return response;
     } catch (error) {
-      console.error("[x402] payment processing error:", error);
+      // Do not leak provider errors, signatures or payment authorization data.
+      console.error("[x402] request failed", { requestId, settlementAttempted });
+      await recordPayment({ endpoint, request_id: requestId,
+        payment_status: settlementAttempted ? "unknown_do_not_repay" : "not_settled",
+        delivery_status: "not_served", network: requirements.network });
       return NextResponse.json(
         {
           error: "payment processing error",
-          message: error instanceof Error ? error.message : String(error),
+          request_id: requestId,
+          payment_status: settlementAttempted ? "unknown_do_not_repay" : "not_settled",
+          retry_safe: !settlementAttempted,
         },
-        { status: 500 },
+        { status: 502 },
       );
     }
   };

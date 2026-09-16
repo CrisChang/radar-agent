@@ -5,6 +5,8 @@ import type { PriceSignal } from "../lib/signals";
 import { buildDemoSignal, getLatestSignal } from "../lib/signals";
 import { decide } from "../lib/decision";
 import { DisciplineEngine } from "../lib/discipline";
+import { assertExecutionNetwork, getArcNetwork } from "../lib/network";
+import { assertUnchangedOffer, classifyPaymentReference, validateOffer } from "../lib/agent-contract";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
@@ -12,6 +14,10 @@ const demoSignal = args.has("--demo-signal");
 const resetBreaker = args.has("--reset-breaker");
 const root = resolve(import.meta.dirname, "..");
 const require = createRequire(import.meta.url);
+const network = getArcNetwork();
+// Preserve the existing real testnet ledger; dry runs must never mutate it.
+const stateRoot = dryRun ? "agent/state/dry-run" : "agent/state";
+if (!dryRun) assertExecutionNetwork(network);
 
 function envNumber(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -24,8 +30,8 @@ function envNumber(name: string, fallback: number): number {
 }
 
 const discipline = new DisciplineEngine(
-  resolve(root, "agent/state/discipline.json"),
-  resolve(root, "agent/state/audit.jsonl"),
+  resolve(root, stateRoot, "discipline.json"),
+  resolve(root, stateRoot, "audit.jsonl"),
   {
     data: envNumber("DATA_DAILY_CAP_USDC", 0.1),
     treasury: envNumber("TREASURY_DAILY_CAP_USDC", 25),
@@ -71,6 +77,8 @@ async function buySignal(): Promise<{
   if (!support.supported) {
     throw new Error("seller does not advertise Circle Gateway batching");
   }
+  const approvedOffer = validateOffer({ x402Version: 2, accepts: [support.requirements] }, network,
+    Math.round(envNumber("SIGNAL_MAX_PRICE_USDC", 0.001) * 1_000_000).toString());
   const advertisedAtomic = Number(support.requirements?.amount);
   if (!Number.isSafeInteger(advertisedAtomic) || advertisedAtomic <= 0) {
     throw new Error("seller advertised an invalid x402 amount");
@@ -84,6 +92,12 @@ async function buySignal(): Promise<{
     );
   }
   discipline.authorizeSpend("data", advertisedPrice);
+  // pay() fetches a second quote: enforce the same terms at the actual signing
+  // boundary as well, not only in supports() or after funds were accepted.
+  gateway.onBeforePaymentCreation(async ({ selectedRequirements }) => {
+    assertUnchangedOffer(selectedRequirements, approvedOffer, network);
+    discipline.authorizeSpend("data", advertisedPrice);
+  });
 
   let balances = await gateway.getBalances();
   if (Number(balances.gateway.formattedAvailable) < advertisedPrice) {
@@ -183,7 +197,7 @@ async function main(): Promise<void> {
   discipline.audit("signal_purchased", {
     signal_id: purchase.signal.signal_id,
     price_usdc: purchase.amountUsdc,
-    payment_transaction: purchase.transaction,
+    payment_reference: classifyPaymentReference(purchase.transaction),
     feed_status: purchase.signal.feed_status,
   });
 

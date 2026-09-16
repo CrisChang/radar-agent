@@ -20,6 +20,7 @@
     "enabled": true
   },
   "vars": {
+    "RADAR_NETWORK": "testnet",
     "SELLER_ADDRESS": "0x00902065f410A5B9Af8e80BF663790744D378a0C",
     "SIGNAL_PRICE_USDC": "0.001",
     "RADAR_ALLOW_DEMO_SIGNALS": "true",

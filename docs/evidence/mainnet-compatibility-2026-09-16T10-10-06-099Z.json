@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-16T10:10:06.099Z",
+  "kind": "read_only_compatibility",
+  "network": "eip155:5042",
+  "signedRequests": 0,
+  "payments": 0,
+  "transactionsBroadcast": 0,
+  "dependencyChecksPassed": false,
+  "mainnetExecutionEnabled": false,
+  "productionReady": false,
+  "checks": [
+    {
+      "name": "installed_sdk_chain_definitions",
+      "ok": true,
+      "detail": {
+        "versions": {
+          "@circle-fin/x402-batching": "3.5.0",
+          "@circle-fin/app-kit": "1.15.1",
+          "@circle-fin/adapter-circle-wallets": "1.8.0",
+          "viem": "2.55.10"
+        },
+        "chainId": 5042,
+        "scope": "definitions_only_not_wallet_or_send_validation"
+      }
+    },
+    {
+      "name": "rpc_identity_and_recent_block",
+      "ok": false,
+      "detail": "fetch failed"
+    },
+    {
+      "name": "usdc_and_gateway_contracts",
+      "ok": true,
+      "detail": {
+        "blockNumber": "21140855",
+        "tokenDecimals": 6,
+        "nativeGasDecimals": 18,
+        "contracts": [
+          {
+            "name": "USDC",
+            "address": "0x3600000000000000000000000000000000000000",
+            "byteLength": 1798,
+            "codeSha256": "05a716ca240781d5b6a61f680e05b7d56034f1e59ae107ffee41fc0bac438c8d"
+          },
+          {
+            "name": "GatewayWallet",
+            "address": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE",
+            "byteLength": 163,
+            "codeSha256": "6b8e7a64612b8e2ceba151ed891f61119505392474880c1623a44d2f9b52300e"
+          }
+        ],
+        "scope": "presence_and_decimals_not_security_audit"
+      }
+    },
+    {
+      "name": "gateway_advertises_arc_mainnet",
+      "ok": true,
+      "detail": {
+        "x402Version": 2,
+        "scheme": "exact",
+        "network": "eip155:5042",
+        "extra": {
+          "name": "GatewayWalletBatched",
+          "version": "1",
+          "verifyingContract": "0x77777777dcc4d5a8b6e418fd04d8997ef11000ee",
+          "minValiditySeconds": 604800,
+          "assets": [
+            {
+              "symbol": "USDC",
+              "address": "0x3600000000000000000000000000000000000000",
+              "decimals": 6
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "remainingGates": [
+    "durable seller recovery and buyer spend reservation",
+    "explicit owner-approved wallet identities and test budget",
+    "paid external-client delivery and batch-settlement reconciliation",
+    "deployed OpenAPI and service review",
+    "grant eligibility confirmation"
+  ]
+}
