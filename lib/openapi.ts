@@ -9,9 +9,10 @@ export function buildOpenApi() {
       description: "Structured ETH/BTC signals for other agents. Testnet payment prototype; mainnet execution is blocked. Signals are heuristic market observations, not calibrated probabilities or investment advice. Gateway acceptance is not onchain settlement proof.",
     },
     servers: [{ url: "/", description: "Same origin as this document" }],
+    "x-radar-payment-acceptance-enabled": network.chainId !== 5042 && process.env.RADAR_ACCEPT_PAYMENTS === "true",
     "x-radar-network": { chainId: network.chainId, caip2: network.caip2, mainnetExecutionEnabled: false },
     paths: {
-      "/api/health": { get: { operationId: "getRadarHealth", summary: "Read deployment and evidence scope", responses: { "200": { description: "Configuration metadata, not a payment readiness guarantee" }, "503": { description: "Invalid configuration" } } } },
+      "/api/health": { get: { operationId: "getRadarHealth", summary: "Read deployment and evidence scope", responses: { "200": { description: "Configuration and D1 schema read checked; not a payment or write-readiness guarantee" }, "503": { description: "Invalid configuration, missing database or failed schema read" } } } },
       "/api/signals/latest": {
         get: {
           operationId: "getLatestMarketSignal",
@@ -38,7 +39,7 @@ export function buildOpenApi() {
             "402": { description: "Payment required or rejected", headers: { "payment-required": { description: "Base64 x402 v2 challenge (on the initial unpaid request)", schema: { type: "string" } } } },
             "409": { description: "Request/authorization conflict or pending outcome: do not repay. Exact accepted retries may recover the stored response." },
             "502": { description: "Provider failure; unknown_do_not_repay means investigate before retrying payment" },
-            "503": { description: "Mainnet execution disabled, durable store missing, seller misconfigured, or fresh data unavailable" },
+            "503": { description: "Payment acceptance disabled, mainnet execution disabled, durable store missing, seller misconfigured, or fresh data unavailable" },
           },
         },
       },

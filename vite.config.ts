@@ -11,6 +11,7 @@ export default defineConfig(async () => {
 
   const { cloudflare } = await import("@cloudflare/vite-plugin");
   return {
+    envDir: process.env.RADAR_BUILD_NO_DOTENV === "true" ? false : undefined,
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,

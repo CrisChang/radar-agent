@@ -10,6 +10,11 @@ evidence is [ARC_MAINNET_PLAN.md](ARC_MAINNET_PLAN.md).
   movement independently of configuration. No real-funds run was authorized.
 - `/api/openapi` describes the signal service for other agents; the independent
   `examples/external-agent/probe.mts` client only observes unpaid HTTP responses.
+- `RADAR_ACCEPT_PAYMENTS` defaults to disabled. Only explicit `true` enables the
+  testnet payment path; mainnet remains separately blocked. Staging can advertise
+  discovery metadata while refusing every payment-bearing request before verification.
+- Health performs a primary-first, zero-row D1 schema read. Missing/unmigrated
+  storage returns 503, not a healthy binding claim; no payment records are exposed.
 - Seller content is prepared before settlement, with invalid/stale content
   rejected before charging. A Gateway acceptance reference, a prepared response
   digest and an onchain verified receipt are different evidence levels.

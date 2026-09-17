@@ -117,6 +117,14 @@ export function withGateway(
       );
     }
 
+    // Staging is discovery-only until a separately approved paid pilot.
+    // Fail closed, including malformed/empty authorization headers, before
+    // parsing a payload, accessing the ledger, or contacting a facilitator.
+    if (request.headers.has("payment-signature") && process.env.RADAR_ACCEPT_PAYMENTS !== "true") {
+      return NextResponse.json({ error: "Payments are disabled on this deployment", payment_status: "not_settled", retry_safe: false },
+        { status: 503, headers: { "cache-control": "no-store" } });
+    }
+
     const signature = request.headers.get("payment-signature");
     if (!signature) {
       const paymentRequired = {

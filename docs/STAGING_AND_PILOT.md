@@ -1,23 +1,30 @@
 # Radar Agent：测试环境与真实交付清单
 
-更新：2026-09-16。这里是 Arc Radar Agent，不是 SwapGuard。
+更新：2026-09-17。这里是 Arc Radar Agent，不是 SwapGuard。
 
 ## 本轮完成到哪里
 
 - 主网基础接口只读检查已通过，主网付款仍被代码拦截。
-- 42 项自动测试通过，类型检查和构建通过。
+- 47 项自动测试通过，类型检查、独立 staging 构建与本地 Worker 检查通过。
 - D1 迁移、唯一请求占用、状态转换、响应保存已在本地 SQLite 和
   Miniflare/workerd 中验证。Worker 的数据库绑定、健康接口、OpenAPI、
   未付款 402 与错误参数 400 也已验证。
 - 这些是本地/模拟证据，不是真实付费交付，也不是第三方用户采用。
 - 本轮没有创建云端数据库、发布新 Worker、充值、签署付款或发送链上交易。
+- 9 月 17 日用户已批准创建独立测试 Worker＋D1；Cloudflare CLI 显示未登录，
+  发起的官方 OAuth 授权超时。云资源创建和部署当前受登录阻塞，不是已上线。
+- 新增 `RADAR_ACCEPT_PAYMENTS`：只有显式值 `true` 才接受付款授权；未设置、
+  `false` 或其他值均阻止付款请求，先于账本访问、付款验证与结算执行。
+  staging 模板保持 `false`；同意部署不等于同意启用收款或买方支出。
+- `/api/health` 实际对 D1 执行不返回记录的 schema 读取；缺库/未迁移/不可访问
+  返回 503，仅读取成功才显示 `schema_read_verified`。这不证明写入和完整交易能力。
 
 本地可复现检查（不加载钱包、不付款；Worker 检查禁用所有外部 HTTP）：
 
 ```bash
 npm test
 npm run typecheck
-npm run build
+npm run build:staging
 npm run check:worker
 ```
 
@@ -27,20 +34,25 @@ npm run check:worker
 
 ## 下一步：独立测试环境，不覆盖老演示
 
-1. 取得建立独立 Cloudflare Worker 与 D1 数据库的确认；检查账户套餐/用量。
+1. 已取得独立 Worker＋D1 创建确认；仍需完成 Cloudflare 官方登录，随后检查账户套餐/用量。
 2. 为测试网单独创建数据库、绑定 `RADAR_PAYMENTS`，应用
    `migrations/0001_payment_receipts.sql`。不要清空或迁移覆盖旧演示账本。
 3. `wrangler.staging.example.jsonc` 仅是模板；全零数据库 ID 和 `0x111…111`
    收款方都是占位，不能拿它远程部署或付款。替换为真实数据库 ID 和
    经所有者确认的测试网收款地址。不要把私钥或 Circle 凭证放进配置。
-4. 在独立域名部署；验证绑定、迁移、重启后记录恢复和外部未付款客户端。
+4. 首次部署保持 `RADAR_ACCEPT_PAYMENTS=false`，不上传任何买方私钥或 Circle
+   托管凭证。在独立域名验证绑定、迁移、重启后记录恢复和外部未付款客户端。
    `npm run deploy:workers` 会拒绝缺少 D1 的旧配置，避免误覆盖演示站。
 5. 再确认测试网买方/卖方地址、请求次数、数据费上限，以及充值 Gas。
    现有 `.env.local` 的存在不代表这些钱包获得了此次支出授权。
 
 没有 D1 时，接口允许未付款报价用于兼容诊断，但带授权的请求返回 503，
 不会调用收款接口。`/api/health` 会显示 `blocked_missing_store`。
-绑定存在也不等于数据库迁移和访问权限已验证。
+新健康检查会验证 schema 读取，但不执行付款或写入。云端写入/恢复需要独立验证。
+
+最新本地报告：`docs/evidence/worker-d1-2026-09-17T01-58-53-771Z.json`。
+构建命令关闭 Vite dotenv 和 Wrangler dotenv dev-vars 加载；它不会启动买方 CLI。
+待完成官方登录后继续本节第 2 步，无需再次申请创建资源许可；付款仍需单独批准。
 
 ## 付费请求的协议变化
 

@@ -18,7 +18,7 @@ const runtime = new Miniflare({
   modulesRoot: serverRoot,
   compatibilityDate: "2026-05-15", compatibilityFlags: ["nodejs_compat"],
   d1Databases: { RADAR_PAYMENTS: "local-smoke-database" }, d1Persist: persist,
-  bindings: { RADAR_NETWORK: "testnet", SELLER_ADDRESS: "0x1111111111111111111111111111111111111111", SIGNAL_PRICE_USDC: "0.001", RADAR_ALLOW_DEMO_SIGNALS: "false" },
+  bindings: { RADAR_NETWORK: "testnet", SELLER_ADDRESS: "0x1111111111111111111111111111111111111111", SIGNAL_PRICE_USDC: "0.001", RADAR_ALLOW_DEMO_SIGNALS: "false", RADAR_ACCEPT_PAYMENTS: "false" },
   fetchMock: outbound,
 });
 try {
@@ -36,13 +36,15 @@ try {
   const health = await runtime.dispatchFetch("http://localhost/api/health");
   const healthBody = await health.json() as { durable_payment_store?: string; chainId?: number };
   assert.equal(health.status, 200); assert.equal(healthBody.chainId, 5042002);
-  assert.equal(healthBody.durable_payment_store, "binding_present_not_database_health_proof");
+  assert.equal(healthBody.durable_payment_store, "schema_read_verified");
   const spec = await runtime.dispatchFetch("http://localhost/api/openapi"); assert.equal(spec.status, 200);
   const quote = await runtime.dispatchFetch("http://localhost/api/signals/latest?symbol=ETH-USD");
   assert.equal(quote.status, 402); assert.ok(quote.headers.get("payment-required"));
   const invalid = await runtime.dispatchFetch("http://localhost/api/signals/latest?symbol=DOGE-USD"); assert.equal(invalid.status, 400);
+  const disabled = await runtime.dispatchFetch("http://localhost/api/signals/latest?symbol=ETH-USD", { headers: { "payment-signature": "disabled-test-not-an-authorization" } });
+  assert.equal(disabled.status, 503); assert.equal((await disabled.json() as { payment_status: string }).payment_status, "not_settled");
   const report = { capturedAt: new Date().toISOString(), kind: "local_worker_d1_smoke", runtime: "Miniflare/workerd",
-    tests: { migration: "passed", atomicClaim: "passed", savedResponse: "passed", requestBinding: "passed", health: 200, openapi: 200, unpaidQuote: 402, invalidQuery: 400 },
+    tests: { migration: "passed", atomicClaim: "passed", savedResponse: "passed", requestBinding: "passed", health: 200, openapi: 200, unpaidQuote: 402, invalidQuery: 400, disabledPayment: 503 },
     outboundNetwork: "disabled", payments: 0, signatures: 0, transactions: 0,
     note: "Local runtime + storage fixture; not paid delivery, cloud deployment, external adoption or chain settlement." };
   const directory = resolve(root, "docs/evidence"); await mkdir(directory, { recursive: true });

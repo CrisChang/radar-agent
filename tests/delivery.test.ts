@@ -7,6 +7,7 @@ import { paymentDatabase } from "./helpers/payment-db";
 import { GET as signalRoute } from "../app/api/signals/latest/route";
 
 process.env.RADAR_NETWORK = "testnet";
+process.env.RADAR_ACCEPT_PAYMENTS = "true";
 process.env.SELLER_ADDRESS = "0x1111111111111111111111111111111111111111";
 delete process.env.PAYMENT_AUDIT_PATH;
 const endpoint = "/api/signals/latest";
@@ -27,6 +28,25 @@ function provider(options: { valid?: boolean; success?: boolean; throws?: boolea
     },
   };
 }
+
+test("discovery-only or unspecified mode never verifies, settles, or reads a paid request", async () => {
+  const facilitator = provider();
+  const route = withGateway(async () => { throw new Error("must not run"); }, "0.001", endpoint, { facilitator,
+    store: { async find() { throw new Error("must not read ledger"); }, async claim() { throw new Error("must not write ledger"); }, async transition() { throw new Error("must not write ledger"); } } });
+  try {
+    for (const mode of [undefined, "false", "typo"]) {
+      if (mode === undefined) delete process.env.RADAR_ACCEPT_PAYMENTS;
+      else process.env.RADAR_ACCEPT_PAYMENTS = mode;
+      assert.equal((await route(request())).status, 402);
+      const rejected = await route(request(validPayload()));
+      assert.equal(rejected.status, 503);
+      assert.equal((await rejected.json()).payment_status, "not_settled");
+      const emptyHeader = request(); emptyHeader.headers.set("payment-signature", "");
+      assert.equal((await route(emptyHeader)).status, 503);
+    }
+    assert.deepEqual(facilitator.calls, []);
+  } finally { process.env.RADAR_ACCEPT_PAYMENTS = "true"; }
+});
 
 test("unpaid challenge makes no provider calls and exposes no signal", async () => {
   const facilitator = provider();

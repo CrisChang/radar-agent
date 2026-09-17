@@ -1,6 +1,6 @@
 # Radar Agent — Arc mainnet and ecosystem plan
 
-Updated: 2026-09-16. Repository: https://github.com/CrisChang/radar-agent
+Updated: 2026-09-17. Repository: https://github.com/CrisChang/radar-agent
 
 This is the Arc **Radar Agent** project, not the Uniswap SwapGuard project.
 Owner-approved order: (1) mainnet compatibility, (2) external-agent integration
@@ -23,10 +23,13 @@ Tameion is only a candidate until full rules and continuation eligibility are kn
 - Integration hardening adds D1 request/response persistence, unique request and
   authorization claims, exact accepted-response replay, single-host buyer locking,
   outstanding signal-fee reservations, and guarded paid HTTP transport.
-- 42 automated tests are in the current suite, including mocked payment failures
+- 47 automated tests are in the current suite, including mocked payment failures
   and real SQLite constraint/restart checks; no mocked acceptance is live evidence.
 - The built Worker and D1 adapter also passed an isolated Miniflare/workerd smoke
   test with outbound HTTP disabled. Cloud deployment is still pending.
+- Separate staging resources are owner-approved; Cloudflare login/OAuth is the
+  current blocker. No resources created. Staging rejects all payment-bearing
+  requests by default and health now reads the D1 schema without exposing rows.
 - No private keys loaded by the diagnostic/probe scripts, no payment signed,
   no transaction broadcast, no mainnet deposit, no application submitted.
 

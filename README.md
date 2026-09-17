@@ -14,7 +14,7 @@ We are continuing the existing Arc project in this order:
    and updated SDK chain definitions. This is not a security audit or a paid test.
 2. **External-agent integration — in progress.** `/api/openapi`, an independent
    no-wallet HTTP probe, response digests, explicit unknown-payment handling,
-   durable D1 request/response records, pending-budget reservations and 42
+   durable D1 request/response records, pending-budget reservations and 47
    regression tests. No third-party adoption or new paid delivery claimed.
 3. **Microgrants / Agent Marketplace — not submitted.** Mainnet money movement
    stays code-blocked pending durable accounting/recovery, real delivery tests,
@@ -24,9 +24,16 @@ See [launch plan, evidence and application gates](docs/ARC_MAINNET_PLAN.md) and
 the [external-agent example](examples/external-agent/README.md).
 The [staging and pilot runbook](docs/STAGING_AND_PILOT.md) lists remaining work.
 
+September 17: the owner approved a separate testnet Worker/D1 deployment, but
+Cloudflare login is currently required (the OAuth attempt timed out). No new
+cloud resources have been created. The staging build is ready and locally tested:
+payment acceptance defaults to disabled, and health performs a real schema read.
+`RADAR_ACCEPT_PAYMENTS=true` is a separate paid-pilot opt-in, not deployment consent.
+
 ```bash
 npm run check:mainnet   # public read-only probes; no keys, signing or payments
 npm run build && npm run check:worker # isolated local Worker + D1; outbound HTTP disabled
+npm run build:staging  # disables Vite dotenv + Wrangler dotenv dev-vars loading
 npm run agent:probe -- --url http://127.0.0.1:3000 --network testnet --save
 ```
 
