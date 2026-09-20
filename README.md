@@ -24,16 +24,21 @@ See [launch plan, evidence and application gates](docs/ARC_MAINNET_PLAN.md) and
 the [external-agent example](examples/external-agent/README.md).
 The [staging and pilot runbook](docs/STAGING_AND_PILOT.md) lists remaining work.
 
-September 17: the owner approved a separate testnet Worker/D1 deployment, but
-Cloudflare login is currently required (the OAuth attempt timed out). No new
-cloud resources have been created. The staging build is ready and locally tested:
-payment acceptance defaults to disabled, and health performs a real schema read.
+September 20: the owner-approved **independent discovery-only staging** is live:
+[health](https://radar-agent-integration-staging.chrischang2026.workers.dev/api/health)
+· [OpenAPI](https://radar-agent-integration-staging.chrischang2026.workers.dev/api/openapi).
+Cloud D1 binding/migration, seven unpaid HTTP checks and a labelled synthetic
+storage record surviving redeployment passed. The historical demo is unchanged.
+The [deployment evidence](docs/evidence/staging-deployment-2026-09-20.md) records
+the initial direct-network failure and successful proxy-assisted checks.
+This is not paid delivery, cloud paid-response recovery or third-party adoption.
 `RADAR_ACCEPT_PAYMENTS=true` is a separate paid-pilot opt-in, not deployment consent.
 
 ```bash
 npm run check:mainnet   # public read-only probes; no keys, signing or payments
-npm run build && npm run check:worker # isolated local Worker + D1; outbound HTTP disabled
 npm run build:staging  # disables Vite dotenv + Wrangler dotenv dev-vars loading
+npm run check:worker  # isolated local Worker + D1; outbound HTTP disabled
+npm run check:staging -- --url https://radar-agent-integration-staging.chrischang2026.workers.dev --save
 npm run agent:probe -- --url http://127.0.0.1:3000 --network testnet --save
 ```
 
@@ -182,7 +187,8 @@ Invalid request parameters are rejected before demanding payment. After payment
 verification, the seller prepares fresh content **before** accepting settlement;
 stale/unavailable data returns 503 without a new settlement attempt. If settlement
 times out, a 502 response marks the payment unknown and unsafe to repay blindly.
-Cloud persistence validation and unknown-settlement reconciliation remain mainnet release blockers.
+Basic cloud D1 persistence has passed a synthetic redeployment test. Cloud
+paid-response recovery and unknown-settlement reconciliation remain release blockers.
 
 Exact accepted retries recover the saved response without a new settlement.
 Changed request terms or authorization return 409. Unknown/settling records never
@@ -216,8 +222,9 @@ public/demo/         compressed final-submission video
 
 The historical demo purchased a $0.001 x402 signal and settled a 1 USDC treasury
 action on **Arc Testnet**, using a labelled sharp-drop fixture. Its video and
-receipt are preserved above. The September continuation is being pushed to this
-repository but is not publicly deployed; the old site is not evidence of these new features.
+receipt are preserved above. The September continuation has a separate public
+discovery-only staging deployment; the old site is not evidence of these new features.
+Staging accepts no payments and has delivered no paid signals in this validation.
 Mainnet execution, external paid-client evidence and ecosystem applications are
 pending the launch gates, not complete.
 

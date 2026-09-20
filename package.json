@@ -14,6 +14,7 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "check:mainnet": "node --import tsx scripts/check-mainnet.mts",
     "check:worker": "node --import tsx scripts/check-worker.mts",
+    "check:staging": "node --import tsx scripts/check-staging.mts",
     "agent:probe": "node --import tsx examples/external-agent/probe.mts",
     "agent": "tsx --env-file=.env.local agent/radar.mts",
     "agent:dry": "node --import tsx agent/radar.mts --dry-run --demo-signal",

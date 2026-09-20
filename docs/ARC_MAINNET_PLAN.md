@@ -1,6 +1,6 @@
 # Radar Agent — Arc mainnet and ecosystem plan
 
-Updated: 2026-09-17. Repository: https://github.com/CrisChang/radar-agent
+Updated: 2026-09-20. Repository: https://github.com/CrisChang/radar-agent
 
 This is the Arc **Radar Agent** project, not the Uniswap SwapGuard project.
 Owner-approved order: (1) mainnet compatibility, (2) external-agent integration
@@ -26,15 +26,20 @@ Tameion is only a candidate until full rules and continuation eligibility are kn
 - 47 automated tests are in the current suite, including mocked payment failures
   and real SQLite constraint/restart checks; no mocked acceptance is live evidence.
 - The built Worker and D1 adapter also passed an isolated Miniflare/workerd smoke
-  test with outbound HTTP disabled. Cloud deployment is still pending.
-- Separate staging resources are owner-approved; Cloudflare login/OAuth is the
-  current blocker. No resources created. Staging rejects all payment-bearing
-  requests by default and health now reads the D1 schema without exposing rows.
+  test with outbound HTTP disabled.
+- Independent, owner-approved staging is deployed in the original Radar account.
+  Cloud D1 migration/schema reads, seven unpaid HTTP checks and our no-wallet
+  client passed. A separate, labelled synthetic row survived redeployment;
+  the payment-receipt table remains empty. The historical demo is unchanged.
+- Staging rejects all payment-bearing requests and health reads the D1 schema
+  without exposing rows. Direct local connectivity failed; successful HTTP
+  checks used the operator's existing proxy. No general availability claim.
 - No private keys loaded by the diagnostic/probe scripts, no payment signed,
   no transaction broadcast, no mainnet deposit, no application submitted.
 
 Report: [successful mainnet probe](evidence/mainnet-compatibility-2026-09-16T10-14-51-178Z.json).
 Earlier result: [partial failure](evidence/mainnet-compatibility-2026-09-16T10-10-06-099Z.json).
+Cloud staging: [September 20 deployment and evidence](evidence/staging-deployment-2026-09-20.md).
 
 ## Product scope
 
@@ -63,7 +68,9 @@ Setting `RADAR_NETWORK=mainnet` does not enable payment or treasury movement.
 - [x] Fail before payment for invalid queries and stale/unavailable content.
 - [x] Label unknown settlement as unsafe to repay automatically.
 - [x] D1 seller state and stored-response recovery implemented and locally tested.
-  Binding/migration and cloud end-to-end validation are a separate pending gate.
+- [x] Cloud staging binding/migration, unpaid discovery and synthetic persistence
+  across redeployment. This does not validate paid settlement or response recovery.
+- [ ] Cloud paid-request delivery/recovery test after separate testnet spending approval.
 - [x] Persist signal-fee reservations before signing; preserve unknown amounts
   across restart/day rollover. Single-host CLI lock prevents overlapping cycles.
   Multi-host buyers need a shared budget coordinator; legacy state is preserved.
@@ -112,6 +119,9 @@ Do not turn blocked requests into successful deliveries or call unmeasured gas z
 
 ## Applications (prepare now; submit only when gates are met)
 
+Program details below were researched on September 16; this deployment update
+does not re-verify deadlines or eligibility. Recheck official rules before applying.
+
 ### Arc Microgrants
 
 Official: https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq
@@ -135,9 +145,10 @@ builder profile and appropriately labelled test report. No invented user numbers
 Official: https://developers.circle.com/agent-stack/agent-marketplace/get-listed
 
 Requires a working paid endpoint, OpenAPI and confirmed payout address. Listings
-are reviewed manually and payout addresses are screened. Our local OpenAPI at
-`/api/openapi` is not publicly deployed yet. Prepare metadata and apply only after
-the endpoint is reachable, its accepted network is supported and delivery tested.
+are reviewed manually and payout addresses are screened. Our [staging OpenAPI](https://radar-agent-integration-staging.chrischang2026.workers.dev/api/openapi)
+is public, but payment acceptance is disabled and no new paid delivery has been
+verified. Prepare metadata and apply only after a working paid endpoint, supported
+network, confirmed payout address and delivery tests are in place.
 Approval is not guaranteed; listing does not establish demand or revenue.
 
 ### Tameion

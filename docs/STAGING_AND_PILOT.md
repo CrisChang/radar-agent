@@ -1,6 +1,6 @@
 # Radar Agent：测试环境与真实交付清单
 
-更新：2026-09-17。这里是 Arc Radar Agent，不是 SwapGuard。
+更新：2026-09-20。这里是 Arc Radar Agent，不是 SwapGuard。
 
 ## 本轮完成到哪里
 
@@ -9,13 +9,17 @@
 - D1 迁移、唯一请求占用、状态转换、响应保存已在本地 SQLite 和
   Miniflare/workerd 中验证。Worker 的数据库绑定、健康接口、OpenAPI、
   未付款 402 与错误参数 400 也已验证。
-- 这些是本地/模拟证据，不是真实付费交付，也不是第三方用户采用。
-- 本轮没有创建云端数据库、发布新 Worker、充值、签署付款或发送链上交易。
-- 9 月 17 日用户已批准创建独立测试 Worker＋D1；Cloudflare CLI 显示未登录，
-  发起的官方 OAuth 授权超时。云资源创建和部署当前受登录阻塞，不是已上线。
+- 9 月 20 日 Cloudflare 官方授权完成，在原 Radar 账号创建了独立 Worker
+  `radar-agent-integration-staging` 和 D1 `radar-payments-staging`，迁移已应用。
+  未覆盖旧演示，也没有修改 SwapGuard、升级付费套餐或上传私钥/Circle 凭证。
+- 云端健康接口、OpenAPI、ETH/BTC 未付款报价、错误参数、禁用演示模式和
+  禁用收款检查均通过；自有独立 HTTP 客户端也通过报价/收款方白名单校验。
+- 独立 `radar_staging_probe` 表中的明确标注模拟记录，在重新部署后保持原值；
+  `payment_receipts` 记录数仍为 0。这不是完整云端付费请求恢复证明。
+- 本轮没有充值、签署付款或发送链上交易；没有真实付费交付或第三方用户采用。
 - 新增 `RADAR_ACCEPT_PAYMENTS`：只有显式值 `true` 才接受付款授权；未设置、
   `false` 或其他值均阻止付款请求，先于账本访问、付款验证与结算执行。
-  staging 模板保持 `false`；同意部署不等于同意启用收款或买方支出。
+  已部署的 staging 保持 `false`；同意部署不等于同意启用收款或买方支出。
 - `/api/health` 实际对 D1 执行不返回记录的 schema 读取；缺库/未迁移/不可访问
   返回 503，仅读取成功才显示 `schema_read_verified`。这不证明写入和完整交易能力。
 
@@ -30,29 +34,53 @@ npm run check:worker
 
 报告位于 `docs/evidence/worker-d1-*.json`。首次用 Wrangler 本地预览时遇到
 文件监听/目录权限问题；后来改用显式模块列表的独立 Miniflare 验证。
-不能把本地模拟成功描述为云端已上线。
+本地模拟与下面的独立云端验证是不同层级的证据。
 
-## 下一步：独立测试环境，不覆盖老演示
+## 已上线：独立测试环境，不覆盖老演示
 
-1. 已取得独立 Worker＋D1 创建确认；仍需完成 Cloudflare 官方登录，随后检查账户套餐/用量。
-2. 为测试网单独创建数据库、绑定 `RADAR_PAYMENTS`，应用
-   `migrations/0001_payment_receipts.sql`。不要清空或迁移覆盖旧演示账本。
-3. `wrangler.staging.example.jsonc` 仅是模板；全零数据库 ID 和 `0x111…111`
-   收款方都是占位，不能拿它远程部署或付款。替换为真实数据库 ID 和
-   经所有者确认的测试网收款地址。不要把私钥或 Circle 凭证放进配置。
-4. 首次部署保持 `RADAR_ACCEPT_PAYMENTS=false`，不上传任何买方私钥或 Circle
-   托管凭证。在独立域名验证绑定、迁移、重启后记录恢复和外部未付款客户端。
-   `npm run deploy:workers` 会拒绝缺少 D1 的旧配置，避免误覆盖演示站。
-5. 再确认测试网买方/卖方地址、请求次数、数据费上限，以及充值 Gas。
-   现有 `.env.local` 的存在不代表这些钱包获得了此次支出授权。
+- [健康检查](https://radar-agent-integration-staging.chrischang2026.workers.dev/api/health)
+- [公开 OpenAPI](https://radar-agent-integration-staging.chrischang2026.workers.dev/api/openapi)
+- [部署、持久化与网络验证记录](evidence/staging-deployment-2026-09-20.md)
 
-没有 D1 时，接口允许未付款报价用于兼容诊断，但带授权的请求返回 503，
-不会调用收款接口。`/api/health` 会显示 `blocked_missing_store`。
-新健康检查会验证 schema 读取，但不执行付款或写入。云端写入/恢复需要独立验证。
+`wrangler.staging.jsonc` 固定到已确认的原 Radar 账号、新 Worker 和新 D1。
+`wrangler.staging.example.jsonc` 仍是占位模板，不用于远程部署。
+配置里的历史测试网卖方地址只是发现/报价元数据，**不代表本次付费试验已确认
+钱包控制权或获准使用资金**。收款开关与主网执行均关闭。
 
-最新本地报告：`docs/evidence/worker-d1-2026-09-17T01-58-53-771Z.json`。
-构建命令关闭 Vite dotenv 和 Wrangler dotenv dev-vars 加载；它不会启动买方 CLI。
-待完成官方登录后继续本节第 2 步，无需再次申请创建资源许可；付款仍需单独批准。
+复现未付款云端检查：
+
+```bash
+npm run check:staging -- --url https://radar-agent-integration-staging.chrischang2026.workers.dev --save
+npm run agent:probe -- --url https://radar-agent-integration-staging.chrischang2026.workers.dev --network testnet --seller 0x00902065f410A5B9Af8e80BF663790744D378a0C --save
+```
+
+此次本机直连出现超时/不可达；使用用户已配置的系统代理后通过，报告已注明
+代理传输。不能把这一次结果当成全地域可用性或生产 SLA。不要通过关闭 TLS 校验解决。
+
+独立 staging 重新部署命令（仍不启用收款）：
+
+```bash
+npm run build:staging
+CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false WRANGLER_SEND_METRICS=false WRANGLER_LOG_PATH=.wrangler/staging-setup.log npx wrangler deploy --config wrangler.staging.jsonc
+```
+
+迁移为 `migrations/0001_payment_receipts.sql`；可复现的独立存储探针为
+`scripts/staging-storage-probe.sql`，只能运行在 `radar-payments-staging`。
+它创建单独的模拟表，不伪造付款记录。不要清空或覆盖旧演示账本。
+`npm run deploy:workers` 会拒绝缺少 D1 的旧配置，避免误覆盖演示站。
+
+最新本地报告：[Worker/D1 检查](evidence/worker-d1-2026-09-20T10-27-06-635Z.json)。
+构建命令关闭 Vite dotenv 和 Wrangler dotenv dev-vars 加载，不会启动买方 CLI。
+
+## 下一步：真实交付前的剩余门槛
+
+1. 补未知付款结果的操作者核对/恢复工具与测试，不允许直接重付或释放预留。
+2. 确认测试网买方/卖方地址、控制权、请求次数、数据费上限和充值 Gas；
+   取得单独支出许可后，才可以开启测试网收款并验证云端付费响应恢复。
+   现有 `.env.local` 不代表钱包获得了此次支出授权。
+3. 先用自有客户端完成小额测试，再与愿意参与的外部 Agent 运营者做交付试验；
+   两种来源分开记录，不把自有探针说成真实客户。
+4. 主网保持代码阻断，待对账、钱包/预算授权和真实交付门槛通过后再单独评估。
 
 ## 付费请求的协议变化
 

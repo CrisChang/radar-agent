@@ -25,7 +25,9 @@ evidence is [ARC_MAINNET_PLAN.md](ARC_MAINNET_PLAN.md).
 - The D1 seller stores a unique authorization key and a unique payer/request key,
   the exact prepared response, and atomic payment-state transitions. Accepted
   retries recover the original bytes; pending/unknown attempts never resettle.
-  D1 binding, migrations, cloud testing and operator reconciliation are required.
+  Independent staging D1 binding/migration and synthetic persistence across
+  redeployment passed on September 20. Cloud paid-response recovery and operator
+  reconciliation remain pending; the deployed staging rejects payments.
 - Paid HTTP refuses redirects, pins the seller, enforces a timeout and body size,
   checks response digest/correlation, and validates signal fields and freshness.
 - Mainnet RPC/contract/SDK checks do not verify a Circle custody account's send

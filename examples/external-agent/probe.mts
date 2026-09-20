@@ -31,7 +31,7 @@ const header = response.headers.get("payment-required");
 if (!header || header.length > 16_384) throw new Error("Missing or oversized payment challenge");
 const offer = validateOffer(JSON.parse(Buffer.from(header, "base64").toString("utf8")), network, arg("--max-atomic", "1000"));
 if (expectedSeller && offer.payTo.toLowerCase() !== expectedSeller.toLowerCase()) throw new Error("Seller does not match caller allowlist");
-const report = { capturedAt: new Date().toISOString(), kind: "unpaid_agent_contract_probe", targetOrigin: base.origin, network: network.caip2, offer, sellerAllowlistChecked: !!expectedSeller, observations, signedRequests: 0, payments: 0, deliveredPaidSignals: 0, onchainVerified: false, note: "HTTP challenge compatibility only; not an external customer, paid delivery, or production-readiness proof" };
+const report = { capturedAt: new Date().toISOString(), kind: "unpaid_agent_contract_probe", targetOrigin: base.origin, network: network.caip2, offer, sellerAllowlistChecked: !!expectedSeller, observations, transport: process.env.NODE_USE_ENV_PROXY === "1" ? "operator_configured_environment_proxy" : "direct", signedRequests: 0, payments: 0, deliveredPaidSignals: 0, onchainVerified: false, note: "HTTP challenge compatibility only; not an external customer, paid delivery, or production-readiness proof" };
 if (args.includes("--save")) {
   const directory = resolve(import.meta.dirname, "../../docs/evidence");
   await mkdir(directory, { recursive: true });

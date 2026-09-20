@@ -16,6 +16,20 @@ allowlisted seller for a real service. `--max-atomic 1000` defaults to 0.001 USD
 at 6 decimals; it is only an offer-check limit, not a payment authorization.
 `--save` saves an explicitly **unpaid** observation to `docs/evidence/`.
 
+The independent cloud staging is also available for unpaid integration:
+
+```bash
+npm run agent:probe -- --url https://radar-agent-integration-staging.chrischang2026.workers.dev --network testnet \
+  --seller 0x00902065f410A5B9Af8e80BF663790744D378a0C --save
+```
+
+This pins the historical testnet seller advertised in staging metadata; it does
+not authorize payment or verify current wallet control. Staging explicitly has
+payment acceptance disabled. The September 20 successful cloud probes used the
+operator's existing network proxy after direct local requests failed. Reports
+record the selected transport mode; latency is not a production SLA.
+See [cloud deployment evidence](../../docs/evidence/staging-deployment-2026-09-20.md).
+
 The probe rejects unexpected chains, assets, authorization domains, excessive
 prices and (when `--seller` is supplied) substituted recipients. HTTPS is required
 except for loopback development. Redirects are refused. No automatic payment
@@ -26,7 +40,8 @@ uses a caller UUID, prohibits redirect forwarding and automatic retries, and val
 the response digest, metadata and signal. The CLI reserves signal fees before signing.
 No secrets, signatures or payments are needed to run this example.
 
-For the paid pilot, first bind/migrate the seller D1 store, validate it in staging,
-finish the unknown-payment reconciliation procedure, and obtain explicit owner
-approval for the participating wallets and total budget.
+Staging D1 is bound/migrated and its basic synthetic persistence is checked. For
+the paid pilot, finish the unknown-payment reconciliation procedure, obtain explicit
+owner approval for wallet identities and total budget, then validate cloud paid
+delivery and recovery. The existing unpaid probe is not a paid-delivery test.
 See [the launch gates](../../docs/ARC_MAINNET_PLAN.md).
