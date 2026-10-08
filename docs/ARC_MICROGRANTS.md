@@ -53,7 +53,10 @@ Submission still requires:
 - Durable recovery integration on Vercel, then one real mainnet paid response
   and its local audit/receipt.
 - A confirmed Arc mainnet transaction and explorer link.
-- A short demo recording and confirmation of no prior Circle/Arc funding.
+- A short demo recording.
+
+The owner confirmed on October 8, 2026 that this project has received no prior
+prizes or funding, including from Circle or Arc.
 
 Configuration checks and a local dry-run do not prove mainnet readiness.
 Testnet-only projects and work already funded by Circle/Arc are ineligible.
@@ -152,7 +155,9 @@ any synthetic fixture or dry-run as simulated.
 
 **Builder profile:** https://github.com/CrisChang
 
-**Prior Circle/Arc funding:** REQUIRED — confirm with the user. Participation
-in a hackathon is not proof of a grant or prize payment.
+**Prior Circle/Arc prizes or funding:** None. The owner confirmed on
+October 8, 2026 that this project has received no previous prizes or funding.
+Participation in a hackathon is not proof of a grant or prize payment.
 
-Do not submit while required links or eligibility confirmation are missing.
+Do not submit while required links or mainnet evidence are missing. The prior
+funding declaration is recorded above; other application requirements still apply.

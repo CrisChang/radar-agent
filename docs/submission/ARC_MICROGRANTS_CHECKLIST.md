@@ -9,6 +9,8 @@ Vercel branch. The application remains a draft until the open gates below pass.
 - Authenticated homepage and health return 200; unpaid signal requests return 402.
 - Hosted Coinbase candles are fresh. Price is 0.001 USDC; chain is 5042.
 - Owner confirmed the configured recipient is the intended test wallet.
+- Owner confirmed on October 8, 2026 that this project has received no prior
+  prizes or funding, including from Circle or Arc.
 - The repository is publicly visible. The October branch is prepared locally;
   publication is awaiting GitHub authorization. Intended source link:
   https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
@@ -29,7 +31,6 @@ Vercel branch. The application remains a draft until the open gates below pass.
 | Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
 | Confirmed chain evidence | Independently verify a mainnet receipt and publish its explorer link; distinguish Gateway acceptance from chain confirmation |
 | Demo recording | Record the new mainnet segments using ARC_MICROGRANTS_DEMO.md |
-| Funding eligibility | Owner confirms whether this project previously received Circle or Arc program funding |
 
 The wallet and recipient currently refer to the same owner-confirmed address.
 A same-wallet test must be labelled as such. It proves a functional path, not
@@ -46,7 +47,7 @@ independent demand or earned revenue.
 | Paid mainnet receipt | Not captured |
 | Confirmed mainnet explorer link | Not captured |
 | New mainnet video | Not recorded |
-| Prior funding declaration | Awaiting owner |
+| Prior funding declaration | No prior prizes or funding, confirmed by the owner on October 8, 2026 |
 
 Keep balances, secrets, full reusable authorizations and private runtime logs
 out of public materials. The hosting check record includes no wallet signature.

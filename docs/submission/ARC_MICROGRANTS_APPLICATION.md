@@ -1,8 +1,9 @@
 # Radar Agent Arc Microgrants application draft
 
 Updated October 8, 2026. This draft describes the October Vercel branch. Public
-launch, a real paid mainnet response, confirmed transaction evidence and the
-owner's prior-funding declaration must be completed before submission.
+launch, a real paid mainnet response and confirmed transaction evidence must
+be completed before submission. On October 8, 2026, the owner confirmed this
+project has received no prior prizes or funding.
 
 ## Project fields
 
@@ -18,7 +19,7 @@ owner's prior-funding declaration must be completed before submission.
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
 | Mainnet demo video | Pending the paid experiment; recording script is included |
-| Prior Circle or Arc funding | Awaiting the owner's declaration |
+| Prior Circle or Arc prizes or funding | None, confirmed by the owner on October 8, 2026 |
 
 ## Short description in English
 
@@ -36,7 +37,8 @@ advertises a 0.001 USDC per query price through Circle Gateway x402. A separate
 local buyer checks the final quote, its approved wallet identity and its budget
 before signing. After receiving a signal, deterministic rules choose hold or a
 suggested rebalance and append an audit record. Mainnet treasury transfers are
-disabled in this branch.
+disabled in this branch. Payments currently purchase market data; this branch
+does not place exchange orders or maintain a trading profit-and-loss ledger.
 
 Arc provides the mainnet USDC and Gateway infrastructure for the payment flow.
 The October Vercel build has passed authenticated homepage, health, fresh-feed
@@ -61,7 +63,8 @@ Radar Agent 将公开的 ETH、BTC 行情整理成带时间戳的信号接口。
 
 项目面向需要按次购买数据的 Agent。卖方提供公开行情信号，每次请求报价
 0.001 USDC；买方运行在本机，保留签名凭据、预算状态和审计日志。主网版本
-先验证买信号与记录判断的闭环，本分支的资金再平衡执行保持关闭。
+先验证买信号与记录判断的闭环，本分支的资金再平衡执行保持关闭。目前
+付款对应行情数据购买，尚未接入币种买卖订单或交易盈亏账单。
 
 Arc 的 USDC 和 Circle Gateway 为小额按次付款提供基础设施。目前 Vercel
 构建可运行，真实行情、健康检查和未付款时的 402 响应已验证。实际主网
@@ -73,6 +76,10 @@ The [deployment record](../deployment-vercel-2026-10-08.json) contains the
 October hosted checks. The [submission checklist](ARC_MICROGRANTS_CHECKLIST.md)
 separates verified results from remaining gates. The
 [demo script](ARC_MICROGRANTS_DEMO.md) specifies a 90 second recording.
+
+The owner confirmed on October 8, 2026 that this project has received no
+previous prizes or funding, including from Circle or Arc. This records the
+owner's declaration; it does not imply that all other application gates passed.
 
 The official program requires a working mainnet deployment, a public repository,
 a short project explanation and a public builder profile. Previously funded
