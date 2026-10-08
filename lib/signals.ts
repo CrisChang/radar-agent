@@ -173,7 +173,10 @@ export async function getLatestSignal(
   url.searchParams.set("start", start.toISOString());
   url.searchParams.set("end", end.toISOString());
 
-  try {
+  // One bounded retry handles a transient connection failure. Both attempts
+  // must return fresh market data; cached data never becomes chargeable.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
     const response = await fetch(url, {
       headers: {
         accept: "application/json",
@@ -188,13 +191,19 @@ export async function getLatestSignal(
     }
     const candles = (await response.json()) as CoinbaseCandle[];
     const signal = buildSignalFromCandles(symbol, candles);
+    const ageMs = Date.now() - Date.parse(signal.ts);
+    if (!Number.isFinite(ageMs) || ageMs < -30_000 || ageMs > 180_000) {
+      throw new Error("market feed returned stale or future-dated candles");
+    }
     lastLiveSignal = signal;
     return signal;
-  } catch (error) {
-    console.error(
-      "[signal-feed] live feed unavailable; returning a safe non-actionable signal:",
-      error instanceof Error ? error.message : error,
-    );
-    return fallbackSignal(symbol);
+    } catch (error) {
+      console.error(
+        attempt === 0 ? "[signal-feed] retrying after feed failure:" :
+          "[signal-feed] unavailable; returning a non-actionable signal:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
+  return fallbackSignal(symbol);
 }

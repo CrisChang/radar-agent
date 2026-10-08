@@ -11,12 +11,15 @@
     "test": "tsx --test tests/**/*.test.ts",
     "agent": "tsx --env-file=.env.local agent/radar.mts",
     "agent:dry": "tsx agent/radar.mts --dry-run --demo-signal",
-    "generate-wallet": "tsx scripts/generate-wallet.mts"
+    "generate-wallet": "tsx scripts/generate-wallet.mts",
+    "agent:mainnet": "tsx --env-file=.env.mainnet.local agent/radar.mts",
+    "preflight": "tsx --env-file=.env.local scripts/preflight.mts",
+    "check:deployment": "tsx scripts/check-deployment.mts"
   },
   "dependencies": {
     "@circle-fin/adapter-circle-wallets": "^1.1.0",
     "@circle-fin/app-kit": "^1.1.0",
-    "@circle-fin/x402-batching": "^2.0.4",
+    "@circle-fin/x402-batching": "3.5.0",
     "@x402/core": "^2.6.0",
     "@x402/evm": "^2.6.0",
     "next": "^16.1.6",

@@ -4,7 +4,8 @@
 > nanopayments and manages a USDC treasury on Arc, with hard-coded risk
 > discipline learned from production trading bots.
 
-Built for the **Encode Club × Circle [Programmable Money Hackathon](https://www.encodeclub.com/programmes/arc-hackathon)** — Agentic Economy track. July–August 2026.
+Originally built for the **Encode Club × Circle [Programmable Money Hackathon](https://www.encodeclub.com/programmes/arc-hackathon)** — Agentic Economy track, July–August 2026.
+Continued for **[Arc Microgrants](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq)** in October 2026. See [the submission and deployment pack](docs/ARC_MICROGRANTS.md).
 
 ## Working MVP
 
@@ -14,8 +15,8 @@ Radar Agent is a two-sided agentic-economy demo on
 - **Seller** — `GET /api/signals/latest` converts public Coinbase Exchange
   candles into a price-radar signal and protects it with Circle Gateway x402.
 - **Buyer** — `agent/radar.mts` checks its deterministic budget, pays for the
-  signal in USDC, applies an explainable decision rule, and sends a guarded
-  treasury rebalance through Circle App Kit.
+  signal in USDC and applies an explainable decision rule. The optional
+  guarded treasury rebalance through Circle App Kit is testnet-only.
 - **Safe fallback** — a stale or unavailable feed always produces `hold`.
 - **Reliable demo mode** — the paid endpoint can expose a clearly labelled
   sharp-drop fixture so judging is not dependent on a live market crash.
@@ -31,6 +32,15 @@ Every action the agent takes passes through a hard-coded discipline layer — pa
 | **Position safety** | Refuses to act if unexpected balances/positions exist that the agent didn't create. |
 | **Circuit breaker** | Consecutive failures or anomalous signal patterns → agent halts and pages a human. |
 | **Audit trail** | Every signal purchase, decision, and settlement is logged and traceable end-to-end. |
+
+Buyer and seller select the same network via `ARC_NETWORK=testnet|mainnet`.
+The default remains testnet. Mainnet signing needs `--allow-mainnet`, Gateway
+deposits need a separate `--allow-deposit`, and live testnet treasury transfers
+need `--allow-treasury`. Mainnet treasury execution is disabled.
+Every final payment quote is checked before signing; signed authorizations
+reserve budget even if the HTTP response is lost.
+The live feed retries once and rejects old or future-dated candles.
+The seller settles only after successfully preparing a fresh response.
 
 Arc's USDC-denominated gas and sub-second settlement are what make this viable: an agent paying $0.001 per signal query only works when fees and latency are near zero.
 
@@ -63,8 +73,9 @@ Reset an opened breaker only after a human checks the audit:
 npm run agent -- --reset-breaker
 ```
 
-Runtime state and the append-only audit are written under `agent/state/` and
-are ignored by git.
+Runtime state and the append-only audit are separated under
+`agent/state/testnet/`, `agent/state/mainnet/` and `agent/state/dry-run/`, and
+are ignored by git. `RADAR_STATE_DIR` can point to a dedicated durable volume.
 
 ## Arc testnet setup
 
@@ -131,9 +142,11 @@ docs/                architecture and checkpoint deck
 
 ## Status
 
-Week 3 build phase. The code path is implemented and testable locally. The
-remaining external proof is wallet configuration, funded Arc transactions,
-deployment, demo video and the final deck.
+October 2026 continuation. Code supports Arc mainnet signal payments and the
+existing testnet treasury demonstration. Real mainnet deployment, approved
+wallet funding, a paid response and confirmed transaction proof are still
+required before an Arc Microgrants submission. The historical checkpoints
+above record the original hackathon; they are not current deadlines.
 
 ## License
 

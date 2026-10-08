@@ -19,6 +19,10 @@ const handler = async (request: NextRequest) => {
         ? buildDemoSignal(symbol)
         : await getLatestSignal(symbol);
 
+    if (signal.feed_status === "stale") {
+      return NextResponse.json({ error: "live signal feed is unavailable; payment was not settled" }, { status: 503 });
+    }
+
     return NextResponse.json(signal, {
       headers: {
         "cache-control": "no-store",
@@ -42,4 +46,3 @@ export const GET = withGateway(
   price,
   "/api/signals/latest",
 );
-

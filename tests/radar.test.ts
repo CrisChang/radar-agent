@@ -13,6 +13,7 @@ import {
 import {
   buildDemoSignal,
   buildSignalFromCandles,
+  getLatestSignal,
   type CoinbaseCandle,
 } from "../lib/signals";
 
@@ -27,6 +28,45 @@ test("builds a sharp-drop signal from ordered or reversed candles", () => {
   assert.equal(signal.magnitude_bps, -180);
   assert.equal(signal.window_s, 180);
   assert.equal(signal.feed_status, "live");
+});
+
+test("live feed recovers from one transient failure", async () => {
+  const previousFetch = globalThis.fetch;
+  let requests = 0;
+  const now = Math.floor(Date.now() / 60_000) * 60;
+  globalThis.fetch = async () => {
+    requests++;
+    if (requests === 1) throw new Error("temporary timeout");
+    return new Response(JSON.stringify([
+      [now - 120, 99, 101, 100, 100, 2],
+      [now - 60, 99, 101, 100, 100, 2],
+      [now, 99, 101, 100, 100, 2],
+    ]));
+  };
+  try {
+    const signal = await getLatestSignal("ETH-USD");
+    assert.equal(signal.feed_status, "live");
+    assert.equal(requests, 2);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("successful HTTP with old candles cannot become a chargeable live signal", async () => {
+  const previousFetch = globalThis.fetch;
+  const old = Math.floor(Date.now() / 1000) - 3600;
+  globalThis.fetch = async () => new Response(JSON.stringify([
+    [old - 120, 99, 101, 100, 100, 2],
+    [old - 60, 99, 101, 100, 100, 2],
+    [old, 99, 101, 100, 100, 2],
+  ]));
+  try {
+    const signal = await getLatestSignal("BTC-USD");
+    assert.equal(signal.feed_status, "stale");
+    assert.equal(decide(signal).action, "hold");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
 });
 
 test("decision rule rebalances only for a fresh confident sharp drop", () => {

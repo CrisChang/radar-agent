@@ -1,3 +1,7 @@
+import { getArcConfig } from "@/lib/arc";
+
+export const dynamic = "force-dynamic";
+
 const guards = [
   ["Daily caps", "Hard USDC limits before any signature"],
   ["Idempotency", "Pending actions are never replayed blindly"],
@@ -7,6 +11,7 @@ const guards = [
 ];
 
 export default function Home() {
+  const arc = getArcConfig();
   return (
     <main>
       <nav>
@@ -15,7 +20,7 @@ export default function Home() {
         </a>
         <div className="network">
           <i />
-          ARC TESTNET
+          {arc.name.toUpperCase()}
         </div>
       </nav>
 
@@ -29,7 +34,8 @@ export default function Home() {
         <p className="lede">
           Radar Agent turns live ETH and BTC price movement into an
           x402-paywalled feed. An autonomous buyer pays in USDC, evaluates an
-          explainable rule and can rebalance a treasury through Circle App Kit.
+          explainable rule and records an audit trail. Treasury rebalancing
+          through Circle App Kit is an optional testnet demonstration.
         </p>
 
         <div className="endpoint">
@@ -37,7 +43,7 @@ export default function Home() {
             <span className="method">GET</span>
             <code>/api/signals/latest?symbol=ETH-USD</code>
           </div>
-          <strong>$0.001 USDC</strong>
+          <strong>${process.env.SIGNAL_PRICE_USDC ?? "0.001"} USDC</strong>
         </div>
       </section>
 
@@ -59,8 +65,8 @@ export default function Home() {
         </article>
         <article>
           <span>04</span>
-          <h2>Settle</h2>
-          <p>Circle App Kit sends USDC to reserve when every guard approves.</p>
+          <h2>Audit</h2>
+          <p>Track each signal, spending authorization and payment receipt.</p>
         </article>
       </section>
 
@@ -84,9 +90,8 @@ export default function Home() {
       </section>
 
       <footer>
-        Encode × Circle Programmable Money Hackathon · Agentic Economy
+        Radar Agent · Built on Arc and Circle Gateway · Arc Microgrants prototype
       </footer>
     </main>
   );
 }
-

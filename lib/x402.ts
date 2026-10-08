@@ -9,17 +9,11 @@ import { dirname } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { BatchFacilitatorClient } from "@circle-fin/x402-batching/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getArcConfig, getSellerAddress, parseUsdcAtomic } from "./arc";
 
-const ARC_TESTNET_NETWORK = "eip155:5042002";
-const ARC_TESTNET_USDC = "0x3600000000000000000000000000000000000000";
-const ARC_TESTNET_GATEWAY_WALLET =
-  "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
 // Gateway nanopayment authorizations need at least seven days of validity.
 // Keep the small buffer used by Circle's current seller quickstart.
 const GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS = 604_900;
-const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
-
-const facilitator = new BatchFacilitatorClient();
 
 interface PaymentPayload {
   x402Version: number;
@@ -29,33 +23,35 @@ interface PaymentPayload {
   extensions?: Record<string, unknown>;
 }
 
-function sellerAddress(): `0x${string}` {
-  const address = process.env.SELLER_ADDRESS;
-  if (!address || !ADDRESS_PATTERN.test(address)) {
-    throw new Error("SELLER_ADDRESS must be a valid Arc Testnet EVM address");
-  }
-  return address as `0x${string}`;
-}
-
 export function buildPaymentRequirements(priceUsdc: string) {
-  const numericPrice = Number(priceUsdc);
-  if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
-    throw new Error(`invalid x402 price: ${priceUsdc}`);
-  }
+  const arc = getArcConfig();
 
   return {
     scheme: "exact" as const,
-    network: ARC_TESTNET_NETWORK,
-    asset: ARC_TESTNET_USDC,
-    amount: Math.round(numericPrice * 1_000_000).toString(),
-    payTo: sellerAddress(),
+    network: arc.network,
+    asset: arc.usdc,
+    amount: parseUsdcAtomic(priceUsdc).toString(),
+    payTo: getSellerAddress(),
     maxTimeoutSeconds: GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS,
     extra: {
       name: "GatewayWalletBatched",
       version: "1",
-      verifyingContract: ARC_TESTNET_GATEWAY_WALLET,
+      verifyingContract: arc.gatewayWallet,
     },
   };
+}
+
+export function getResourceUrl(request: NextRequest): string {
+  const base = new URL(process.env.PUBLIC_BASE_URL ?? request.url);
+  if (base.username || base.password || !["https:", "http:"].includes(base.protocol)) {
+    throw new Error("PUBLIC_BASE_URL must be an HTTP(S) origin without credentials");
+  }
+  // Next's internal request URL may use localhost behind a reverse proxy.
+  // A production deployment should pin PUBLIC_BASE_URL to its HTTPS origin.
+  if (!process.env.PUBLIC_BASE_URL && request.headers.get("host")) {
+    base.host = request.headers.get("host")!;
+  }
+  return new URL(request.nextUrl.pathname + request.nextUrl.search, base.origin).toString();
 }
 
 async function recordPayment(event: Record<string, unknown>): Promise<void> {
@@ -79,8 +75,10 @@ export function withGateway(
 ) {
   return async (request: NextRequest) => {
     let requirements: ReturnType<typeof buildPaymentRequirements>;
+    let resourceUrl: string;
     try {
       requirements = buildPaymentRequirements(priceUsdc);
+      resourceUrl = getResourceUrl(request);
     } catch (error) {
       return NextResponse.json(
         {
@@ -96,7 +94,7 @@ export function withGateway(
       const paymentRequired = {
         x402Version: 2,
         resource: {
-          url: endpoint,
+          url: resourceUrl,
           description: "Radar Agent real-time market signal",
           mimeType: "application/json",
         },
@@ -114,6 +112,9 @@ export function withGateway(
     }
 
     try {
+      const facilitator = new BatchFacilitatorClient({
+        url: getArcConfig().facilitatorUrl,
+      });
       const paymentPayload = JSON.parse(
         Buffer.from(signature, "base64").toString("utf8"),
       ) as PaymentPayload;
@@ -130,6 +131,11 @@ export function withGateway(
           { status: 402 },
         );
       }
+
+      // Validate/prepare the resource before charging. Invalid parameters or
+      // an unavailable feed must not result in a successful payment.
+      const response = await handler(request);
+      if (!response.ok) return response;
 
       const settlement = await facilitator.settle(
         paymentPayload,
@@ -155,7 +161,6 @@ export function withGateway(
         transaction: settlement.transaction ?? null,
       });
 
-      const response = await handler(request);
       response.headers.set(
         "payment-response",
         Buffer.from(

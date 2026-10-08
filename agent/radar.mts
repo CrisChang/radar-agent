@@ -5,11 +5,15 @@ import type { PriceSignal } from "../lib/signals";
 import { buildDemoSignal, getLatestSignal } from "../lib/signals";
 import { decide } from "../lib/decision";
 import { DisciplineEngine } from "../lib/discipline";
+import { getArcConfig, getSellerAddress } from "../lib/arc";
+import { attachSignalPaymentPolicy, validateSignalPayment } from "../lib/buyer-payment";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const demoSignal = args.has("--demo-signal");
 const resetBreaker = args.has("--reset-breaker");
+const allowTreasury = args.has("--allow-treasury");
+const arc = getArcConfig();
 const root = resolve(import.meta.dirname, "..");
 const require = createRequire(import.meta.url);
 
@@ -23,9 +27,10 @@ function envNumber(name: string, fallback: number): number {
   return value;
 }
 
+const stateRoot = process.env.RADAR_STATE_DIR ?? resolve(root, "agent/state", dryRun ? "dry-run" : arc.mode);
 const discipline = new DisciplineEngine(
-  resolve(root, "agent/state/discipline.json"),
-  resolve(root, "agent/state/audit.jsonl"),
+  resolve(stateRoot, "discipline.json"),
+  resolve(stateRoot, "audit.jsonl"),
   {
     data: envNumber("DATA_DAILY_CAP_USDC", 0.1),
     treasury: envNumber("TREASURY_DAILY_CAP_USDC", 25),
@@ -64,25 +69,19 @@ async function buySignal(): Promise<{
   if (demoSignal) endpoint.searchParams.set("demo", "sharp_drop");
 
   const gateway = new GatewayClient({
-    chain: "arcTestnet",
+    chain: arc.gatewayChain,
     privateKey,
+    rpcUrl: arc.rpcUrl,
   });
+  const seller = getSellerAddress();
+  const maximumPrice = process.env.SIGNAL_MAX_PRICE_USDC ?? "0.001";
+  attachSignalPaymentPolicy(gateway, discipline, arc, seller, maximumPrice);
   const support = await gateway.supports(endpoint.toString());
   if (!support.supported) {
     throw new Error("seller does not advertise Circle Gateway batching");
   }
-  const advertisedAtomic = Number(support.requirements?.amount);
-  if (!Number.isSafeInteger(advertisedAtomic) || advertisedAtomic <= 0) {
-    throw new Error("seller advertised an invalid x402 amount");
-  }
-  const advertisedPrice = advertisedAtomic / 1_000_000;
-  const maximumPrice = envNumber("SIGNAL_MAX_PRICE_USDC", 0.001);
-  if (advertisedPrice > maximumPrice) {
-    throw new Error(
-      `seller asks ${advertisedPrice} USDC, above the ` +
-        `${maximumPrice} USDC per-query maximum`,
-    );
-  }
+  if (!support.requirements) throw new Error("seller omitted payment requirements");
+  const advertisedPrice = validateSignalPayment(support.requirements, arc, seller, maximumPrice);
   discipline.authorizeSpend("data", advertisedPrice);
 
   let balances = await gateway.getBalances();
@@ -92,6 +91,12 @@ async function buySignal(): Promise<{
       throw new Error(
         "Gateway balance is too low; deposit USDC or set GATEWAY_AUTO_DEPOSIT_USDC",
       );
+    }
+    if (arc.mode === "mainnet" && !args.has("--allow-deposit")) {
+      throw new Error("mainnet Gateway deposits require a separate --allow-deposit flag");
+    }
+    if (arc.mode === "mainnet" && depositAmount > envNumber("GATEWAY_MAX_DEPOSIT_USDC", 0.01)) {
+      throw new Error("auto-deposit exceeds GATEWAY_MAX_DEPOSIT_USDC");
     }
     if (Number(balances.wallet.formatted) < depositAmount) {
       throw new Error(
@@ -104,6 +109,8 @@ async function buySignal(): Promise<{
       amount_usdc: deposit.formattedAmount,
       transaction: deposit.depositTxHash,
       wallet: gateway.address,
+      network: arc.network,
+      explorer_url: `${arc.explorerUrl}/tx/${deposit.depositTxHash}`,
     });
     balances = await gateway.getBalances();
   }
@@ -115,7 +122,6 @@ async function buySignal(): Promise<{
       `settled ${actualPrice} USDC but seller advertised ${advertisedPrice} USDC`,
     );
   }
-  discipline.recordSpend("data", actualPrice);
   return {
     signal: result.data,
     amountUsdc: actualPrice,
@@ -148,6 +154,9 @@ async function executeTreasurySend(
   amountUsdc: number,
   config: TreasuryConfig,
 ) {
+  if (arc.mode !== "testnet") {
+    throw new Error("the installed Circle App Kit treasury adapter supports Arc Testnet only; mainnet treasury execution is disabled");
+  }
   const { AppKit } = await import("@circle-fin/app-kit");
   // tsx resolves the adapter's ESM build against the SDK's CJS entrypoint,
   // which drops the runtime Blockchain export. The adapter publishes a
@@ -176,8 +185,14 @@ async function executeTreasurySend(
 }
 
 async function main(): Promise<void> {
+  if (!dryRun && arc.mode === "mainnet" && !args.has("--allow-mainnet")) {
+    throw new Error("mainnet payments require an explicit --allow-mainnet flag after approving the wallet and spending limits");
+  }
+  if (!dryRun && arc.mode === "mainnet" && allowTreasury) {
+    throw new Error("mainnet treasury execution is unavailable; run a signal-purchase-only cycle");
+  }
   discipline.preflight();
-  discipline.audit("cycle_started", { dry_run: dryRun });
+  discipline.audit("cycle_started", { dry_run: dryRun, network: arc.network });
 
   const purchase = await buySignal();
   discipline.audit("signal_purchased", {
@@ -185,6 +200,7 @@ async function main(): Promise<void> {
     price_usdc: purchase.amountUsdc,
     payment_transaction: purchase.transaction,
     feed_status: purchase.signal.feed_status,
+    network: arc.network,
   });
 
   const decision = decide(purchase.signal);
@@ -197,6 +213,13 @@ async function main(): Promise<void> {
 
   if (decision.action === "hold") {
     discipline.recordSuccess();
+    return;
+  }
+
+  if (!dryRun && !allowTreasury) {
+    discipline.audit("action_skipped", { reason: "treasury execution requires --allow-treasury" });
+    discipline.recordSuccess();
+    console.log("Signal purchased; treasury execution is disabled.");
     return;
   }
 
