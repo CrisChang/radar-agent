@@ -1,8 +1,8 @@
 # Radar Agent
 
-> An autonomous agent that buys real-time market signals via USDC
-> nanopayments and manages a USDC treasury on Arc, with hard-coded risk
-> discipline learned from production trading bots.
+> An agent commerce prototype with USDC per-query market signals,
+> deterministic spending checks and a local buyer audit. Mainnet treasury
+> execution remains disabled in this October Vercel branch.
 
 Originally built for the **Encode Club × Circle [Programmable Money Hackathon](https://www.encodeclub.com/programmes/arc-hackathon)** — Agentic Economy track, July–August 2026.
 Continued for **[Arc Microgrants](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq)** in October 2026. See [the submission and deployment pack](docs/ARC_MICROGRANTS.md).
@@ -17,24 +17,25 @@ Radar Agent is a two-sided agentic-economy demo on
 - **Buyer** — `agent/radar.mts` checks its deterministic budget, pays for the
   signal in USDC and applies an explainable decision rule. The optional
   guarded treasury rebalance through Circle App Kit is testnet-only.
-- **Safe fallback** — a stale or unavailable feed always produces `hold`.
+- **Unavailable data** — stale or unavailable paid content is refused before settlement.
 - **Reliable demo mode** — the paid endpoint can expose a clearly labelled
   sharp-drop fixture so judging is not dependent on a live market crash.
 
-### What makes it not-a-wrapper: the discipline layer
+### Prototype discipline layer
 
-Every action the agent takes passes through a hard-coded discipline layer — patterns we already run in production trading bots, ported to Arc:
+The local buyer uses deterministic policy checks. These prototype controls do not establish production custody guarantees:
 
 | Guard | What it does |
 |---|---|
-| **Spending cap** | Hard daily budget for signal purchases and treasury moves. Exceed → refuse + alert. |
+| **Spending cap** | Hard daily budget for signal purchases and treasury moves. Exceed → refuse before signing. |
 | **Idempotency** | Every action carries a deterministic key; the same decision can never execute twice. |
 | **Position safety** | Refuses to act if unexpected balances/positions exist that the agent didn't create. |
-| **Circuit breaker** | Consecutive failures or anomalous signal patterns → agent halts and pages a human. |
+| **Circuit breaker** | Consecutive failures or anomalous signal patterns → agent halts until a manual reset. |
 | **Audit trail** | Every signal purchase, decision, and settlement is logged and traceable end-to-end. |
 
 Buyer and seller select the same network via `ARC_NETWORK=testnet|mainnet`.
-The default remains testnet. Mainnet signing needs `--allow-mainnet`, Gateway
+The default remains testnet. Mainnet signing requires a key matching the approved `BUYER_ADDRESS` and
+`--allow-mainnet`. Gateway
 deposits need a separate `--allow-deposit`, and live testnet treasury transfers
 need `--allow-treasury`. Mainnet treasury execution is disabled.
 Every final payment quote is checked before signing; signed authorizations
@@ -42,7 +43,8 @@ reserve budget even if the HTTP response is lost.
 The live feed retries once and rejects old or future-dated candles.
 The seller settles only after successfully preparing a fresh response.
 
-Arc's USDC-denominated gas and sub-second settlement are what make this viable: an agent paying $0.001 per signal query only works when fees and latency are near zero.
+Circle Gateway batches small USDC payments; Arc uses USDC for gas. Deposits
+and chain transactions have separate costs. No zero-fee claim is made.
 
 ## Run locally
 
@@ -142,10 +144,16 @@ docs/                architecture and checkpoint deck
 
 ## Status
 
-October 2026 continuation. Code supports Arc mainnet signal payments and the
-existing testnet treasury demonstration. Real mainnet deployment, approved
-wallet funding, a paid response and confirmed transaction proof are still
-required before an Arc Microgrants submission. The historical checkpoints
+October 2026 Vercel continuation, published on `codex/arc-microgrants`.
+The protected cloud build passes authenticated health, fresh Coinbase feed
+and unpaid 402 checks. The public origin and real paid mainnet delivery are
+not yet verified. The main branch has September durable receipt/recovery work
+and historical testnet media; it is preserved separately and needs integration
+on Vercel before a paid pilot.
+
+Application prose, recording script and open gates are in the
+[Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
+The old testnet video and transactions are historical evidence only. The historical checkpoints
 above record the original hackathon; they are not current deadlines.
 
 ## License

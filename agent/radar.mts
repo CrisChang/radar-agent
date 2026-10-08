@@ -6,7 +6,7 @@ import { buildDemoSignal, getLatestSignal } from "../lib/signals";
 import { decide } from "../lib/decision";
 import { DisciplineEngine } from "../lib/discipline";
 import { getArcConfig, getSellerAddress } from "../lib/arc";
-import { attachSignalPaymentPolicy, validateSignalPayment } from "../lib/buyer-payment";
+import { attachSignalPaymentPolicy, validateBuyerSigner, validateSignalPayment } from "../lib/buyer-payment";
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
@@ -63,6 +63,8 @@ async function buySignal(): Promise<{
       "BUYER_PRIVATE_KEY is required; use `npm run agent:dry` for a no-funds run",
     );
   }
+
+  validateBuyerSigner(privateKey, process.env.BUYER_ADDRESS, arc);
 
   const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const endpoint = new URL("/api/signals/latest", baseUrl);

@@ -62,7 +62,9 @@ RADAR_ALLOW_DEMO_SIGNALS=false
 7. Run the read-only deployment check above. HTTP 200 for the homepage and
    health, HTTP 402 for an unpaid request, and `feed.status=live` are required.
    These checks do not prove a paid mainnet transaction.
-8. Only after the hosting checks pass, configure the separate local buyer and
+8. Integrate durable paid-response and unknown-payment recovery from the
+   repository's September main branch on Vercel.
+9. Only after the hosting and recovery checks pass, configure the separate local buyer and
    obtain the approved wallet, recipient and USDC budget for the grant proof.
 
 The hosting choice does not authorize chain funding, signing or USDC spending.
@@ -74,7 +76,7 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 - Vercel project: https://vercel.com/chris-6239/radar-agent
 - The project is linked locally. Cloud settings use Node 22.x and the verified
   Next.js build/install commands.
-- All 19 tests and the Next.js production build pass.
+- All 20 tests and the Next.js production build pass.
 - Official Vercel upload dry-run succeeds: 22 regular files (191,137 bytes)
   plus five empty directory entries. Environment files, key files, buyer state,
   tests, private Twitter data and local build output are excluded.

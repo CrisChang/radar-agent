@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { GatewayClient } from "@circle-fin/x402-batching/client";
 import { getArcConfig } from "../lib/arc";
-import { attachSignalPaymentPolicy, validateSignalPayment } from "../lib/buyer-payment";
+import { attachSignalPaymentPolicy, validateBuyerSigner, validateSignalPayment } from "../lib/buyer-payment";
 import { DisciplineEngine } from "../lib/discipline";
 
 const arc = getArcConfig({ ARC_NETWORK: "mainnet" });
@@ -69,4 +69,17 @@ test("real Gateway client rechecks the paid request before signing and sending",
     globalThis.fetch = previousFetch;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+
+test("mainnet signing requires the approved buyer identity and rejects historical keys", () => {
+  const key = `0x${"01".repeat(32)}`;
+  const buyer = new GatewayClient({ chain: "arc", privateKey: key as `0x${string}` }).address;
+  assert.equal(validateBuyerSigner(key, buyer, arc), buyer);
+  assert.throws(() => validateBuyerSigner(key, undefined, arc), /BUYER_ADDRESS/);
+  assert.throws(() => validateBuyerSigner(key, seller, arc), /does not match/);
+  assert.throws(() => validateBuyerSigner(key, "0x0000000000000000000000000000000000000000", arc), /nonzero/);
+  assert.throws(() => validateBuyerSigner("not-a-key", buyer, arc), /configured locally/);
+  assert.throws(() => validateBuyerSigner(`0x${"00".repeat(32)}`, buyer, arc), /configured locally/);
+  assert.equal(validateBuyerSigner(key, undefined, getArcConfig({ARC_NETWORK:"testnet"})), buyer);
 });

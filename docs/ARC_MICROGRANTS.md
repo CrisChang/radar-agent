@@ -17,7 +17,7 @@ explicit mainnet/deposit flags and network-isolated runtime state.
 
 Verified locally on October 8, 2026:
 
-- All 19 automated tests pass; production build and TypeScript checks pass.
+- All 20 automated tests pass; production build and TypeScript checks pass.
 - Local mainnet-mode homepage returns 200; unpaid signal endpoint returns
   402 with the expected chain, asset, recipient, price and absolute URL.
 - Official mainnet RPC reports chain 5042; USDC and Gateway contracts exist
@@ -34,11 +34,24 @@ requests still time out; the cloud feed works. The deployment retains Vercel
 login protection and the planned public origin has not been promoted.
 No real paid query has been completed.
 
+The [bilingual application draft](submission/ARC_MICROGRANTS_APPLICATION.md),
+[demo script](submission/ARC_MICROGRANTS_DEMO.md) and
+[submission checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) are prepared.
+The owner confirmed that the configured recipient is also the test wallet.
+The historical local signing key does not match it; no key was reused.
+Mainnet signing now requires an explicit matching `BUYER_ADDRESS`.
+
+After fetching GitHub, the main branch was found to contain September durable
+receipt/recovery work and historical testnet media. The October Vercel branch
+is divergent and is published separately; preserve that work and port the
+recovery implementation before the paid mainnet pilot.
+
 Submission still requires:
 
 - Anonymous public deployment verification after eligible trial/plan activation.
 - An HTTPS seller deployment and a public repository with the reviewed code.
-- One real mainnet paid response and its local audit/receipt.
+- Durable recovery integration on Vercel, then one real mainnet paid response
+  and its local audit/receipt.
 - A confirmed Arc mainnet transaction and explorer link.
 - A short demo recording and confirmation of no prior Circle/Arc funding.
 
@@ -73,7 +86,8 @@ npm run check:deployment -- --url https://YOUR_DEPLOYMENT --network mainnet --ch
 ## Buyer and proof
 
 Copy `.env.mainnet.example` to `.env.mainnet.local` locally. Use a dedicated
-wallet, not the historical testnet key. Obtain approval for the actual wallet,
+wallet, not the historical testnet key. Set `BUYER_ADDRESS` to the approved
+identity; a mismatched key is refused before any paid request. Obtain approval for the actual wallet,
 recipient and total USDC budget before mainnet signing, funding or payment.
 
 Read-only RPC/contract/facilitator checks:
@@ -125,8 +139,8 @@ checks, state separation and deployment verification.
 https://radar-agent-jihme1ww1-chris-6239.vercel.app; publish and verify
 https://radar-agent-ivory.vercel.app after the eligible plan is active.
 
-**Public repository:** https://github.com/CrisChang/radar-agent — verify that
-the reviewed October changes are published before submission.
+**Public repository:** https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
+The default branch retains September integration work and historical testnet media.
 
 **Mainnet transaction:** REQUIRED — confirmed explorer link.
 

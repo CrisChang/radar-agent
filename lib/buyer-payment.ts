@@ -1,8 +1,35 @@
+import { privateKeyToAccount } from "viem/accounts";
 import type { GatewayClient } from "@circle-fin/x402-batching/client";
 import type { HookPaymentRequirements } from "@circle-fin/x402-batching";
 import type { ArcConfig } from "./arc";
 import { parseUsdcAtomic } from "./arc";
 import type { DisciplineEngine } from "./discipline";
+
+export function validateBuyerSigner(
+  privateKey: string,
+  expectedAddress: string | undefined,
+  arc: ArcConfig,
+): `0x${string}` {
+  if (!/^0x[a-fA-F0-9]{64}$/.test(privateKey)) {
+    throw new Error("BUYER_PRIVATE_KEY must be a valid signing key configured locally");
+  }
+  if (arc.mode === "mainnet" && !expectedAddress) {
+    throw new Error("BUYER_ADDRESS must pin the approved mainnet test wallet");
+  }
+  if (expectedAddress && (!/^0x[a-fA-F0-9]{40}$/.test(expectedAddress) || /^0x0{40}$/i.test(expectedAddress))) {
+    throw new Error("BUYER_ADDRESS must be a nonzero EVM address");
+  }
+  let address: `0x${string}`;
+  try {
+    address = privateKeyToAccount(privateKey as `0x${string}`).address;
+  } catch {
+    throw new Error("BUYER_PRIVATE_KEY must be a valid signing key configured locally");
+  }
+  if (expectedAddress && address.toLowerCase() !== expectedAddress.toLowerCase()) {
+    throw new Error("Configured signing key does not match the approved BUYER_ADDRESS");
+  }
+  return address;
+}
 
 export function validateSignalPayment(
   rawRequirements: unknown,
