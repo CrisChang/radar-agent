@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-10-08T07:51:10.507Z",
+  "deployment_id": "dpl_BWQCvLP5uaKU25uB2V9etsqtdLPt",
+  "deployment_url": "https://radar-agent-jihme1ww1-chris-6239.vercel.app",
+  "inspection_url": "https://vercel.com/chris-6239/radar-agent/BWQCvLP5uaKU25uB2V9etsqtdLPt",
+  "planned_public_origin": "https://radar-agent-ivory.vercel.app",
+  "authenticated_checks": {
+    "homepage_http": 200,
+    "health_http": 200,
+    "unpaid_http": 402,
+    "feed": {
+      "status": "live",
+      "source": "coinbase-exchange-candles",
+      "ts": "2026-10-08T07:51:00.000Z"
+    },
+    "network": "eip155:5042",
+    "chain_id": 5042,
+    "recipient": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+    "price_usdc": 0.001,
+    "resource_url": "https://radar-agent-ivory.vercel.app/api/signals/latest?symbol=ETH-USD"
+  },
+  "access": "Vercel authentication required",
+  "public_origin_status": "not promoted; HTTP 404",
+  "plan": "Hobby",
+  "trial_active": false,
+  "public_deployment_ready": false,
+  "payment_completed": false,
+  "note": "Authenticated owner checks only. No signature, deposit or payment. Public launch waits for eligible trial/plan and anonymous checks."
+}

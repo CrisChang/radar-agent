@@ -17,7 +17,7 @@ explicit mainnet/deposit flags and network-isolated runtime state.
 
 Verified locally on October 8, 2026:
 
-- All 16 automated tests pass; production build and TypeScript checks pass.
+- All 19 automated tests pass; production build and TypeScript checks pass.
 - Local mainnet-mode homepage returns 200; unpaid signal endpoint returns
   402 with the expected chain, asset, recipient, price and absolute URL.
 - Official mainnet RPC reports chain 5042; USDC and Gateway contracts exist
@@ -26,15 +26,17 @@ Verified locally on October 8, 2026:
   transactions were produced by the preflight check.
 - The deterministic dry-run succeeds without funds.
 
-**Unresolved runtime check:** Coinbase responds to an independent Python
-request, but Node requests on this machine time out. The feed now retries
-once and rejects stale/future-dated candles. Recheck live data from the
-chosen hosting environment before enabling paid mainnet acceptance. This
-local prototype has not completed a real paid query.
+**Hosted runtime check:** The October 8 Vercel production build succeeded.
+Authenticated owner checks confirm fresh Coinbase data, health 200, unpaid
+402, chain 5042, price 0.001 USDC and the user-confirmed mainnet recipient.
+See [cloud check record](deployment-vercel-2026-10-08.json). Local Node direct
+requests still time out; the cloud feed works. The deployment retains Vercel
+login protection and the planned public origin has not been promoted.
+No real paid query has been completed.
 
 Submission still requires:
 
-- Live data and deployment verification in the chosen hosting environment.
+- Anonymous public deployment verification after eligible trial/plan activation.
 - An HTTPS seller deployment and a public repository with the reviewed code.
 - One real mainnet paid response and its local audit/receipt.
 - A confirmed Arc mainnet transaction and explorer link.
@@ -45,7 +47,7 @@ Testnet-only projects and work already funded by Circle/Arc are ineligible.
 
 ## Seller deployment
 
-The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication and project setup are complete; a Pro/trial plan and a controlled mainnet recipient are still pending.
+The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication, two-factor setup, seller configuration and a protected cloud deployment are complete. The user confirmed the mainnet recipient. The actual trial form requires a card and automatic renewal; activation awaits the user's acceptance. Public promotion and anonymous checks remain pending.
 
 Use `npm ci`, `npm run build`, `npm start` on a Next.js host. The seller needs
 only these environment variables:
@@ -53,7 +55,7 @@ only these environment variables:
 ```dotenv
 ARC_NETWORK=mainnet
 PUBLIC_BASE_URL=https://YOUR_DEPLOYMENT
-SELLER_ADDRESS=<mainnet payment recipient>
+SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
 ```
@@ -119,7 +121,9 @@ market data.
 2026; continued in October with mainnet payments, stronger authorization
 checks, state separation and deployment verification.
 
-**Live deployment:** REQUIRED — fill after deployment and verification.
+**Live deployment:** REQUIRED — protected cloud build is ready at
+https://radar-agent-jihme1ww1-chris-6239.vercel.app; publish and verify
+https://radar-agent-ivory.vercel.app after the eligible plan is active.
 
 **Public repository:** https://github.com/CrisChang/radar-agent — verify that
 the reviewed October changes are published before submission.

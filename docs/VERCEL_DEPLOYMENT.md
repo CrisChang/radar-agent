@@ -16,9 +16,9 @@ website and API; keep the buyer agent and its credentials on the local Mac.
 
 ## Account and billing gate
 
-CLI device authentication completed on October 8. The account has team
-`chris-6239` on Hobby. Project `radar-agent` has been created and linked; Node
-22.x, Next.js and the verified build commands are configured.
+CLI device authentication and the user-operated two-factor setup completed
+on October 8. Team `chris-6239` remains on Hobby. Project `radar-agent` is
+linked; Node 22.x, Next.js and the verified build commands are configured.
 Do not paste passwords, access tokens or payment information into chat.
 
 Vercel Hobby is limited to personal non-commercial use. A real USDC-paid API
@@ -28,8 +28,12 @@ additional developer seats and usage beyond the included credit may add costs.
 The official Pro trial lasts 14 days with $20 credit. Without a payment method,
 it does not charge and reverts to Hobby when the trial ends. Trial eligibility
 is limited to one per user. Prefer an unbilled trial for the initial grant demo
-if available. A paid upgrade or new subscription must be confirmed with its
-actual billing terms before purchase. Trial reference:
+if available. On this account, both the official trial upgrade and Create
+Team > Pro Trial currently require card details. The actual form states that
+trial ends after 14 days or exhausted credit, then automatically renews at
+$20/month plus applicable CDN tier, taxes and metered usage. No card was
+entered and no trial/subscription was activated. The user must accept those
+actual renewal terms before proceeding. Trial reference:
 https://vercel.com/docs/plans/pro-plan/trials. Source: https://vercel.com/pricing and
 https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage.
 
@@ -47,7 +51,7 @@ https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage.
 ```dotenv
 ARC_NETWORK=mainnet
 PUBLIC_BASE_URL=https://YOUR_PRODUCTION_DOMAIN
-SELLER_ADDRESS=<controlled Arc mainnet recipient>
+SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
 ```
@@ -66,7 +70,7 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 
 ## Current status
 
-- CLI authentication is complete.
+- CLI authentication and user-operated two-factor setup are complete.
 - Vercel project: https://vercel.com/chris-6239/radar-agent
 - The project is linked locally. Cloud settings use Node 22.x and the verified
   Next.js build/install commands.
@@ -74,11 +78,28 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 - Official Vercel upload dry-run succeeds: 22 regular files (191,137 bytes)
   plus five empty directory entries. Environment files, key files, buyer state,
   tests, private Twitter data and local build output are excluded.
-- Team is still Hobby. Pro/trial choice and a controlled Arc mainnet recipient
-  are pending user input; these block publication of the real paid service.
-- No public deployment, new subscription, signature, deposit or payment has been
-  made. Do not describe the project-dashboard URL as the live API URL.
+- The user supplied and confirmed the mainnet recipient above. Five seller-only
+  production environment variables are saved, with price 0.001 USDC.
+- Cloud production build is READY. Deployment was prepared with `--skip-domain`
+  and retains Vercel authentication:
+  https://radar-agent-jihme1ww1-chris-6239.vercel.app
+- Authenticated owner checks pass: homepage 200, health 200, unpaid quote 402,
+  fresh Coinbase feed, Arc chain 5042, exact recipient/price/Gateway contract.
+  Proof: [cloud check record](deployment-vercel-2026-10-08.json).
+- Planned public origin: https://radar-agent-ivory.vercel.app. It is not promoted
+  and currently returns 404. The deployment is not an anonymous public API.
+- Trial activation is waiting for the user's acceptance of card/automatic
+  renewal terms. Once eligible, promote and run anonymous deployment checks.
+- No trial/new subscription, signature, deposit or payment has been made.
 
 The local package remains at `/private/tmp/radar-agent-vercel-seller.zip`.
 The official file manifest is saved at
 `/private/tmp/radar-agent-vercel-official-dry-run.json`.
+
+## Local network note
+
+The local system HTTPS proxy is necessary for the deployment host on this Mac.
+The CLI's external curl otherwise times out; Python follows the system proxy.
+Authenticated checks used official `vercel curl` with the existing proxy and
+its managed deployment authentication. The cloud Coinbase feed itself works.
+Do not publish protection tokens or request cookies in check records.
