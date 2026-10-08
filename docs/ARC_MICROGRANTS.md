@@ -43,7 +43,7 @@ Mainnet signing now requires an explicit matching `BUYER_ADDRESS`.
 
 After fetching GitHub, the main branch was found to contain September durable
 receipt/recovery work and historical testnet media. The October Vercel branch
-is divergent and is published separately; preserve that work and port the
+is divergent and is prepared on a separate branch; preserve that work and port the
 recovery implementation before the paid mainnet pilot.
 
 Submission still requires:
@@ -139,7 +139,10 @@ checks, state separation and deployment verification.
 https://radar-agent-jihme1ww1-chris-6239.vercel.app; publish and verify
 https://radar-agent-ivory.vercel.app after the eligible plan is active.
 
-**Public repository:** https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
+**Public repository:** https://github.com/CrisChang/radar-agent.
+The October branch is prepared locally; its intended source link is
+https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
+Branch publication is awaiting GitHub authorization.
 The default branch retains September integration work and historical testnet media.
 
 **Mainnet transaction:** REQUIRED — confirmed explorer link.

@@ -9,7 +9,8 @@ Vercel branch. The application remains a draft until the open gates below pass.
 - Authenticated homepage and health return 200; unpaid signal requests return 402.
 - Hosted Coinbase candles are fresh. Price is 0.001 USDC; chain is 5042.
 - Owner confirmed the configured recipient is the intended test wallet.
-- The repository is publicly visible. October source link:
+- The repository is publicly visible. The October branch is prepared locally;
+  publication is awaiting GitHub authorization. Intended source link:
   https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
 - A local mainnet configuration is prepared with the approved buyer address,
   a one-query fee cap, zero treasury budget and deposits disabled. It contains

@@ -144,7 +144,7 @@ docs/                architecture and checkpoint deck
 
 ## Status
 
-October 2026 Vercel continuation, published on `codex/arc-microgrants`.
+October 2026 Vercel continuation, prepared on `codex/arc-microgrants`.
 The protected cloud build passes authenticated health, fresh Coinbase feed
 and unpaid 402 checks. The public origin and real paid mainnet delivery are
 not yet verified. The main branch has September durable receipt/recovery work
