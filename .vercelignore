@@ -1,0 +1,23 @@
+# Deploy only the seller; keep local credentials and buyer state off the host.
+.env*
+**/.env*
+*.pem
+*.key
+**/*.pem
+**/*.key
+agent/
+scripts/
+tests/
+docs/
+seller/
+state/
+node_modules/
+.next/
+.git/
+.vercel/
+coverage/
+__pycache__/
+**/__pycache__/
+*.log
+**/*.log
+*.tsbuildinfo

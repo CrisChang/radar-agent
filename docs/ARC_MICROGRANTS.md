@@ -45,6 +45,8 @@ Testnet-only projects and work already funded by Circle/Arc are ineligible.
 
 ## Seller deployment
 
+The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication and a controlled mainnet recipient are still pending.
+
 Use `npm ci`, `npm run build`, `npm start` on a Next.js host. The seller needs
 only these environment variables:
 
@@ -63,7 +65,7 @@ are ephemeral on a serverless host; retain the buyer audit locally.
 Verify the URL without signing or paying:
 
 ```bash
-npm run check:deployment -- --url https://YOUR_DEPLOYMENT --network mainnet
+npm run check:deployment -- --url https://YOUR_DEPLOYMENT --network mainnet --check-feed
 ```
 
 ## Buyer and proof

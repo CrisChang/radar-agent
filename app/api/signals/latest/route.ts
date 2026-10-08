@@ -6,6 +6,7 @@ import {
 import { withGateway } from "@/lib/x402";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const handler = async (request: NextRequest) => {

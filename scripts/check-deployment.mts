@@ -11,7 +11,7 @@ function option(name: string): string | undefined {
 
 try {
   const rawUrl = option("--url");
-  if (!rawUrl) throw new Error("Usage: npm run check:deployment -- --url https://your-demo --network mainnet [--output file.json]");
+  if (!rawUrl) throw new Error("Usage: npm run check:deployment -- --url https://your-demo --network mainnet [--check-feed] [--output file.json]");
   const base = new URL(rawUrl);
   if (base.username || base.password || base.search || base.hash) {
     throw new Error("deployment URL must not contain credentials, query strings or fragments");
@@ -40,6 +40,22 @@ try {
   if (!requirements) throw new Error("missing x402 payment requirements");
   const advertisedPrice = Number(health.payment.amount) / 1_000_000;
   validateSignalPayment(requirements, arc, health.payment.payTo, advertisedPrice.toFixed(6));
+  let feed: { status: string; source: string; ts: string } | undefined;
+  if (args.includes("--check-feed")) {
+    const feedResponse = await fetch(new URL("/api/health?feed=1", base), { signal: AbortSignal.timeout(20_000) });
+    const feedHealth = await feedResponse.json();
+    if (!feedResponse.ok || feedHealth.feed?.status !== "live") {
+      throw new Error(`deployment market feed is unavailable: HTTP ${feedResponse.status}`);
+    }
+    if (feedHealth.chain_id !== arc.chainId || feedHealth.status !== "configured") {
+      throw new Error("feed probe does not match the requested Arc network");
+    }
+    feed = feedHealth.feed;
+    const ageMs = Date.now() - Date.parse(feed!.ts);
+    if (!Number.isFinite(ageMs) || ageMs < -30_000 || ageMs > 180_000) {
+      throw new Error("deployment feed probe returned stale or future-dated data");
+    }
+  }
   const result = {
     checked_at: new Date().toISOString(),
     deployment_url: base.origin,
@@ -49,6 +65,7 @@ try {
     price_usdc: advertisedPrice,
     health_http: healthResponse.status,
     unpaid_http: response.status,
+    ...(feed ? { feed } : {}),
     payment_completed: false,
     note: "Read-only configuration check. No signature, deposit or payment was made. Mainnet payment evidence is still required.",
   };
