@@ -16,16 +16,21 @@ website and API; keep the buyer agent and its credentials on the local Mac.
 
 ## Account and billing gate
 
-No Vercel project or CLI authentication existed on this machine when deployment
-started. Complete the official CLI device login in your own Vercel account.
+CLI device authentication completed on October 8. The account has team
+`chris-6239` on Hobby. Project `radar-agent` has been created and linked; Node
+22.x, Next.js and the verified build commands are configured.
 Do not paste passwords, access tokens or payment information into chat.
 
 Vercel Hobby is limited to personal non-commercial use. A real USDC-paid API
 needs an eligible Pro/Enterprise account under Vercel's commercial-use rules.
 Pro is currently advertised at $20/month, including $20 usage credit; taxes,
 additional developer seats and usage beyond the included credit may add costs.
-A paid upgrade or new subscription must be confirmed with its actual billing
-terms before purchase. Source: https://vercel.com/pricing and
+The official Pro trial lasts 14 days with $20 credit. Without a payment method,
+it does not charge and reverts to Hobby when the trial ends. Trial eligibility
+is limited to one per user. Prefer an unbilled trial for the initial grant demo
+if available. A paid upgrade or new subscription must be confirmed with its
+actual billing terms before purchase. Trial reference:
+https://vercel.com/docs/plans/pro-plan/trials. Source: https://vercel.com/pricing and
 https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage.
 
 ## Deployment sequence
@@ -61,6 +66,19 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 
 ## Current status
 
-Local deployment configuration is prepared. All 19 tests and the Next.js production build pass. A reviewed 22-file seller package (51,777 bytes zipped) is saved at `/private/tmp/radar-agent-vercel-seller.zip`; it contains no environment files or buyer runtime state. Official CLI upload dry-run still requires account authentication. Public deployment is pending Vercel
-account authentication, suitable plan and a confirmed mainnet payment recipient.
-No public hosting URL or real paid response has been produced yet.
+- CLI authentication is complete.
+- Vercel project: https://vercel.com/chris-6239/radar-agent
+- The project is linked locally. Cloud settings use Node 22.x and the verified
+  Next.js build/install commands.
+- All 19 tests and the Next.js production build pass.
+- Official Vercel upload dry-run succeeds: 22 regular files (191,137 bytes)
+  plus five empty directory entries. Environment files, key files, buyer state,
+  tests, private Twitter data and local build output are excluded.
+- Team is still Hobby. Pro/trial choice and a controlled Arc mainnet recipient
+  are pending user input; these block publication of the real paid service.
+- No public deployment, new subscription, signature, deposit or payment has been
+  made. Do not describe the project-dashboard URL as the live API URL.
+
+The local package remains at `/private/tmp/radar-agent-vercel-seller.zip`.
+The official file manifest is saved at
+`/private/tmp/radar-agent-vercel-official-dry-run.json`.

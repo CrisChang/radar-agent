@@ -45,7 +45,7 @@ Testnet-only projects and work already funded by Circle/Arc are ineligible.
 
 ## Seller deployment
 
-The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication and a controlled mainnet recipient are still pending.
+The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication and project setup are complete; a Pro/trial plan and a controlled mainnet recipient are still pending.
 
 Use `npm ci`, `npm run build`, `npm start` on a Next.js host. The seller needs
 only these environment variables:
