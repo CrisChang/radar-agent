@@ -86,7 +86,7 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
   production environment variables are saved, with price 0.001 USDC.
 - Cloud production build is READY. Deployment was prepared with `--skip-domain`
   and retains Vercel authentication:
-  https://radar-agent-86hi3ctpb-chris-6239.vercel.app
+  https://radar-agent-3lvrec1y8-chris-6239.vercel.app
 - Authenticated owner checks pass: homepage 200, health 200, unpaid quote 402,
   fresh Coinbase feed, Arc chain 5042, exact recipient/price/Gateway contract.
   Proof: [cloud check record](deployment-vercel-2026-10-09.json).
@@ -95,10 +95,18 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 - Trial activation is waiting for the user's acceptance of card/automatic
   renewal terms. Once eligible, promote and run anonymous deployment checks.
 - Cloud checks also verify the pilot and billing pages, OpenAPI, billing 401,
-  invalid symbol 400, disabled payments 503 and missing-store readiness 503.
-- No database has been connected. Paid delivery and signed cloud receipt reads
-  remain unverified; the default payment mode is discovery-only.
-- No trial/new subscription, signature, deposit or payment has been made.
+  invalid symbol 400 and disabled payments 503. The original missing-store
+  readiness failure is retained in the earlier evidence record.
+- On October 9, the owner completed Upstash installation. Resource
+  `upstash-kv-red-pebble` is Free, in iad1, with eviction disabled and connected
+  to radar-agent. The integration injected server-only KV REST variables.
+- The redeployed storage probe returns 200 with `payment_store.status=available`.
+  Five signed billing checks pass with ephemeral synthetic wallets: empty JSON
+  receipts, CSV, missing request 404, wrong wallet 401 and expired signature 401.
+  [Storage activation evidence](deployment-storage-vercel-2026-10-09.json).
+- Paid delivery and real payment-record writes remain unverified in the cloud.
+  Payments remain discovery-only. No owner-wallet payment signature, deposit,
+  purchase or Vercel Pro activation has been performed.
 
 The updated materials package is
 `/private/tmp/radar-agent-arc-microgrants-materials-2026-10-09.zip`.

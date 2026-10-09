@@ -1,7 +1,7 @@
 # Mainnet pilot runbook
 
 Prepared October 9, 2026. The owner confirmed the intended test wallet and
-no prior prizes or funding. No mainnet signature, deposit or paid purchase has
+no prior prizes or funding. No owner-wallet payment signature, deposit or paid purchase has
 been made during this implementation.
 
 ## Prepared
@@ -19,9 +19,9 @@ been made during this implementation.
    `codex/arc-microgrants` source and evidence links before submission.
 2. Confirm the Vercel plan's actual card and automatic-renewal terms. The
    previously observed trial requires a card; no subscription is active.
-3. Approve Upstash integration terms and install a retained Free Redis database.
-   Connect it to `radar-agent` production. Verify eviction is disabled and run
-   `/api/health?feed=1&store=1`. Do not use a 72-hour scratch database.
+3. Free Upstash Redis is connected, with eviction disabled; storage readiness
+   and synthetic signed billing reads pass. Recheck `/api/health?feed=1&store=1`
+   before the paid pilot. Do not replace it with a 72-hour scratch database.
 4. Publish the intended public origin and verify anonymous health, OpenAPI,
    unpaid 402, receipt authentication and the disabled payment pilot.
 5. Read the approved wallet's Gateway balance. If sufficient, approve one

@@ -14,7 +14,7 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — not promoted yet |
-| Protected build preview | https://radar-agent-86hi3ctpb-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-3lvrec1y8-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
@@ -50,8 +50,10 @@ The project began as an Encode Club and Circle hackathon prototype. The
 historical testnet demo and September receipt-recovery work are retained on the
 repository's main branch. The October Vercel branch is a separate continuation;
 its receipt-recovery work has been ported to Vercel-compatible Redis storage,
-with database activation and the paid mainnet pilot still pending. No
-third-party users, revenue or production readiness are claimed.
+with Free Upstash Redis now connected and cloud readiness verified. Synthetic
+wallet signatures verify receipt and CSV reads; no owner-wallet payment has
+been made. The paid mainnet pilot remains pending. No third-party users,
+revenue or production readiness are claimed.
 
 ## 中文简述
 
@@ -99,4 +101,7 @@ response replay, persistent budget reservations, a browser wallet pilot and
 wallet-authenticated receipt reads with JSON/CSV output. OpenAPI and external
 agent examples document integration. All 56 tests, TypeScript and production
 build pass. Local integration tests use a real Redis process and synthetic
-payment providers; they are not paid mainnet evidence.
+payment providers; they are not paid mainnet evidence. The
+[storage activation record](../deployment-storage-vercel-2026-10-09.json)
+adds 15 passing cloud checks with real Redis reads and ephemeral synthetic
+read signatures. No real paid record or onchain transaction was created.

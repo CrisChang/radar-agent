@@ -10,7 +10,9 @@ Vercel branch. The application remains a draft until the open gates below pass.
   payment pilot, OpenAPI and external-agent examples are implemented.
 - All 56 regression tests pass, including real local Redis concurrency, restart,
   lost-acknowledgement recovery and wallet privacy isolation. TypeScript and
-  production build pass. Cloud database activation remains pending.
+  production build pass. Free Upstash Redis is connected with eviction disabled.
+- Cloud storage readiness and five synthetic signed billing checks pass; all
+  15 hosted checks pass. No owner wallet or paid request was used.
 
 - Vercel production build is READY and retains login protection.
 - Authenticated homepage and health return 200; unpaid signal requests return 402.
@@ -33,7 +35,6 @@ Vercel branch. The application remains a draft until the open gates below pass.
 | --- | --- |
 | Vercel plan and anonymous access | Activate an eligible plan under accepted billing terms, promote the domain and verify access without Vercel login |
 | Buyer signing | Browser-wallet signing is implemented; connect the owner-confirmed test wallet and approve the exact bounded experiment |
-| Cloud ledger activation | Approve and connect retained Free Upstash Redis to Vercel; verify storage readiness before enabling payments |
 | Bounded payment approval | Approve the 0.001 USDC signal purchase plus any separately quoted Gateway deposit and gas cap |
 | Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
 | Confirmed chain evidence | Independently verify a mainnet receipt and publish its explorer link; distinguish Gateway acceptance from chain confirmation |
@@ -48,6 +49,7 @@ independent demand or earned revenue.
 | Item | Location or state |
 | --- | --- |
 | Hosted read-only checks | ../deployment-vercel-2026-10-09.json |
+| Activated Free storage and signed read checks | ../deployment-storage-vercel-2026-10-09.json |
 | Agent integration and API contract | ../AGENT_INTEGRATION.md |
 | Payment recovery and storage setup | ../PAYMENT_RECOVERY.md |
 | Mainnet execution sequence | ../PILOT_RUNBOOK.md |

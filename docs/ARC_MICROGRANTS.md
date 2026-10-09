@@ -15,15 +15,15 @@ Code now supports both networks, final-quote checks before signing,
 conservative accounting for signed payments, failed-resource cancellation,
 explicit mainnet/deposit flags and network-isolated runtime state.
 
-Verified locally on October 8, 2026:
+Latest local validation on October 9, 2026:
 
-- All 55 automated tests pass; production build and TypeScript checks pass.
+- All 56 automated tests pass; production build and TypeScript checks pass.
 - Local mainnet-mode homepage returns 200; unpaid signal endpoint returns
   402 with the expected chain, asset, recipient, price and absolute URL.
 - Official mainnet RPC reports chain 5042; USDC and Gateway contracts exist
   and the Gateway facilitator advertises Arc mainnet batching.
-- The configured historical buyer has zero mainnet USDC. No signatures or
-  transactions were produced by the preflight check.
+- The historical signing identity was not reused. No signatures or transactions
+  were produced by the earlier read-only preflight check.
 - The deterministic dry-run succeeds without funds.
 
 **Hosted runtime check:** The October 8 Vercel production build succeeded.
@@ -45,14 +45,15 @@ After fetching GitHub, the main branch was found to contain September durable
 receipt/recovery work and historical testnet media. The October Vercel branch
 is divergent and is prepared on a separate branch. Its recovery state machine
 and budget protections are now ported to a Vercel-compatible Redis adapter.
-Cloud database activation and an approved paid mainnet pilot remain pending.
+Free Upstash Redis is now connected with eviction disabled. Storage readiness
+and five synthetic signed billing checks pass; the approved paid mainnet pilot
+remains pending. See [storage evidence](deployment-storage-vercel-2026-10-09.json).
 
-Submission still requires:
+Remaining validation and submission work:
 
 - Anonymous public deployment verification after eligible trial/plan activation.
 - An HTTPS seller deployment and a public repository with the reviewed code.
-- Retained Redis storage activation on Vercel, then one real mainnet paid response
-  and its local audit/receipt.
+- One approved real mainnet paid response and its local audit/receipt.
 - A confirmed Arc mainnet transaction and explorer link.
 - A short demo recording.
 
@@ -106,9 +107,9 @@ After approval, purchase a live signal with treasury disabled:
 npm run agent:mainnet -- --allow-mainnet
 ```
 
-If a Gateway deposit is needed, set `GATEWAY_AUTO_DEPOSIT_USDC` to the approved
-amount (at most `GATEWAY_MAX_DEPOSIT_USDC`) and add `--allow-deposit`. Gas is an
-additional USDC cost; the deposit itself is an onchain funding action.
+Automatic Gateway deposits are disabled. If funding is needed, prepare a
+separate exact deposit amount and gas cap for owner approval. A deposit is
+an onchain funding action, separate from the 0.001 USDC API purchase.
 
 Retain `agent/state/mainnet/audit.jsonl`. A batched payment receipt may be an
 acceptance identifier rather than a confirmed transaction hash: do not label
@@ -140,18 +141,17 @@ market data.
 checks, state separation and deployment verification.
 
 **Live deployment:** REQUIRED — protected cloud build is ready at
-https://radar-agent-86hi3ctpb-chris-6239.vercel.app; publish and verify
+https://radar-agent-3lvrec1y8-chris-6239.vercel.app; publish and verify
 https://radar-agent-ivory.vercel.app after the eligible plan is active.
 
 **Public repository:** https://github.com/CrisChang/radar-agent.
-The October branch is prepared locally; its intended source link is
+The October branch is published at
 https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
-Branch publication is awaiting GitHub authorization.
 The default branch retains September integration work and historical testnet media.
 
 **Mainnet transaction:** REQUIRED — confirmed explorer link.
 
-**Demo:** REQUIRED — paid response, budget refusal and audit; clearly label
+**Demo:** Recording script prepared for paid response, budget refusal and audit; clearly label
 any synthetic fixture or dry-run as simulated.
 
 **Builder profile:** https://github.com/CrisChang

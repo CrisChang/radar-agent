@@ -94,3 +94,14 @@ paths with `REDIS_SERVER_BIN` and `REDIS_CLI_BIN` outside this Mac.
 Provider references: https://upstash.com/docs/redis/features/restapi,
 https://upstash.com/docs/redis/features/durability,
 https://vercel.com/docs/marketplace-storage.
+
+## Activated storage — October 9, 2026
+
+The owner completed the Marketplace installation. Free resource
+`upstash-kv-red-pebble` is connected to radar-agent, in iad1, with eviction
+disabled. Vercel integration variables were injected without exporting their
+values. A new protected deployment passes storage readiness and signed empty
+receipt/CSV reads using ephemeral synthetic identities. Paid record writes
+and the owner-wallet pilot remain unverified in the cloud.
+
+[Activation evidence](deployment-storage-vercel-2026-10-09.json).

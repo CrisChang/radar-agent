@@ -1,0 +1,214 @@
+{
+  "checked_at": "2026-10-09T08:45:15.144029+00:00",
+  "deployment_url": "https://radar-agent-3lvrec1y8-chris-6239.vercel.app",
+  "deployment_protection": "vercel_authentication",
+  "deployed_application_commit": "ae9a8100c0a2a53dd9498d6392db6087ebf8222f",
+  "local_validation_commit": "ae9a8100c0a2a53dd9498d6392db6087ebf8222f",
+  "test_result": {
+    "tests": 56,
+    "passed": 56,
+    "failed": 0
+  },
+  "payment_attempted": false,
+  "cloud_storage_configured": true,
+  "checks": [
+    {
+      "check": "home",
+      "http_status": 200,
+      "passed": true
+    },
+    {
+      "check": "pilot",
+      "http_status": 200,
+      "passed": true
+    },
+    {
+      "check": "billing_page",
+      "http_status": 200,
+      "passed": true
+    },
+    {
+      "check": "live_health",
+      "http_status": 200,
+      "passed": true,
+      "response": {
+        "service": "radar-agent",
+        "status": "configured",
+        "payment_acceptance": "discovery_only",
+        "payment_store": {
+          "configured": true,
+          "status": "not_probed"
+        },
+        "network": "Arc Mainnet",
+        "chain_id": 5042,
+        "paid_endpoint": "/api/signals/latest",
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:5042",
+          "asset": "0x3600000000000000000000000000000000000000",
+          "amount": "1000",
+          "payTo": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+          "maxTimeoutSeconds": 604900,
+          "extra": {
+            "name": "GatewayWalletBatched",
+            "version": "1",
+            "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+          }
+        },
+        "feed": {
+          "status": "live",
+          "source": "coinbase-exchange-candles",
+          "ts": "2026-10-09T08:44:00.000Z"
+        },
+        "treasury_execution": "unavailable"
+      }
+    },
+    {
+      "check": "unpaid_quote",
+      "http_status": 402,
+      "passed": true,
+      "quote": {
+        "x402Version": 2,
+        "resource": {
+          "url": "https://radar-agent-ivory.vercel.app/api/signals/latest?symbol=ETH-USD",
+          "description": "Radar Agent real-time market signal",
+          "mimeType": "application/json"
+        },
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "eip155:5042",
+            "asset": "0x3600000000000000000000000000000000000000",
+            "amount": "1000",
+            "payTo": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+            "maxTimeoutSeconds": 604900,
+            "extra": {
+              "name": "GatewayWalletBatched",
+              "version": "1",
+              "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "check": "billing_auth_required",
+      "http_status": 401,
+      "passed": true
+    },
+    {
+      "check": "store_available",
+      "http_status": 200,
+      "passed": true,
+      "response": {
+        "service": "radar-agent",
+        "status": "configured",
+        "payment_acceptance": "discovery_only",
+        "payment_store": {
+          "configured": true,
+          "status": "available"
+        },
+        "network": "Arc Mainnet",
+        "chain_id": 5042,
+        "paid_endpoint": "/api/signals/latest",
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:5042",
+          "asset": "0x3600000000000000000000000000000000000000",
+          "amount": "1000",
+          "payTo": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+          "maxTimeoutSeconds": 604900,
+          "extra": {
+            "name": "GatewayWalletBatched",
+            "version": "1",
+            "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+          }
+        },
+        "feed": {
+          "status": "live",
+          "source": "coinbase-exchange-candles",
+          "ts": "2026-10-09T08:44:00.000Z"
+        },
+        "treasury_execution": "unavailable"
+      }
+    },
+    {
+      "check": "invalid_symbol",
+      "http_status": 400,
+      "passed": true
+    },
+    {
+      "check": "payments_disabled",
+      "http_status": 503,
+      "passed": true
+    },
+    {
+      "check": "openapi",
+      "http_status": 200,
+      "passed": true
+    }
+  ],
+  "billing_verification": {
+    "checked_at": "2026-10-09T08:45:50.963Z",
+    "deployment_url": "https://radar-agent-3lvrec1y8-chris-6239.vercel.app",
+    "test_identity": "ephemeral synthetic wallets, not the owner wallet",
+    "private_keys_persisted": false,
+    "payment_authorization_created": false,
+    "chain_action_attempted": false,
+    "redis_receipt_reads_only": true,
+    "checks": [
+      {
+        "check": "signed_empty_wallet",
+        "http_status": 200,
+        "passed": true
+      },
+      {
+        "check": "signed_empty_csv",
+        "http_status": 200,
+        "passed": true
+      },
+      {
+        "check": "missing_request_for_synthetic_wallet",
+        "http_status": 404,
+        "passed": true
+      },
+      {
+        "check": "signature_cannot_read_another_wallet",
+        "http_status": 401,
+        "passed": true
+      },
+      {
+        "check": "expired_read_signature",
+        "http_status": 401,
+        "passed": true
+      }
+    ]
+  },
+  "storage": {
+    "provider": "Upstash Redis",
+    "resource_name": "upstash-kv-red-pebble",
+    "plan": "Free",
+    "primary_region": "iad1",
+    "eviction": false,
+    "monthly_commands": 500000,
+    "credentials": "server-only integration variables; no values exported",
+    "redis_payment_writes_tested_in_cloud": false,
+    "local_payment_recovery_suite": "real Redis, synthetic settlement fixtures"
+  },
+  "owner_payment_signature_created": false,
+  "hosting_plan": "Hobby",
+  "anonymous_checks": [
+    {
+      "url": "https://radar-agent-3lvrec1y8-chris-6239.vercel.app",
+      "status": 302,
+      "expected": 302,
+      "passed": true
+    },
+    {
+      "url": "https://radar-agent-ivory.vercel.app",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    }
+  ]
+}

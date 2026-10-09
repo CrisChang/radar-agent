@@ -149,7 +149,8 @@ The protected cloud build passes authenticated health, fresh Coinbase feed
 and unpaid 402 checks. The public origin and real paid mainnet delivery are
 not yet verified. The main branch has September durable receipt/recovery work
 and historical testnet media. Its recovery state machine is now ported to
-Vercel-compatible Redis; cloud database activation remains pending.
+Vercel-compatible Redis. A retained Free Upstash database is connected with
+eviction disabled; cloud readiness and synthetic wallet receipt reads pass.
 
 Application prose, recording script and open gates are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
@@ -166,8 +167,8 @@ is Apache-2.0; see `NOTICE` and `LICENSE-APACHE-2.0`.
 The Vercel continuation includes durable nonce/request claims, exact response
 replay and wallet-scoped receipts. `/pilot` lets the approved test wallet sign a
 single purchase without exporting its key; `/billing` reads receipts and exports
-CSV using an expiring read-only wallet signature. Payments default to disabled
-until a retained database, public hosting and spending approval are ready.
+CSV using an expiring read-only wallet signature. Payments remain disabled
+while public hosting and spending approval are pending.
 
 See [Agent integration](docs/AGENT_INTEGRATION.md),
 [payment recovery](docs/PAYMENT_RECOVERY.md), and the
@@ -175,3 +176,6 @@ See [Agent integration](docs/AGENT_INTEGRATION.md),
 
 Validated October 9: 56 tests, TypeScript and Next.js production build pass.
 Tests use synthetic payments; no paid mainnet delivery is claimed.
+The [storage activation record](docs/deployment-storage-vercel-2026-10-09.json)
+adds 15 passing cloud checks, including empty receipt and CSV reads with
+ephemeral synthetic identities. No owner wallet or real payment was used.
