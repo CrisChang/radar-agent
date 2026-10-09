@@ -15,7 +15,8 @@ been made during this implementation.
 
 ## Required sequence
 
-1. Finish GitHub device authorization and push `codex/arc-microgrants`.
+1. GitHub authorization and branch publication are complete. Verify the final
+   `codex/arc-microgrants` source and evidence links before submission.
 2. Confirm the Vercel plan's actual card and automatic-renewal terms. The
    previously observed trial requires a card; no subscription is active.
 3. Approve Upstash integration terms and install a retained Free Redis database.

@@ -18,8 +18,8 @@ Vercel branch. The application remains a draft until the open gates below pass.
 - Owner confirmed the configured recipient is the intended test wallet.
 - Owner confirmed on October 8, 2026 that this project has received no prior
   prizes or funding, including from Circle or Arc.
-- The repository is publicly visible. The October branch is prepared locally;
-  publication is awaiting GitHub authorization. Intended source link:
+- The repository and October branch are publicly visible. GitHub authorization
+  is complete and `codex/arc-microgrants` has been pushed. Source link:
   https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
 - A local mainnet configuration is prepared with the approved buyer address,
   a one-query fee cap, zero treasury budget and deposits disabled. It contains

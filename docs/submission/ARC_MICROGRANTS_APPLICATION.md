@@ -11,7 +11,7 @@ project has received no prior prizes or funding.
 | --- | --- |
 | Project name | Radar Agent |
 | One line description | USDC pay per query market signals with a buyer that enforces spending limits on Arc |
-| Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants — branch publication pending GitHub authorization |
+| Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — not promoted yet |
 | Protected build preview | https://radar-agent-86hi3ctpb-chris-6239.vercel.app — Vercel login required |
