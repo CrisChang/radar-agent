@@ -29,7 +29,7 @@ Verified locally on October 8, 2026:
 **Hosted runtime check:** The October 8 Vercel production build succeeded.
 Authenticated owner checks confirm fresh Coinbase data, health 200, unpaid
 402, chain 5042, price 0.001 USDC and the user-confirmed mainnet recipient.
-See [cloud check record](deployment-vercel-2026-10-08.json). Local Node direct
+See [cloud check record](deployment-vercel-2026-10-09.json). Local Node direct
 requests still time out; the cloud feed works. The deployment retains Vercel
 login protection and the planned public origin has not been promoted.
 No real paid query has been completed.
@@ -140,7 +140,7 @@ market data.
 checks, state separation and deployment verification.
 
 **Live deployment:** REQUIRED — protected cloud build is ready at
-https://radar-agent-jihme1ww1-chris-6239.vercel.app; publish and verify
+https://radar-agent-86hi3ctpb-chris-6239.vercel.app; publish and verify
 https://radar-agent-ivory.vercel.app after the eligible plan is active.
 
 **Public repository:** https://github.com/CrisChang/radar-agent.

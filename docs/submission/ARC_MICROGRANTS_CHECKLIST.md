@@ -8,7 +8,7 @@ Vercel branch. The application remains a draft until the open gates below pass.
 - Durable receipt recovery, budget reservations and buyer locking are ported.
 - Wallet-authenticated billing API, browser receipt page, CSV export, browser
   payment pilot, OpenAPI and external-agent examples are implemented.
-- All 53 regression tests pass, including real local Redis concurrency, restart,
+- All 56 regression tests pass, including real local Redis concurrency, restart,
   lost-acknowledgement recovery and wallet privacy isolation. TypeScript and
   production build pass. Cloud database activation remains pending.
 
@@ -47,7 +47,7 @@ independent demand or earned revenue.
 
 | Item | Location or state |
 | --- | --- |
-| Hosted read-only checks | ../deployment-vercel-2026-10-08.json |
+| Hosted read-only checks | ../deployment-vercel-2026-10-09.json |
 | Agent integration and API contract | ../AGENT_INTEGRATION.md |
 | Payment recovery and storage setup | ../PAYMENT_RECOVERY.md |
 | Mainnet execution sequence | ../PILOT_RUNBOOK.md |

@@ -54,6 +54,7 @@ PUBLIC_BASE_URL=https://YOUR_PRODUCTION_DOMAIN
 SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
+RADAR_ACCEPT_PAYMENTS=false
 ```
 
 6. Deploy with `vercel deploy --prod`. Pin `PUBLIC_BASE_URL` to the actual
@@ -77,27 +78,32 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 - Vercel project: https://vercel.com/chris-6239/radar-agent
 - The project is linked locally. Cloud settings use Node 22.x and the verified
   Next.js build/install commands.
-- All 53 tests and the Next.js production build pass.
-- Official Vercel upload dry-run succeeds: 22 regular files (191,137 bytes)
-  plus five empty directory entries. Environment files, key files, buyer state,
+- All 56 tests and the Next.js production build pass.
+- Official Vercel upload dry-run succeeds: 38 regular files
+  plus six empty directory entries. Environment files, key files, buyer state,
   tests, private Twitter data and local build output are excluded.
 - The user supplied and confirmed the mainnet recipient above. Five seller-only
   production environment variables are saved, with price 0.001 USDC.
 - Cloud production build is READY. Deployment was prepared with `--skip-domain`
   and retains Vercel authentication:
-  https://radar-agent-jihme1ww1-chris-6239.vercel.app
+  https://radar-agent-86hi3ctpb-chris-6239.vercel.app
 - Authenticated owner checks pass: homepage 200, health 200, unpaid quote 402,
   fresh Coinbase feed, Arc chain 5042, exact recipient/price/Gateway contract.
-  Proof: [cloud check record](deployment-vercel-2026-10-08.json).
+  Proof: [cloud check record](deployment-vercel-2026-10-09.json).
 - Planned public origin: https://radar-agent-ivory.vercel.app. It is not promoted
   and currently returns 404. The deployment is not an anonymous public API.
 - Trial activation is waiting for the user's acceptance of card/automatic
   renewal terms. Once eligible, promote and run anonymous deployment checks.
+- Cloud checks also verify the pilot and billing pages, OpenAPI, billing 401,
+  invalid symbol 400, disabled payments 503 and missing-store readiness 503.
+- No database has been connected. Paid delivery and signed cloud receipt reads
+  remain unverified; the default payment mode is discovery-only.
 - No trial/new subscription, signature, deposit or payment has been made.
 
-The local package remains at `/private/tmp/radar-agent-vercel-seller.zip`.
-The official file manifest is saved at
-`/private/tmp/radar-agent-vercel-official-dry-run.json`.
+The updated materials package is
+`/private/tmp/radar-agent-arc-microgrants-materials-2026-10-09.zip`.
+The official upload manifest is
+`/private/tmp/arc-vercel-dry-run-2026-10-09.json`.
 
 ## Local network note
 

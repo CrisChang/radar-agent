@@ -14,7 +14,7 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants — branch publication pending GitHub authorization |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — not promoted yet |
-| Protected build preview | https://radar-agent-jihme1ww1-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-86hi3ctpb-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
@@ -73,7 +73,7 @@ Arc 的 USDC 和 Circle Gateway 为小额按次付款提供基础设施。目前
 
 ## Evidence and eligibility
 
-The [deployment record](../deployment-vercel-2026-10-08.json) contains the
+The [deployment record](../deployment-vercel-2026-10-09.json) contains the
 October hosted checks. The [submission checklist](ARC_MICROGRANTS_CHECKLIST.md)
 separates verified results from remaining gates. The
 [demo script](ARC_MICROGRANTS_DEMO.md) specifies a 90 second recording.
@@ -97,6 +97,6 @@ it is not an independent customer sale or evidence of revenue.
 The Vercel continuation now implements durable request/nonce claims, exact
 response replay, persistent budget reservations, a browser wallet pilot and
 wallet-authenticated receipt reads with JSON/CSV output. OpenAPI and external
-agent examples document integration. All 53 tests, TypeScript and production
+agent examples document integration. All 56 tests, TypeScript and production
 build pass. Local integration tests use a real Redis process and synthetic
 payment providers; they are not paid mainnet evidence.
