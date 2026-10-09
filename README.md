@@ -173,5 +173,5 @@ See [Agent integration](docs/AGENT_INTEGRATION.md),
 [payment recovery](docs/PAYMENT_RECOVERY.md), and the
 [mainnet pilot runbook](docs/PILOT_RUNBOOK.md).
 
-Validated October 9: 55 tests, TypeScript and Next.js production build pass.
+Validated October 9: 53 tests, TypeScript and Next.js production build pass.
 Tests use synthetic payments; no paid mainnet delivery is claimed.

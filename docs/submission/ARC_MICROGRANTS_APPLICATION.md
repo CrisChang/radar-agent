@@ -97,6 +97,6 @@ it is not an independent customer sale or evidence of revenue.
 The Vercel continuation now implements durable request/nonce claims, exact
 response replay, persistent budget reservations, a browser wallet pilot and
 wallet-authenticated receipt reads with JSON/CSV output. OpenAPI and external
-agent examples document integration. All 55 tests, TypeScript and production
+agent examples document integration. All 53 tests, TypeScript and production
 build pass. Local integration tests use a real Redis process and synthetic
 payment providers; they are not paid mainnet evidence.

@@ -18,7 +18,7 @@ traces do not include App Kit, Anchor or toml. Keep arbitrary TOML inputs out of
 the legacy executor. Revisit or remove that executor before enabling treasury
 features; further provider upgrades need their own compatibility validation.
 
-After the compatible updates, all 55 regression tests and the production build
+After the compatible updates, all 53 regression tests and the production build
 pass. These checks use synthetic payment fixtures and do not prove a real
 mainnet payment.
 

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       try { await currentPaymentStore()!.ping(); storeStatus = "available"; }
       catch { storeStatus = "unavailable"; }
     }
-    const storeUnavailable = storeStatus === "unavailable";
+    const storeUnavailable = request.nextUrl.searchParams.get("store") === "1" && storeStatus !== "available";
     const feedUnavailable = feed?.feed_status === "stale";
     return NextResponse.json({
       service: "radar-agent",

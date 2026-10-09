@@ -77,7 +77,7 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 - Vercel project: https://vercel.com/chris-6239/radar-agent
 - The project is linked locally. Cloud settings use Node 22.x and the verified
   Next.js build/install commands.
-- All 55 tests and the Next.js production build pass.
+- All 53 tests and the Next.js production build pass.
 - Official Vercel upload dry-run succeeds: 22 regular files (191,137 bytes)
   plus five empty directory entries. Environment files, key files, buyer state,
   tests, private Twitter data and local build output are excluded.
