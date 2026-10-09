@@ -1,0 +1,160 @@
+{
+  "checked_at": "2026-10-09T08:30:59.330231+00:00",
+  "deployment_url": "https://radar-agent-86hi3ctpb-chris-6239.vercel.app",
+  "deployment_protection": "vercel_authentication",
+  "deployed_application_commit": "b1489fb340e171966b74526d99bb2d4e5c6ee646",
+  "local_validation_commit": "b8214cff0fa78547b2fd001e033978af97ab5521",
+  "test_result": {
+    "tests": 56,
+    "passed": 56,
+    "failed": 0
+  },
+  "payment_attempted": false,
+  "cloud_storage_configured": false,
+  "checks": [
+    {
+      "check": "home",
+      "http_status": 200,
+      "passed": true
+    },
+    {
+      "check": "pilot",
+      "http_status": 200,
+      "passed": true
+    },
+    {
+      "check": "billing_page",
+      "http_status": 200,
+      "passed": true
+    },
+    {
+      "check": "live_health",
+      "http_status": 200,
+      "passed": true,
+      "response": {
+        "service": "radar-agent",
+        "status": "configured",
+        "payment_acceptance": "discovery_only",
+        "payment_store": {
+          "configured": false,
+          "status": "unconfigured"
+        },
+        "network": "Arc Mainnet",
+        "chain_id": 5042,
+        "paid_endpoint": "/api/signals/latest",
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:5042",
+          "asset": "0x3600000000000000000000000000000000000000",
+          "amount": "1000",
+          "payTo": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+          "maxTimeoutSeconds": 604900,
+          "extra": {
+            "name": "GatewayWalletBatched",
+            "version": "1",
+            "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+          }
+        },
+        "feed": {
+          "status": "live",
+          "source": "coinbase-exchange-candles",
+          "ts": "2026-10-09T08:30:00.000Z"
+        },
+        "treasury_execution": "unavailable"
+      }
+    },
+    {
+      "check": "unpaid_quote",
+      "http_status": 402,
+      "passed": true,
+      "quote": {
+        "x402Version": 2,
+        "resource": {
+          "url": "https://radar-agent-ivory.vercel.app/api/signals/latest?symbol=ETH-USD",
+          "description": "Radar Agent real-time market signal",
+          "mimeType": "application/json"
+        },
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "eip155:5042",
+            "asset": "0x3600000000000000000000000000000000000000",
+            "amount": "1000",
+            "payTo": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+            "maxTimeoutSeconds": 604900,
+            "extra": {
+              "name": "GatewayWalletBatched",
+              "version": "1",
+              "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "check": "billing_auth_required",
+      "http_status": 401,
+      "passed": true
+    },
+    {
+      "check": "store_not_configured",
+      "http_status": 503,
+      "passed": true,
+      "response": {
+        "service": "radar-agent",
+        "status": "store_unavailable",
+        "payment_acceptance": "discovery_only",
+        "payment_store": {
+          "configured": false,
+          "status": "unconfigured"
+        },
+        "network": "Arc Mainnet",
+        "chain_id": 5042,
+        "paid_endpoint": "/api/signals/latest",
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:5042",
+          "asset": "0x3600000000000000000000000000000000000000",
+          "amount": "1000",
+          "payTo": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+          "maxTimeoutSeconds": 604900,
+          "extra": {
+            "name": "GatewayWalletBatched",
+            "version": "1",
+            "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+          }
+        },
+        "treasury_execution": "unavailable"
+      }
+    },
+    {
+      "check": "invalid_symbol",
+      "http_status": 400,
+      "passed": true
+    },
+    {
+      "check": "payments_disabled",
+      "http_status": 503,
+      "passed": true
+    },
+    {
+      "check": "openapi",
+      "http_status": 200,
+      "passed": true
+    }
+  ],
+  "anonymous_checks": [
+    {
+      "url": "https://radar-agent-86hi3ctpb-chris-6239.vercel.app",
+      "status": 302,
+      "expected": 302,
+      "passed": true
+    },
+    {
+      "url": "https://radar-agent-ivory.vercel.app",
+      "status": 404,
+      "expected": 404,
+      "passed": true
+    }
+  ]
+}
