@@ -42,8 +42,14 @@ const handler = async (request: NextRequest) => {
 
 const price = process.env.SIGNAL_PRICE_USDC ?? "0.001";
 
-export const GET = withGateway(
+const paidHandler = withGateway(
   handler,
   price,
   "/api/signals/latest",
 );
+
+export async function GET(request: NextRequest) {
+  const symbol = request.nextUrl.searchParams.get("symbol") ?? "ETH-USD";
+  if (!["ETH-USD", "BTC-USD"].includes(symbol)) return NextResponse.json({ error: "Unsupported symbol" }, { status: 400 });
+  return paidHandler(request);
+}

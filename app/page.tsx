@@ -18,6 +18,7 @@ export default function Home() {
         <a className="brand" href="#top">
           RADAR<span>•</span>AGENT
         </a>
+        <div className="tool-actions"><a href="/pilot">Payment pilot</a><a href="/billing">Receipts</a><a href="/api/openapi">API docs</a></div>
         <div className="network">
           <i />
           {arc.name.toUpperCase()}

@@ -7,13 +7,20 @@
 import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { mkdir } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
 import { BatchFacilitatorClient } from "@circle-fin/x402-batching/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getArcConfig, getSellerAddress, parseUsdcAtomic } from "./arc";
+import { classifyPaymentReference, validateOffer } from "./agent-contract";
+import { currentPaymentStore } from "./redis-payment-store";
+import { paymentIdentity, type PaymentStore, type PaymentRecord, type SavedResponse } from "./payment-store";
 
 // Gateway nanopayment authorizations need at least seven days of validity.
 // Keep the small buffer used by Circle's current seller quickstart.
 const GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS = 604_900;
+const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+const REQUEST_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
 
 interface PaymentPayload {
   x402Version: number;
@@ -24,19 +31,19 @@ interface PaymentPayload {
 }
 
 export function buildPaymentRequirements(priceUsdc: string) {
-  const arc = getArcConfig();
+  const network = getArcConfig();
 
   return {
     scheme: "exact" as const,
-    network: arc.network,
-    asset: arc.usdc,
+    network: network.network,
+    asset: network.usdc,
     amount: parseUsdcAtomic(priceUsdc).toString(),
     payTo: getSellerAddress(),
     maxTimeoutSeconds: GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS,
     extra: {
       name: "GatewayWalletBatched",
       version: "1",
-      verifyingContract: arc.gatewayWallet,
+      verifyingContract: network.gatewayWallet,
     },
   };
 }
@@ -68,12 +75,39 @@ async function recordPayment(event: Record<string, unknown>): Promise<void> {
   }
 }
 
+async function saveResponse(response: NextResponse): Promise<SavedResponse> {
+  const body = await response.clone().text();
+  if (Buffer.byteLength(body) > 65_536) throw new Error("Response exceeds ledger limit");
+  const headers: Record<string, string> = {};
+  for (const name of ["content-type", "cache-control", "payment-response", "x-radar-request-id", "x-radar-response-sha256", "x-radar-payment-state"]) {
+    const value = response.headers.get(name);
+    if (value) headers[name] = value;
+  }
+  headers["cache-control"] = "no-store";
+  return { status: response.status, body, headers };
+}
+
+function replay(record: PaymentRecord, identity: ReturnType<typeof paymentIdentity>): NextResponse {
+  if (record.fingerprint !== identity.fingerprint) {
+    return NextResponse.json({ error: "request or authorization already used with different terms", payment_status: "conflict_do_not_repay", retry_safe: false }, { status: 409 });
+  }
+  if ((record.state === "accepted" || record.state === "rejected") && record.response) {
+    return new NextResponse(record.response.body, { status: record.response.status,
+      headers: { ...record.response.headers, "x-radar-replayed": "true", "cache-control": "no-store" } });
+  }
+  return NextResponse.json({ error: "payment pending or unknown; reconciliation required", request_id: record.requestId,
+    payment_status: "unknown_do_not_repay", retry_safe: false }, { status: 409 });
+}
+
 export function withGateway(
   handler: (request: NextRequest) => Promise<NextResponse>,
   priceUsdc: string,
   endpoint: string,
+  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore } = {},
 ) {
   return async (request: NextRequest) => {
+    const callerId = request.headers.get("x-radar-request-id");
+    const requestId = callerId && REQUEST_ID_PATTERN.test(callerId) ? callerId.toLowerCase() : randomUUID();
     let requirements: ReturnType<typeof buildPaymentRequirements>;
     let resourceUrl: string;
     try {
@@ -87,6 +121,14 @@ export function withGateway(
         },
         { status: 503 },
       );
+    }
+
+    // Staging is discovery-only until a separately approved paid pilot.
+    // Fail closed, including malformed/empty authorization headers, before
+    // parsing a payload, accessing the ledger, or contacting a facilitator.
+    if (request.headers.has("payment-signature") && process.env.RADAR_ACCEPT_PAYMENTS !== "true") {
+      return NextResponse.json({ error: "Payments are disabled on this deployment", payment_status: "not_settled", retry_safe: false },
+        { status: 503, headers: { "cache-control": "no-store" } });
     }
 
     const signature = request.headers.get("payment-signature");
@@ -104,6 +146,8 @@ export function withGateway(
         status: 402,
         headers: {
           "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-radar-request-id": requestId,
           "payment-required": Buffer.from(
             JSON.stringify(paymentRequired),
           ).toString("base64"),
@@ -111,13 +155,37 @@ export function withGateway(
       });
     }
 
+    if (!callerId || !REQUEST_ID_PATTERN.test(callerId)) {
+      return NextResponse.json({ error: "A stable UUID x-radar-request-id is required for paid requests", payment_status: "not_settled" }, { status: 400 });
+    }
+
+    let paymentPayload: PaymentPayload;
+    let identity: ReturnType<typeof paymentIdentity>;
     try {
-      const facilitator = new BatchFacilitatorClient({
-        url: getArcConfig().facilitatorUrl,
-      });
-      const paymentPayload = JSON.parse(
+      if (signature.length > 16_384) throw new Error("payment header too large");
+      paymentPayload = JSON.parse(
         Buffer.from(signature, "base64").toString("utf8"),
       ) as PaymentPayload;
+      if (!paymentPayload.payload || typeof paymentPayload.payload !== "object") throw new Error("invalid payload");
+      const offer = validateOffer({ x402Version: paymentPayload.x402Version, accepts: [paymentPayload.accepted] }, getArcConfig(), requirements.amount);
+      if (offer.amountAtomic !== requirements.amount || offer.payTo.toLowerCase() !== requirements.payTo.toLowerCase()) throw new Error("payment terms changed");
+      const query = new URLSearchParams(request.nextUrl.searchParams);
+      query.sort();
+      identity = paymentIdentity(paymentPayload, requirements.network, requirements.extra.verifyingContract,
+        requestId, `${request.method}:${request.nextUrl.pathname}?${query.toString()}`);
+    } catch {
+      return NextResponse.json({ error: "invalid payment payload", request_id: requestId }, { status: 400 });
+    }
+
+    let settlementAttempted = false;
+    let claimed = false;
+    let store: PaymentStore | undefined;
+    try {
+      store = dependencies.store ?? currentPaymentStore();
+      if (!store) return NextResponse.json({ error: "Durable payment store unavailable; no payment attempted", payment_status: "not_settled" }, { status: 503 });
+      const existing = await store.find(identity.paymentKey, identity.requestKey);
+      if (existing) return replay(existing, identity);
+      const facilitator = dependencies.facilitator ?? new BatchFacilitatorClient({ url: getArcConfig().facilitatorUrl });
       const verification = await facilitator.verify(
         paymentPayload,
         requirements,
@@ -132,22 +200,40 @@ export function withGateway(
         );
       }
 
-      // Validate/prepare the resource before charging. Invalid parameters or
-      // an unavailable feed must not result in a successful payment.
-      const response = await handler(request);
-      if (!response.ok) return response;
+      claimed = await store.claim({ ...identity, requestId, state: "preparing",
+        terms: { amountAtomic: requirements.amount, asset: requirements.asset, payTo: requirements.payTo } });
+      if (!claimed) {
+        const concurrent = await store.find(identity.paymentKey, identity.requestKey);
+        if (!concurrent) throw new Error("Concurrent payment claim unavailable");
+        return replay(concurrent, identity);
+      }
 
+      // Prepare content before accepting payment: invalid/stale data is not a
+      // successful paid delivery. This handler must remain read-only.
+      const response = await handler(request);
+      if (!response.ok) {
+        await store.transition(identity.paymentKey, "preparing", "rejected", await saveResponse(response));
+        return response;
+      }
+      const outputHash = createHash("sha256").update(await response.clone().text()).digest("hex");
+      await store.transition(identity.paymentKey, "preparing", "settling", await saveResponse(response));
+      settlementAttempted = true;
       const settlement = await facilitator.settle(
         paymentPayload,
         requirements,
       );
-      if (!settlement.success) {
+      if (!settlement.success || settlement.network !== requirements.network ||
+          !settlement.transaction ||
+          (settlement.payer && settlement.payer.toLowerCase() !== identity.authorization.payer)) {
+        await store.transition(identity.paymentKey, "settling", "unknown");
         return NextResponse.json(
           {
             error: "payment settlement failed",
-            reason: settlement.errorReason,
+            request_id: requestId,
+            payment_status: "unknown_do_not_repay",
+            retry_safe: false,
           },
-          { status: 402 },
+          { status: 502 },
         );
       }
 
@@ -155,12 +241,19 @@ export function withGateway(
       const amountUsdc = Number(requirements.amount) / 1_000_000;
       await recordPayment({
         endpoint,
+        request_id: requestId,
         payer,
         amount_usdc: amountUsdc,
         network: requirements.network,
-        transaction: settlement.transaction ?? null,
+        payment: classifyPaymentReference(settlement.transaction),
+        payment_status: "gateway_accepted",
+        delivery_status: "response_prepared",
+        response_sha256: outputHash,
       });
 
+      response.headers.set("x-radar-request-id", requestId);
+      response.headers.set("x-radar-response-sha256", outputHash);
+      response.headers.set("x-radar-payment-state", "gateway_accepted_not_onchain_verified");
       response.headers.set(
         "payment-response",
         Buffer.from(
@@ -172,15 +265,27 @@ export function withGateway(
           }),
         ).toString("base64"),
       );
+      // Commit exact response bytes before delivery. If this write is uncertain,
+      // leave the durable settling record and never automatically settle again.
+      await store.transition(identity.paymentKey, "settling", "accepted", await saveResponse(response));
       return response;
     } catch (error) {
-      console.error("[x402] payment processing error:", error);
+      // Do not leak provider errors, signatures or payment authorization data.
+      console.error("[x402] request failed", { requestId, settlementAttempted });
+      if (store && claimed && settlementAttempted) {
+        try { await store.transition(identity.paymentKey, "settling", "unknown"); } catch { /* Retain settling/accepted state; never retry payment here. */ }
+      }
+      await recordPayment({ endpoint, request_id: requestId,
+        payment_status: settlementAttempted ? "unknown_do_not_repay" : "not_settled",
+        delivery_status: "not_served", network: requirements.network });
       return NextResponse.json(
         {
           error: "payment processing error",
-          message: error instanceof Error ? error.message : String(error),
+          request_id: requestId,
+          payment_status: settlementAttempted ? "unknown_do_not_repay" : "not_settled",
+          retry_safe: !claimed && !settlementAttempted,
         },
-        { status: 500 },
+        { status: 502 },
       );
     }
   };

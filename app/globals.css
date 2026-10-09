@@ -282,3 +282,20 @@ footer {
   }
 }
 
+
+.tool-shell { max-width: 1120px; margin: 0 auto; padding: 60px 36px; }
+.tool-shell h1 { font-size: clamp(40px, 6vw, 76px); line-height: 1.05; }
+.tool-shell p { line-height: 1.6; }
+.tool-card { border: 1px solid var(--line); background: #fffdf7; padding: 26px; margin: 24px 0; }
+.tool-card code { overflow-wrap: anywhere; }
+.tool-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.tool-actions a { color: var(--ink); font-size: 13px; }
+.tool-shell button { background: var(--ink); color: white; padding: 13px 18px; border: 1px solid var(--ink); cursor: pointer; font-weight: 600; }
+.tool-shell button:disabled { opacity: .4; cursor: not-allowed; }
+.tool-shell input { display: block; width: 100%; padding: 13px; margin: 10px 0 18px; border: 1px solid var(--line); background: white; font: inherit; }
+.tool-notice { border-left: 4px solid var(--arc); padding: 14px 18px; background: #e9eefb; overflow-wrap: anywhere; }
+.tool-shell pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 20px; background: var(--ink); color: white; }
+.table-scroll { overflow-x: auto; margin-top: 24px; }
+.tool-shell table { border-collapse: collapse; width: 100%; font-size: 13px; text-align: left; }
+.tool-shell th, .tool-shell td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+@media (max-width: 700px) { .tool-shell { padding: 34px 18px; } .tool-card { padding: 18px; } nav { flex-wrap: wrap; gap: 18px; } }

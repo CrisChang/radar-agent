@@ -8,13 +8,17 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts",
+    "test": "tsx --test tests/*.test.ts tests/integration/*.test.ts",
     "agent": "tsx --env-file=.env.local agent/radar.mts",
     "agent:dry": "tsx agent/radar.mts --dry-run --demo-signal",
     "generate-wallet": "tsx scripts/generate-wallet.mts",
     "agent:mainnet": "tsx --env-file=.env.mainnet.local agent/radar.mts",
     "preflight": "tsx --env-file=.env.local scripts/preflight.mts",
-    "check:deployment": "tsx scripts/check-deployment.mts"
+    "check:deployment": "tsx scripts/check-deployment.mts",
+    "agent:probe": "tsx --env-file=.env.mainnet.local examples/external-agent/probe.mts",
+    "agent:bills": "tsx --env-file=.env.mainnet.local examples/external-agent/bills.mts",
+    "bills:local": "tsx scripts/bills.mts",
+    "test:redis": "tsx --test tests/integration/redis.test.ts"
   },
   "dependencies": {
     "@circle-fin/adapter-circle-wallets": "^1.1.0",

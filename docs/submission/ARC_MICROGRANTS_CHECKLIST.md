@@ -1,9 +1,16 @@
 # Radar Agent Arc Microgrants submission checklist
 
-Updated October 8, 2026. Code and application prose are prepared on the October
+Updated October 9, 2026. Code and application prose are prepared on the October
 Vercel branch. The application remains a draft until the open gates below pass.
 
 ## Verified preparation
+
+- Durable receipt recovery, budget reservations and buyer locking are ported.
+- Wallet-authenticated billing API, browser receipt page, CSV export, browser
+  payment pilot, OpenAPI and external-agent examples are implemented.
+- All 55 regression tests pass, including real local Redis concurrency, restart,
+  lost-acknowledgement recovery and wallet privacy isolation. TypeScript and
+  production build pass. Cloud database activation remains pending.
 
 - Vercel production build is READY and retains login protection.
 - Authenticated homepage and health return 200; unpaid signal requests return 402.
@@ -25,8 +32,8 @@ Vercel branch. The application remains a draft until the open gates below pass.
 | Gate | What completes it |
 | --- | --- |
 | Vercel plan and anonymous access | Activate an eligible plan under accepted billing terms, promote the domain and verify access without Vercel login |
-| Buyer signing | Configure an approved local signer or implement a browser-wallet signer; the historical local key belongs to another address |
-| Receipt recovery integration | Port the main branch's durable receipt and unknown-payment recovery work to the Vercel deployment before the paid pilot |
+| Buyer signing | Browser-wallet signing is implemented; connect the owner-confirmed test wallet and approve the exact bounded experiment |
+| Cloud ledger activation | Approve and connect retained Free Upstash Redis to Vercel; verify storage readiness before enabling payments |
 | Bounded payment approval | Approve the 0.001 USDC signal purchase plus any separately quoted Gateway deposit and gas cap |
 | Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
 | Confirmed chain evidence | Independently verify a mainnet receipt and publish its explorer link; distinguish Gateway acceptance from chain confirmation |
@@ -41,6 +48,9 @@ independent demand or earned revenue.
 | Item | Location or state |
 | --- | --- |
 | Hosted read-only checks | ../deployment-vercel-2026-10-08.json |
+| Agent integration and API contract | ../AGENT_INTEGRATION.md |
+| Payment recovery and storage setup | ../PAYMENT_RECOVERY.md |
+| Mainnet execution sequence | ../PILOT_RUNBOOK.md |
 | October application fields | ARC_MICROGRANTS_APPLICATION.md |
 | Demo script and bilingual narration | ARC_MICROGRANTS_DEMO.md |
 | Existing September architecture and recovery work | https://github.com/CrisChang/radar-agent/blob/main/docs/ARC_MAINNET_PLAN.md |

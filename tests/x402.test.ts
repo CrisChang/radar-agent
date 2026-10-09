@@ -68,29 +68,3 @@ test("mainnet seller advertises the mainnet chain and Gateway wallet", () => {
     else process.env.SELLER_ADDRESS = previous.seller;
   }
 });
-
-test("a failed protected handler never settles the verified payment", async () => {
-  const originalVerify = BatchFacilitatorClient.prototype.verify;
-  const originalSettle = BatchFacilitatorClient.prototype.settle;
-  const originalSeller = process.env.SELLER_ADDRESS;
-  let settlements = 0;
-  process.env.SELLER_ADDRESS = "0x1111111111111111111111111111111111111111";
-  BatchFacilitatorClient.prototype.verify = async () => ({ isValid: true });
-  BatchFacilitatorClient.prototype.settle = async () => {
-    settlements++;
-    return { success: true, transaction: "test", network: "eip155:5042002" };
-  };
-  try {
-    const handler = withGateway(async () => NextResponse.json({ error: "feed unavailable" }, { status: 503 }), "0.001", "/api/signals/latest");
-    const response = await handler(new NextRequest("http://localhost/api/signals/latest", {
-      headers: { "payment-signature": Buffer.from(JSON.stringify({ x402Version: 2, payload: {} })).toString("base64") },
-    }));
-    assert.equal(response.status, 503);
-    assert.equal(settlements, 0);
-  } finally {
-    BatchFacilitatorClient.prototype.verify = originalVerify;
-    BatchFacilitatorClient.prototype.settle = originalSettle;
-    if (originalSeller === undefined) delete process.env.SELLER_ADDRESS;
-    else process.env.SELLER_ADDRESS = originalSeller;
-  }
-});

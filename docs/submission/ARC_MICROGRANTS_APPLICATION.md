@@ -1,6 +1,6 @@
 # Radar Agent Arc Microgrants application draft
 
-Updated October 8, 2026. This draft describes the October Vercel branch. Public
+Updated October 9, 2026. This draft describes the October Vercel branch. Public
 launch, a real paid mainnet response and confirmed transaction evidence must
 be completed before submission. On October 8, 2026, the owner confirmed this
 project has received no prior prizes or funding.
@@ -49,7 +49,8 @@ A real paid response and confirmed chain evidence remain to be collected.
 The project began as an Encode Club and Circle hackathon prototype. The
 historical testnet demo and September receipt-recovery work are retained on the
 repository's main branch. The October Vercel branch is a separate continuation;
-it must integrate the durable recovery work before a paid mainnet pilot. No
+its receipt-recovery work has been ported to Vercel-compatible Redis storage,
+with database activation and the paid mainnet pilot still pending. No
 third-party users, revenue or production readiness are claimed.
 
 ## 中文简述
@@ -90,3 +91,12 @@ October 15, 11:59 in Asia/Shanghai.
 The current user-confirmed test wallet is also the configured recipient. If it
 is used on both sides, describe the run as a same-wallet functional experiment;
 it is not an independent customer sale or evidence of revenue.
+
+## October 9 implementation update
+
+The Vercel continuation now implements durable request/nonce claims, exact
+response replay, persistent budget reservations, a browser wallet pilot and
+wallet-authenticated receipt reads with JSON/CSV output. OpenAPI and external
+agent examples document integration. All 55 tests, TypeScript and production
+build pass. Local integration tests use a real Redis process and synthetic
+payment providers; they are not paid mainnet evidence.

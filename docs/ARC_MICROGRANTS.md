@@ -17,7 +17,7 @@ explicit mainnet/deposit flags and network-isolated runtime state.
 
 Verified locally on October 8, 2026:
 
-- All 20 automated tests pass; production build and TypeScript checks pass.
+- All 55 automated tests pass; production build and TypeScript checks pass.
 - Local mainnet-mode homepage returns 200; unpaid signal endpoint returns
   402 with the expected chain, asset, recipient, price and absolute URL.
 - Official mainnet RPC reports chain 5042; USDC and Gateway contracts exist
@@ -43,14 +43,15 @@ Mainnet signing now requires an explicit matching `BUYER_ADDRESS`.
 
 After fetching GitHub, the main branch was found to contain September durable
 receipt/recovery work and historical testnet media. The October Vercel branch
-is divergent and is prepared on a separate branch; preserve that work and port the
-recovery implementation before the paid mainnet pilot.
+is divergent and is prepared on a separate branch. Its recovery state machine
+and budget protections are now ported to a Vercel-compatible Redis adapter.
+Cloud database activation and an approved paid mainnet pilot remain pending.
 
 Submission still requires:
 
 - Anonymous public deployment verification after eligible trial/plan activation.
 - An HTTPS seller deployment and a public repository with the reviewed code.
-- Durable recovery integration on Vercel, then one real mainnet paid response
+- Retained Redis storage activation on Vercel, then one real mainnet paid response
   and its local audit/receipt.
 - A confirmed Arc mainnet transaction and explorer link.
 - A short demo recording.

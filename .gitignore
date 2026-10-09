@@ -11,3 +11,8 @@ node_modules/
 coverage/
 *.tsbuildinfo
 .vercel/
+
+# Keep all credential environment files private; retain reviewed templates.
+.env*
+!.env.example
+!.env.mainnet.example

@@ -148,8 +148,8 @@ October 2026 Vercel continuation, prepared on `codex/arc-microgrants`.
 The protected cloud build passes authenticated health, fresh Coinbase feed
 and unpaid 402 checks. The public origin and real paid mainnet delivery are
 not yet verified. The main branch has September durable receipt/recovery work
-and historical testnet media; it is preserved separately and needs integration
-on Vercel before a paid pilot.
+and historical testnet media. Its recovery state machine is now ported to
+Vercel-compatible Redis; cloud database activation remains pending.
 
 Application prose, recording script and open gates are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
@@ -160,3 +160,18 @@ above record the original hackathon; they are not current deadlines.
 
 Original Radar Agent code is MIT licensed. The adapted Circle x402 integration
 is Apache-2.0; see `NOTICE` and `LICENSE-APACHE-2.0`.
+
+## Agent payments and receipts
+
+The Vercel continuation includes durable nonce/request claims, exact response
+replay and wallet-scoped receipts. `/pilot` lets the approved test wallet sign a
+single purchase without exporting its key; `/billing` reads receipts and exports
+CSV using an expiring read-only wallet signature. Payments default to disabled
+until a retained database, public hosting and spending approval are ready.
+
+See [Agent integration](docs/AGENT_INTEGRATION.md),
+[payment recovery](docs/PAYMENT_RECOVERY.md), and the
+[mainnet pilot runbook](docs/PILOT_RUNBOOK.md).
+
+Validated October 9: 55 tests, TypeScript and Next.js production build pass.
+Tests use synthetic payments; no paid mainnet delivery is claimed.
