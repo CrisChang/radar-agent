@@ -17,7 +17,12 @@ Vercel branch. The application remains a draft until the open gates below pass.
 - Vercel production build is READY and retains login protection.
 - Authenticated homepage and health return 200; unpaid signal requests return 402.
 - Hosted Coinbase candles are fresh. Price is 0.001 USDC; chain is 5042.
-- Owner confirmed the configured recipient is the intended test wallet.
+- Owner corrected the mainnet pilot wallet and recipient on October 9 to
+  `0xefc70a0dedefee6a010bac44de489bafb2fd8422`. Earlier deployment records are historical.
+- Ten current hosted checks verify the corrected recipient, pilot page, unpaid
+  quote, live feed, storage and disabled payments; no owner signature was used.
+- Owner personally activated Pro Trial; Billing shows October 23 as the end
+  date, with a local cancellation review reminder on October 18 at 10:00.
 - Owner confirmed on October 8, 2026 that this project has received no prior
   prizes or funding, including from Circle or Arc.
 - The repository and October branch are publicly visible. GitHub authorization
@@ -33,7 +38,7 @@ Vercel branch. The application remains a draft until the open gates below pass.
 
 | Gate | What completes it |
 | --- | --- |
-| Vercel plan and anonymous access | Activate an eligible plan under accepted billing terms, promote the domain and verify access without Vercel login |
+| Anonymous access | Pro Trial is active; promote the domain and verify access without Vercel login |
 | Buyer signing | Browser-wallet signing is implemented; connect the owner-confirmed test wallet and approve the exact bounded experiment |
 | Bounded payment approval | Approve the 0.001 USDC signal purchase plus any separately quoted Gateway deposit and gas cap |
 | Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
@@ -48,8 +53,9 @@ independent demand or earned revenue.
 
 | Item | Location or state |
 | --- | --- |
-| Hosted read-only checks | ../deployment-vercel-2026-10-09.json |
-| Activated Free storage and signed read checks | ../deployment-storage-vercel-2026-10-09.json |
+| Current wallet and hosted read-only checks | ../deployment-wallet-vercel-2026-10-09.json |
+| Historical hosted checks before wallet correction | ../deployment-vercel-2026-10-09.json |
+| Historical Free storage activation and signed read checks | ../deployment-storage-vercel-2026-10-09.json |
 | Agent integration and API contract | ../AGENT_INTEGRATION.md |
 | Payment recovery and storage setup | ../PAYMENT_RECOVERY.md |
 | Mainnet execution sequence | ../PILOT_RUNBOOK.md |

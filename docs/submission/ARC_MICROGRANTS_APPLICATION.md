@@ -14,7 +14,7 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — not promoted yet |
-| Protected build preview | https://radar-agent-3lvrec1y8-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-galvp9yot-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
@@ -105,3 +105,8 @@ payment providers; they are not paid mainnet evidence. The
 [storage activation record](../deployment-storage-vercel-2026-10-09.json)
 adds 15 passing cloud checks with real Redis reads and ephemeral synthetic
 read signatures. No real paid record or onchain transaction was created.
+
+The owner corrected the mainnet pilot wallet and recipient on October 9.
+The [current deployment checks](../deployment-wallet-vercel-2026-10-09.json)
+verify the new identity; earlier deployment evidence retains the former
+recipient and is historical. No paid mainnet response is claimed.

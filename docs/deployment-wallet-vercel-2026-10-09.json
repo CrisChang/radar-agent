@@ -1,0 +1,149 @@
+{
+  "checked_at": "2026-10-09T10:15:45.078318+00:00",
+  "deployment_url": "https://radar-agent-galvp9yot-chris-6239.vercel.app",
+  "deployment_id": "dpl_FfmQ3iLfMQ6G53qU3HZjCdWDkvwN",
+  "production_alias": "https://radar-agent-chris-6239.vercel.app",
+  "network": "eip155:5042",
+  "chain_id": 5042,
+  "approved_pilot_wallet_and_recipient": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+  "price_usdc": "0.001",
+  "deployment_protection": "vercel_authentication",
+  "payment_acceptance": "discovery_only",
+  "checks": [
+    {
+      "name": "home",
+      "path": "/",
+      "expected_http": 200,
+      "http": 200,
+      "pass": true
+    },
+    {
+      "name": "pilot_wallet",
+      "path": "/pilot",
+      "expected_http": 200,
+      "http": 200,
+      "approved_pilot_wallet": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+      "pass": true
+    },
+    {
+      "name": "billing_page",
+      "path": "/billing",
+      "expected_http": 200,
+      "http": 200,
+      "pass": true
+    },
+    {
+      "name": "health_feed_store",
+      "path": "/api/health?feed=1&store=1",
+      "expected_http": 200,
+      "http": 200,
+      "health": {
+        "service": "radar-agent",
+        "status": "configured",
+        "payment_acceptance": "discovery_only",
+        "payment_store": {
+          "configured": true,
+          "status": "available"
+        },
+        "network": "Arc Mainnet",
+        "chain_id": 5042,
+        "paid_endpoint": "/api/signals/latest",
+        "payment": {
+          "scheme": "exact",
+          "network": "eip155:5042",
+          "asset": "0x3600000000000000000000000000000000000000",
+          "amount": "1000",
+          "payTo": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+          "maxTimeoutSeconds": 604900,
+          "extra": {
+            "name": "GatewayWalletBatched",
+            "version": "1",
+            "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+          }
+        },
+        "feed": {
+          "status": "live",
+          "source": "coinbase-exchange-candles",
+          "ts": "2026-10-09T10:15:00.000Z"
+        },
+        "treasury_execution": "unavailable"
+      },
+      "pass": true
+    },
+    {
+      "name": "unpaid_quote",
+      "path": "/api/signals/latest?symbol=ETH-USD",
+      "expected_http": 402,
+      "http": 402,
+      "challenge": {
+        "x402Version": 2,
+        "resource": {
+          "url": "https://radar-agent-ivory.vercel.app/api/signals/latest?symbol=ETH-USD",
+          "description": "Radar Agent real-time market signal",
+          "mimeType": "application/json"
+        },
+        "accepts": [
+          {
+            "scheme": "exact",
+            "network": "eip155:5042",
+            "asset": "0x3600000000000000000000000000000000000000",
+            "amount": "1000",
+            "payTo": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+            "maxTimeoutSeconds": 604900,
+            "extra": {
+              "name": "GatewayWalletBatched",
+              "version": "1",
+              "verifyingContract": "0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE"
+            }
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "unsigned_billing",
+      "path": "/api/billing?limit=1",
+      "expected_http": 401,
+      "http": 401,
+      "pass": true
+    },
+    {
+      "name": "openapi",
+      "path": "/api/openapi",
+      "expected_http": 200,
+      "http": 200,
+      "pass": true
+    },
+    {
+      "name": "invalid_symbol",
+      "path": "/api/signals/latest?symbol=INVALID",
+      "expected_http": 400,
+      "http": 400,
+      "pass": true
+    },
+    {
+      "name": "disabled_payment",
+      "path": "/api/signals/latest?symbol=ETH-USD",
+      "expected_http": 503,
+      "http": 503,
+      "pass": true
+    },
+    {
+      "name": "gateway_balance_read",
+      "path": "/api/gateway-balance?wallet=0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+      "expected_http": 200,
+      "http": 200,
+      "read_only_balance_request_succeeded": true,
+      "pass": true
+    }
+  ],
+  "passed": 10,
+  "total": 10,
+  "payment_completed": false,
+  "note": "Read-only check after the owner corrected the mainnet pilot wallet and recipient. Earlier evidence files retain the previous recipient and are historical. No wallet signature, deposit, payment, reusable authorization or credential is included. Wallet balances are omitted from public materials.",
+  "anonymous_http": {
+    "deployment": 302,
+    "production_alias": 302,
+    "planned_public_origin": 404
+  }
+}

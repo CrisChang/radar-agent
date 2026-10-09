@@ -179,3 +179,9 @@ Tests use synthetic payments; no paid mainnet delivery is claimed.
 The [storage activation record](docs/deployment-storage-vercel-2026-10-09.json)
 adds 15 passing cloud checks, including empty receipt and CSV reads with
 ephemeral synthetic identities. No owner wallet or real payment was used.
+
+After the owner corrected the mainnet pilot wallet and recipient, ten
+[current cloud checks](docs/deployment-wallet-vercel-2026-10-09.json) pass,
+including the pinned pilot wallet, unpaid quote, live feed and retained storage.
+Earlier deployment records retain the previous recipient and are historical.
+Pro Trial is active; anonymous public access and payment approval remain pending.

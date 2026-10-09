@@ -4,6 +4,12 @@ Prepared October 9, 2026. The owner confirmed the intended test wallet and
 no prior prizes or funding. No owner-wallet payment signature, deposit or paid purchase has
 been made during this implementation.
 
+On October 9, the owner corrected both the mainnet pilot wallet and seller
+recipient to `0xefc70a0dedefee6a010bac44de489bafb2fd8422`. Earlier deployment evidence records retain
+the previous recipient and are historical. Ten read-only checks pass for the
+[new deployment](deployment-wallet-vercel-2026-10-09.json); recheck before
+any signing. Wallet identity configuration does not authorize funding or payment.
+
 ## Prepared
 
 - Vercel-compatible durable receipt adapter and safe response replay.
@@ -17,8 +23,9 @@ been made during this implementation.
 
 1. GitHub authorization and branch publication are complete. Verify the final
    `codex/arc-microgrants` source and evidence links before submission.
-2. Confirm the Vercel plan's actual card and automatic-renewal terms. The
-   previously observed trial requires a card; no subscription is active.
+2. The owner activated the Vercel Pro trial on October 9. Billing shows
+   October 23 as the trial end; a local reminder is scheduled for October 18
+   at 10:00 Asia/Shanghai to review cancellation and hosting needs.
 3. Free Upstash Redis is connected, with eviction disabled; storage readiness
    and synthetic signed billing reads pass. Recheck `/api/health?feed=1&store=1`
    before the paid pilot. Do not replace it with a 72-hour scratch database.

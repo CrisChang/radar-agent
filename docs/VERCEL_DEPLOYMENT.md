@@ -17,7 +17,8 @@ website and API; keep the buyer agent and its credentials on the local Mac.
 ## Account and billing gate
 
 CLI device authentication and the user-operated two-factor setup completed
-on October 8. Team `chris-6239` remains on Hobby. Project `radar-agent` is
+on October 8. The owner activated Pro Trial for team `chris-6239` on
+October 9. Project `radar-agent` is
 linked; Node 22.x, Next.js and the verified build commands are configured.
 Do not paste passwords, access tokens or payment information into chat.
 
@@ -31,9 +32,11 @@ is limited to one per user. Prefer an unbilled trial for the initial grant demo
 if available. On this account, both the official trial upgrade and Create
 Team > Pro Trial currently require card details. The actual form states that
 trial ends after 14 days or exhausted credit, then automatically renews at
-$20/month plus applicable CDN tier, taxes and metered usage. No card was
-entered and no trial/subscription was activated. The user must accept those
-actual renewal terms before proceeding. Trial reference:
+$20/month plus applicable CDN tier, taxes and metered usage. The owner
+personally completed activation. The Billing page shows the trial
+period October 9–23, 2026 and an upcoming base invoice of $20. A local reminder
+is scheduled for October 18 at 10:00 Asia/Shanghai to review cancellation and
+hosting needs; no cancellation or additional purchase has been made. Trial reference:
 https://vercel.com/docs/plans/pro-plan/trials. Source: https://vercel.com/pricing and
 https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage.
 
@@ -51,7 +54,7 @@ https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage.
 ```dotenv
 ARC_NETWORK=mainnet
 PUBLIC_BASE_URL=https://YOUR_PRODUCTION_DOMAIN
-SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
+SELLER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
 RADAR_ACCEPT_PAYMENTS=false
@@ -86,14 +89,15 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
   production environment variables are saved, with price 0.001 USDC.
 - Cloud production build is READY. Deployment was prepared with `--skip-domain`
   and retains Vercel authentication:
-  https://radar-agent-3lvrec1y8-chris-6239.vercel.app
+  https://radar-agent-galvp9yot-chris-6239.vercel.app
 - Authenticated owner checks pass: homepage 200, health 200, unpaid quote 402,
   fresh Coinbase feed, Arc chain 5042, exact recipient/price/Gateway contract.
-  Proof: [cloud check record](deployment-vercel-2026-10-09.json).
+  Latest proof: [wallet correction checks](deployment-wallet-vercel-2026-10-09.json).
+  Previous cloud and storage records retain the former recipient and are historical.
 - Planned public origin: https://radar-agent-ivory.vercel.app. It is not promoted
   and currently returns 404. The deployment is not an anonymous public API.
-- Trial activation is waiting for the user's acceptance of card/automatic
-  renewal terms. Once eligible, promote and run anonymous deployment checks.
+- Pro Trial activation was confirmed by the owner and verified in Billing on
+  October 9. Public promotion and anonymous deployment checks remain pending.
 - Cloud checks also verify the pilot and billing pages, OpenAPI, billing 401,
   invalid symbol 400 and disabled payments 503. The original missing-store
   readiness failure is retained in the earlier evidence record.
@@ -104,9 +108,12 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
   Five signed billing checks pass with ephemeral synthetic wallets: empty JSON
   receipts, CSV, missing request 404, wrong wallet 401 and expired signature 401.
   [Storage activation evidence](deployment-storage-vercel-2026-10-09.json).
+- After the owner corrected the wallet, ten read-only cloud checks pass with
+  the new recipient, including the pinned pilot page, unpaid quote, live feed,
+  storage readiness and disabled-payment guard.
 - Paid delivery and real payment-record writes remain unverified in the cloud.
   Payments remain discovery-only. No owner-wallet payment signature, deposit,
-  purchase or Vercel Pro activation has been performed.
+  purchase has been performed. Pro Trial was activated separately by the owner.
 
 The updated materials package is
 `/private/tmp/radar-agent-arc-microgrants-materials-2026-10-09.zip`.

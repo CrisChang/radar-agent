@@ -29,7 +29,8 @@ Latest local validation on October 9, 2026:
 **Hosted runtime check:** The October 8 Vercel production build succeeded.
 Authenticated owner checks confirm fresh Coinbase data, health 200, unpaid
 402, chain 5042, price 0.001 USDC and the user-confirmed mainnet recipient.
-See [cloud check record](deployment-vercel-2026-10-09.json). Local Node direct
+See [current wallet correction checks](deployment-wallet-vercel-2026-10-09.json).
+Earlier cloud/storage records retain the previous recipient and are historical. Local Node direct
 requests still time out; the cloud feed works. The deployment retains Vercel
 login protection and the planned public origin has not been promoted.
 No real paid query has been completed.
@@ -38,7 +39,9 @@ The [bilingual application draft](submission/ARC_MICROGRANTS_APPLICATION.md),
 [demo script](submission/ARC_MICROGRANTS_DEMO.md) and
 [submission checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) are prepared.
 The owner confirmed that the configured recipient is also the test wallet.
-The historical local signing key does not match it; no key was reused.
+The owner corrected the mainnet wallet and recipient to `0xefc70a0dedefee6a010bac44de489bafb2fd8422`
+on October 9. No historical testnet signing key is configured for the mainnet
+pilot or reused; previous deployment records retain the former recipient.
 Mainnet signing now requires an explicit matching `BUYER_ADDRESS`.
 
 After fetching GitHub, the main branch was found to contain September durable
@@ -47,7 +50,8 @@ is divergent and is prepared on a separate branch. Its recovery state machine
 and budget protections are now ported to a Vercel-compatible Redis adapter.
 Free Upstash Redis is now connected with eviction disabled. Storage readiness
 and five synthetic signed billing checks pass; the approved paid mainnet pilot
-remains pending. See [storage evidence](deployment-storage-vercel-2026-10-09.json).
+remains pending. See [historical storage activation](deployment-storage-vercel-2026-10-09.json)
+and the ten passing [current wallet checks](deployment-wallet-vercel-2026-10-09.json).
 
 Remaining validation and submission work:
 
@@ -65,7 +69,7 @@ Testnet-only projects and work already funded by Circle/Arc are ineligible.
 
 ## Seller deployment
 
-The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication, two-factor setup, seller configuration and a protected cloud deployment are complete. The user confirmed the mainnet recipient. The actual trial form requires a card and automatic renewal; activation awaits the user's acceptance. Public promotion and anonymous checks remain pending.
+The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication, two-factor setup, seller configuration and a protected cloud deployment are complete. The user confirmed the mainnet recipient. The owner completed Pro Trial activation on October 9; Billing shows October 23 as the end date, and a local reminder is scheduled for October 18 at 10:00 Asia/Shanghai. Public promotion and anonymous checks remain pending.
 
 Use `npm ci`, `npm run build`, `npm start` on a Next.js host. The seller needs
 only these environment variables:
@@ -73,7 +77,7 @@ only these environment variables:
 ```dotenv
 ARC_NETWORK=mainnet
 PUBLIC_BASE_URL=https://YOUR_DEPLOYMENT
-SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
+SELLER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
 ```
@@ -141,7 +145,7 @@ market data.
 checks, state separation and deployment verification.
 
 **Live deployment:** REQUIRED — protected cloud build is ready at
-https://radar-agent-3lvrec1y8-chris-6239.vercel.app; publish and verify
+https://radar-agent-galvp9yot-chris-6239.vercel.app; publish and verify
 https://radar-agent-ivory.vercel.app after the eligible plan is active.
 
 **Public repository:** https://github.com/CrisChang/radar-agent.
