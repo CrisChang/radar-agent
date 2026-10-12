@@ -191,10 +191,13 @@ export function withGateway(
         requirements,
       );
       if (!verification.isValid) {
+        const reason = typeof verification.invalidReason === "string" && /^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(verification.invalidReason) && !/0x/i.test(verification.invalidReason)
+          ? verification.invalidReason : "verification_rejected";
+        console.warn("[x402] verification rejected", { requestId, reason, settlementAttempted: false });
         return NextResponse.json(
           {
             error: "payment verification failed",
-            reason: verification.invalidReason,
+            reason, request_id: requestId, payment_status: "not_settled", retry_safe: false,
           },
           { status: 402 },
         );

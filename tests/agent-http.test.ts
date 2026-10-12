@@ -61,3 +61,17 @@ test("an uncertain HTTP result never causes automatic authorization replacement 
   await assert.rejects(paySignal(endpoint, arc, await quote(), id, creator(counter), async () => { requests++; throw new Error("synthetic lost HTTP response"); }));
   assert.equal(counter.signed, 1); assert.equal(requests, 1);
 });
+test("a rejected payment displays a bounded reason without retrying or exposing raw response data", async () => {
+  const counter = { signed: 0 }; let requests = 0;
+  await assert.rejects(paySignal(endpoint, arc, await quote(), id, creator(counter), async () => {
+    requests++; return new Response(JSON.stringify({ reason: "invalid_signature" }), { status: 402 });
+  }), /402 \(invalid_signature\).*do not repay/);
+  assert.equal(requests, 1); assert.equal(counter.signed, 1);
+  try {
+    await paySignal(endpoint, arc, await quote(), id, creator({ signed: 0 }), async () => new Response(JSON.stringify({ reason: `signature_0x${"1".repeat(130)}`, payload: "private-response-fixture" }), { status: 402 }));
+    assert.fail("Expected a rejected payment");
+  } catch (error) {
+    assert.ok(error instanceof Error);
+    assert.doesNotMatch(error.message, /signature_0x|private-response-fixture/);
+  }
+});

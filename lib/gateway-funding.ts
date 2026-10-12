@@ -1,4 +1,4 @@
-import { formatUnits } from "viem";
+import { decodeFunctionData, erc20Abi, formatUnits } from "viem";
 import type { ArcConfig } from "./arc";
 
 export const PILOT_DEPOSIT_ATOMIC = 10_000n;
@@ -12,6 +12,7 @@ export function fundingQuote(arc: ArcConfig, wallet: string, facts: {
 }, now = Date.now()) {
   if (arc.mode !== "mainnet" || facts.chainId !== arc.chainId) throw new Error("Gateway funding requires the verified Arc mainnet chain.");
   if (facts.gasPrice <= 0n) throw new Error("Gateway gas quote is unavailable.");
+  if (facts.allowance > PILOT_DEPOSIT_ATOMIC) throw new Error("Gateway allowance exceeds 0.01 USDC. Revoke the excess allowance before funding.");
   const approvalNeeded = facts.allowance < PILOT_DEPOSIT_ATOMIC;
   const gasPrice = (facts.gasPrice * 3n + 1n) / 2n;
   function limit(estimate: bigint | undefined, maximum: bigint) {
@@ -33,6 +34,23 @@ export function fundingQuote(arc: ArcConfig, wallet: string, facts: {
     deposit_simulated: !approvalNeeded, maximum_gas_usdc: formatUnits(maxGasCost, 18),
     per_transaction_gas_cap_usdc: "0.005", wallet_usdc: formatUnits(facts.nativeBalance, 18),
     expires_at: now + 60_000, automatic_deposit: false };
+}
+
+/** Check what the wallet actually broadcast, since its confirmation UI can edit calldata. */
+export function assertFundingTransaction(kind: "approve" | "deposit" | "revoke", arc: ArcConfig, wallet: string,
+  tx: { from: string; to: string | null; value: bigint; input: `0x${string}` },
+  receipt: { status: string; gasUsed: bigint; effectiveGasPrice: bigint }) {
+  const expectedTo = kind === "deposit" ? arc.gatewayWallet : arc.usdc;
+  if (receipt.status !== "success" || tx.from.toLowerCase() !== wallet.toLowerCase() ||
+      tx.to?.toLowerCase() !== expectedTo.toLowerCase() || tx.value !== 0n ||
+      receipt.gasUsed * receipt.effectiveGasPrice > PILOT_TX_GAS_CAP) throw new Error("Gateway transaction does not match the approved wallet, destination or gas cap. Do not retry funding.");
+  const call = decodeFunctionData({ abi: kind === "deposit" ? gatewayDepositAbi : erc20Abi, data: tx.input });
+  const args = call.args as readonly [string, bigint] | undefined;
+  if (call.functionName !== (kind === "deposit" ? "deposit" : "approve") || !args ||
+      args[0].toLowerCase() !== (kind === "deposit" ? arc.usdc : arc.gatewayWallet).toLowerCase() ||
+      args[1] !== (kind === "revoke" ? 0n : PILOT_DEPOSIT_ATOMIC)) {
+    throw new Error("Gateway transaction amount differs from the approved amount. Check and revoke excess allowance; do not retry funding.");
+  }
 }
 export type FundingQuote = ReturnType<typeof fundingQuote>;
 

@@ -87,7 +87,15 @@ export async function paySignal(endpoint: URL, network: ArcConfig, quote: Awaite
     "x-radar-request-id": requestId,
     "payment-signature": encodeProtocolJson(authorization),
   } });
-  if (!response.ok) { await response.body?.cancel(); throw new Error(`Paid request returned ${response.status}; retain reserved budget and reconcile, do not repay`); }
+  if (!response.ok) {
+    const errorBody = await boundedBody(response).catch(() => "");
+    let reason = "";
+    try {
+      const parsed = JSON.parse(errorBody) as { reason?: unknown };
+      if (typeof parsed.reason === "string" && /^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(parsed.reason) && !/0x/i.test(parsed.reason)) reason = ` (${parsed.reason})`;
+    } catch { /* Never display raw provider bodies or authorizations. */ }
+    throw new Error(`Paid request returned ${response.status}${reason}; retain reserved budget and reconcile, do not repay`);
+  }
   const body = await boundedBody(response);
   const responseHash = await responseDigest(body);
   if (response.headers.get("x-radar-request-id") !== requestId ||

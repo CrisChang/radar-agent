@@ -76,7 +76,13 @@ test("unavailable content is not settled", async () => {
 test("invalid authorization does not serve or settle content", async () => {
   const facilitator = provider({ valid: false });
   const route = withGateway(async () => { throw new Error("must not run"); }, "0.001", endpoint, { facilitator });
-  assert.equal((await route(request(validPayload()))).status, 402);
+  const response = await route(request(validPayload()));
+  assert.equal(response.status, 402);
+  const rejected = await response.json();
+  assert.equal(rejected.reason, "verification_rejected");
+  assert.equal(rejected.request_id, requestId);
+  assert.equal(rejected.payment_status, "not_settled");
+  assert.equal(rejected.retry_safe, false);
   assert.deepEqual(facilitator.calls, ["verify"]);
 });
 test("settlement rejection does not expose prepared paid content", async () => {
