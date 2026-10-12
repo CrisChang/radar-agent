@@ -1,8 +1,7 @@
 # Radar Agent Arc Microgrants application draft
 
-Updated October 9, 2026. This draft describes the October Vercel branch. Public
-launch, a real paid mainnet response and confirmed transaction evidence must
-be completed before submission. On October 8, 2026, the owner confirmed this
+Updated October 12, 2026. This draft describes the October Vercel branch. Public launch is verified. A real paid mainnet response and correctly labelled
+transaction evidence remain pending owner wallet confirmation. On October 8, 2026, the owner confirmed this
 project has received no prior prizes or funding.
 
 ## Project fields
@@ -13,8 +12,8 @@ project has received no prior prizes or funding.
 | One line description | USDC pay per query market signals with a buyer that enforces spending limits on Arc |
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
-| Intended public deployment | https://radar-agent-ivory.vercel.app — not promoted yet |
-| Protected build preview | https://radar-agent-galvp9yot-chris-6239.vercel.app — Vercel login required |
+| Intended public deployment | https://radar-agent-ivory.vercel.app — public, anonymous checks pass |
+| Protected build preview | https://radar-agent-pdzf59gce-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
@@ -99,7 +98,7 @@ it is not an independent customer sale or evidence of revenue.
 The Vercel continuation now implements durable request/nonce claims, exact
 response replay, persistent budget reservations, a browser wallet pilot and
 wallet-authenticated receipt reads with JSON/CSV output. OpenAPI and external
-agent examples document integration. All 56 tests, TypeScript and production
+agent examples document integration. All 59 tests, TypeScript and production
 build pass. Local integration tests use a real Redis process and synthetic
 payment providers; they are not paid mainnet evidence. The
 [storage activation record](../deployment-storage-vercel-2026-10-09.json)
@@ -110,3 +109,20 @@ The owner corrected the mainnet pilot wallet and recipient on October 9.
 The [current deployment checks](../deployment-wallet-vercel-2026-10-09.json)
 verify the new identity; earlier deployment evidence retains the former
 recipient and is historical. No paid mainnet response is claimed.
+
+## October 12 public launch and application update
+
+The intended public domain is promoted. Standard Protection retains preview
+login checks. Thirteen anonymous checks pass, including retained Redis, fresh
+feed, funding simulation and Arc mainnet quotes.
+[Public evidence](../deployment-public-vercel-2026-10-12.json).
+
+The browser provides optional exact 0.01 USDC Gateway approval and deposit,
+with a 0.005 USDC gas cap per funding transaction. The one-query 0.001 USDC
+pilot is enabled, requires wallet-owner confirmation and retains reservations
+on unresolved outcomes. No owner signature or real paid response is claimed.
+
+DoraHacks profile, logo, links, project details and team description are saved.
+Required Telegram and backup contact fields await the owner. Contact data will
+not be committed or packaged. Final submission has not occurred. Demo video is
+optional in the form; no mainnet video has been invented or submitted.

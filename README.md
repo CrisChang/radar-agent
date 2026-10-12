@@ -144,18 +144,27 @@ docs/                architecture and checkpoint deck
 
 ## Status
 
-October 2026 Vercel continuation, prepared on `codex/arc-microgrants`.
-The protected cloud build passes authenticated health, fresh Coinbase feed
-and unpaid 402 checks. The public origin and real paid mainnet delivery are
-not yet verified. The main branch has September durable receipt/recovery work
-and historical testnet media. Its recovery state machine is now ported to
-Vercel-compatible Redis. A retained Free Upstash database is connected with
-eviction disabled; cloud readiness and synthetic wallet receipt reads pass.
+The October Arc mainnet continuation is public at
+[radar-agent-ivory.vercel.app](https://radar-agent-ivory.vercel.app).
+The reviewed source is on `codex/arc-microgrants`; the main branch retains
+historical testnet media and the September implementation.
+
+Validated October 12, 2026: 59 tests, TypeScript and the production build pass.
+Thirteen anonymous cloud checks pass, including fresh Coinbase data, retained
+Free Upstash Redis readiness, Arc mainnet 402 quotes, funding simulation and
+preview login protection. See the
+[public deployment evidence](docs/deployment-public-vercel-2026-10-12.json).
+No owner signature, funding transaction or paid response was used by those checks.
+
+The wallet-confirmed pilot is enabled. Actual paid mainnet delivery, owner
+receipt/CSV verification, the mainnet recording and final application submission
+remain pending. The application draft is saved in DoraHacks through the team
+step and is awaiting required private contact fields.
 
 Application prose, recording script and open gates are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
-The old testnet video and transactions are historical evidence only. The historical checkpoints
-above record the original hackathon; they are not current deadlines.
+The old testnet video and transactions are historical evidence only. The
+checkpoints above record the original hackathon, not current deadlines.
 
 ## License
 
@@ -164,24 +173,23 @@ is Apache-2.0; see `NOTICE` and `LICENSE-APACHE-2.0`.
 
 ## Agent payments and receipts
 
-The Vercel continuation includes durable nonce/request claims, exact response
-replay and wallet-scoped receipts. `/pilot` lets the approved test wallet sign a
-single purchase without exporting its key; `/billing` reads receipts and exports
-CSV using an expiring read-only wallet signature. Payments remain disabled
-while public hosting and spending approval are pending.
+Durable nonce/request claims preserve the exact response for recovery.
+`/pilot` lets the approved test wallet sign a single 0.001 USDC purchase without
+exporting its key. Optional Gateway funding is exactly 0.01 USDC, with an exact
+approval and a 0.005 USDC gas cap per funding transaction. A read-only quote
+simulates approval first; deposit simulation runs after approval confirms.
+Separate buttons require owner confirmation for every transaction. Expired
+quotes, wrong accounts/chains and unresolved transactions block new funding.
+The API fee is paid from the deposit; automatic deposits and mainnet treasury
+execution remain disabled.
+
+`/billing` reads wallet-scoped receipts and exports CSV using a five-minute
+read-only wallet signature. Gateway acceptance and independently confirmed
+chain transactions are labelled separately. The buyer and recipient currently
+use the same test wallet; this experiment does not establish customer revenue.
 
 See [Agent integration](docs/AGENT_INTEGRATION.md),
 [payment recovery](docs/PAYMENT_RECOVERY.md), and the
 [mainnet pilot runbook](docs/PILOT_RUNBOOK.md).
-
-Validated October 9: 56 tests, TypeScript and Next.js production build pass.
-Tests use synthetic payments; no paid mainnet delivery is claimed.
-The [storage activation record](docs/deployment-storage-vercel-2026-10-09.json)
-adds 15 passing cloud checks, including empty receipt and CSV reads with
-ephemeral synthetic identities. No owner wallet or real payment was used.
-
-After the owner corrected the mainnet pilot wallet and recipient, ten
-[current cloud checks](docs/deployment-wallet-vercel-2026-10-09.json) pass,
-including the pinned pilot wallet, unpaid quote, live feed and retained storage.
-Earlier deployment records retain the previous recipient and are historical.
-Pro Trial is active; anonymous public access and payment approval remain pending.
+Earlier October 9 deployment evidence is historical; the October 12 public
+record contains the current hosting configuration and verification results.

@@ -1,6 +1,6 @@
 # Radar Agent Arc Microgrants submission checklist
 
-Updated October 9, 2026. Code and application prose are prepared on the October
+Updated October 12, 2026. Code and application prose are prepared on the October
 Vercel branch. The application remains a draft until the open gates below pass.
 
 ## Verified preparation
@@ -8,13 +8,14 @@ Vercel branch. The application remains a draft until the open gates below pass.
 - Durable receipt recovery, budget reservations and buyer locking are ported.
 - Wallet-authenticated billing API, browser receipt page, CSV export, browser
   payment pilot, OpenAPI and external-agent examples are implemented.
-- All 56 regression tests pass, including real local Redis concurrency, restart,
+- All 59 regression tests pass, including real local Redis concurrency, restart,
   lost-acknowledgement recovery and wallet privacy isolation. TypeScript and
   production build pass. Free Upstash Redis is connected with eviction disabled.
 - Cloud storage readiness and five synthetic signed billing checks pass; all
   15 hosted checks pass. No owner wallet or paid request was used.
 
-- Vercel production build is READY and retains login protection.
+- Vercel production build is READY. The production domain is public; generated
+  deployment and preview URLs retain login protection.
 - Authenticated homepage and health return 200; unpaid signal requests return 402.
 - Hosted Coinbase candles are fresh. Price is 0.001 USDC; chain is 5042.
 - Owner corrected the mainnet pilot wallet and recipient on October 9 to
@@ -38,12 +39,13 @@ Vercel branch. The application remains a draft until the open gates below pass.
 
 | Gate | What completes it |
 | --- | --- |
-| Anonymous access | Pro Trial is active; promote the domain and verify access without Vercel login |
+| Anonymous access | Complete: public domain promoted and 13 anonymous checks pass |
 | Buyer signing | Browser-wallet signing is implemented; connect the owner-confirmed test wallet and approve the exact bounded experiment |
-| Bounded payment approval | Approve the 0.001 USDC signal purchase plus any separately quoted Gateway deposit and gas cap |
+| Bounded payment approval | Owner reviews optional 0.01 USDC deposit, 0.005 USDC gas cap per transaction and one 0.001 USDC query in the published wallet UI |
 | Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
-| Confirmed chain evidence | Independently verify a mainnet receipt and publish its explorer link; distinguish Gateway acceptance from chain confirmation |
-| Demo recording | Record the new mainnet segments using ARC_MICROGRANTS_DEMO.md |
+| Confirmed chain evidence | Verify the actual funding receipt; label funding and Gateway acceptance separately from API-fee batch settlement |
+| Demo recording | Record after real payment; optional in the official form |
+| Application contact and review | Owner supplies Telegram and backup contact; inspect and submit the completed application |
 
 The wallet and recipient currently refer to the same owner-confirmed address.
 A same-wallet test must be labelled as such. It proves a functional path, not
@@ -79,3 +81,13 @@ must be accurate; do not infer them from repository history.
 
 Official program: https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq.
 Application: https://dorahacks.io/hackathon/arc-microgrants.
+
+## October 12 additions
+
+- [Public deployment evidence](../deployment-public-vercel-2026-10-12.json):
+  13 passing anonymous checks, live feed and store ready, no owner signatures.
+- Bounded browser funding implemented and deployed; exact approval, expiring
+  simulated quotes, account/chain checks, gas ceilings and repeat protection.
+- Wallet-confirmed one-query payment enabled. Actual mainnet delivery pending.
+- DoraHacks profile, logo, public links, details and team fields saved. Private
+  contacts and final application submission remain pending.

@@ -9,11 +9,11 @@ receipts, simulated acceptance or a Gateway reference labelled as a transaction.
 
 | Time | On screen | Evidence |
 | --- | --- | --- |
-| 0 to 15 seconds | Radar Agent homepage, Arc Mainnet badge and 0.001 USDC price | Existing protected Vercel build; public access pending |
+| 0 to 15 seconds | Radar Agent homepage, Arc Mainnet badge and 0.001 USDC price | Public production domain; anonymous checks pass |
 | 15 to 30 seconds | Health metadata, fresh Coinbase timestamp and an unpaid 402 quote | Existing hosted check record; hide access cookies and credentials |
 | 30 to 55 seconds | `/pilot`: one approved wallet signature, received live signal and response digest | Record only after the real paid mainnet experiment; label same-wallet test |
 | 55 to 75 seconds | `/billing`: signed receipt query and CSV export; show budget refusal | Real receipt for the approved wallet; label any budget fixture or dry run |
-| 75 to 90 seconds | Independently confirmed mainnet transaction and public source link | A Gateway acceptance ID alone is insufficient |
+| 75 to 90 seconds | Confirmed mainnet funding transaction, separately labelled Gateway acceptance, and public source | Show funding as funding; do not label acceptance as fee settlement |
 
 ## Chinese voiceover
 
@@ -60,7 +60,7 @@ purchases; mainnet treasury execution remains disabled.
 
 ## Recording preparation
 
-- Use the finalized public origin. The current Vercel preview requires login.
+- Use https://radar-agent-ivory.vercel.app. Generated preview URLs still require login.
 - Open `/pilot` and `/billing` in the wallet browser. Inspect every signature
   yourself; never show full reusable authorization payloads in the video.
 - A confirmed Gateway funding transaction may be shown as funding only. Do not
@@ -74,3 +74,6 @@ purchases; mainnet treasury execution remains disabled.
 - The prior demo on the main branch is historical testnet material:
   https://radar-agent-arc-2026.chrischang2026.workers.dev/demo.
   It may explain project history, but cannot substitute for this mainnet run.
+
+The DoraHacks video field is optional. Do not delay or misrepresent a submission
+solely to fill this field; actual paid functionality still needs verification.

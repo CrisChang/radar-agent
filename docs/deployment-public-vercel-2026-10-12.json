@@ -1,0 +1,106 @@
+{
+  "checked_at": "2026-10-12T07:51:53.976417+00:00",
+  "public_origin": "https://radar-agent-ivory.vercel.app",
+  "deployment_url": "https://radar-agent-pdzf59gce-chris-6239.vercel.app",
+  "deployment_id": "dpl_229Z6YpPSnk8Hq24roz4PCsW8ZsM",
+  "source_commit": "1d255c8",
+  "network": "eip155:5042",
+  "recipient": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+  "access": "anonymous; no cookies or protection bypass",
+  "tests_passed": 59,
+  "checks": [
+    {
+      "check": "home",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true
+    },
+    {
+      "check": "pilot",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true
+    },
+    {
+      "check": "billing_page",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true
+    },
+    {
+      "check": "health",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true,
+      "chain_id": 5042,
+      "payment_acceptance": "enabled",
+      "store_status": "available",
+      "feed_status": "live",
+      "feed_timestamp": "2026-10-12T07:51:00.000Z"
+    },
+    {
+      "check": "unpaid_quote",
+      "status": 402,
+      "expected_status": 402,
+      "passed": true
+    },
+    {
+      "check": "unsupported_symbol",
+      "status": 400,
+      "expected_status": 400,
+      "passed": true
+    },
+    {
+      "check": "unsigned_billing",
+      "status": 401,
+      "expected_status": 401,
+      "passed": true
+    },
+    {
+      "check": "openapi",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true
+    },
+    {
+      "check": "funding_quote",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true,
+      "amount_usdc": "0.01",
+      "approval_needed": true,
+      "deposit_simulated": false,
+      "maximum_gas_usdc": "0.006523830375772608",
+      "per_transaction_gas_cap_usdc": "0.005",
+      "automatic_deposit": false
+    },
+    {
+      "check": "wrong_funding_wallet",
+      "status": 400,
+      "expected_status": 400,
+      "passed": true
+    },
+    {
+      "check": "gateway_balance",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true
+    },
+    {
+      "check": "logo",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true
+    },
+    {
+      "check": "preview_protected",
+      "status": 302,
+      "expected_status": 302,
+      "passed": true
+    }
+  ],
+  "owner_signature_used": false,
+  "wallet_transaction_created": false,
+  "paid_mainnet_delivery_verified": false,
+  "application_submitted": false
+}

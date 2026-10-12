@@ -15,61 +15,37 @@ Code now supports both networks, final-quote checks before signing,
 conservative accounting for signed payments, failed-resource cancellation,
 explicit mainnet/deposit flags and network-isolated runtime state.
 
-Latest local validation on October 9, 2026:
+Latest validation: October 12, 2026. All 59 tests, TypeScript and production
+build pass. The public app is https://radar-agent-ivory.vercel.app. Thirteen
+anonymous cloud checks verify pages, fresh Coinbase data, retained Redis,
+Arc chain 5042 quotes, wallet-pinned funding simulation and preview protection.
+[Current deployment evidence](deployment-public-vercel-2026-10-12.json).
 
-- All 56 automated tests pass; production build and TypeScript checks pass.
-- Local mainnet-mode homepage returns 200; unpaid signal endpoint returns
-  402 with the expected chain, asset, recipient, price and absolute URL.
-- Official mainnet RPC reports chain 5042; USDC and Gateway contracts exist
-  and the Gateway facilitator advertises Arc mainnet batching.
-- The historical signing identity was not reused. No signatures or transactions
-  were produced by the earlier read-only preflight check.
-- The deterministic dry-run succeeds without funds.
+Wallet-confirmed payment is enabled for the single-query pilot. Optional
+funding is exactly 0.01 USDC, exact approval, with a 0.005 USDC gas cap per
+funding transaction. Real paid mainnet delivery and receipts remain pending
+owner wallet confirmation. No signing key is hosted or requested in chat.
 
-**Hosted runtime check:** The October 8 Vercel production build succeeded.
-Authenticated owner checks confirm fresh Coinbase data, health 200, unpaid
-402, chain 5042, price 0.001 USDC and the user-confirmed mainnet recipient.
-See [current wallet correction checks](deployment-wallet-vercel-2026-10-09.json).
-Earlier cloud/storage records retain the previous recipient and are historical. Local Node direct
-requests still time out; the cloud feed works. The deployment retains Vercel
-login protection and the planned public origin has not been promoted.
-No real paid query has been completed.
-
-The [bilingual application draft](submission/ARC_MICROGRANTS_APPLICATION.md),
+The [application draft](submission/ARC_MICROGRANTS_APPLICATION.md),
 [demo script](submission/ARC_MICROGRANTS_DEMO.md) and
-[submission checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) are prepared.
-The owner confirmed that the configured recipient is also the test wallet.
-The owner corrected the mainnet wallet and recipient to `0xefc70a0dedefee6a010bac44de489bafb2fd8422`
-on October 9. No historical testnet signing key is configured for the mainnet
-pilot or reused; previous deployment records retain the former recipient.
-Mainnet signing now requires an explicit matching `BUYER_ADDRESS`.
+[submission checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) distinguish
+verified results from outstanding owner actions. DoraHacks profile, details
+and team fields are saved; private contact fields and final submission remain.
 
-After fetching GitHub, the main branch was found to contain September durable
-receipt/recovery work and historical testnet media. The October Vercel branch
-is divergent and is prepared on a separate branch. Its recovery state machine
-and budget protections are now ported to a Vercel-compatible Redis adapter.
-Free Upstash Redis is now connected with eviction disabled. Storage readiness
-and five synthetic signed billing checks pass; the approved paid mainnet pilot
-remains pending. See [historical storage activation](deployment-storage-vercel-2026-10-09.json)
-and the ten passing [current wallet checks](deployment-wallet-vercel-2026-10-09.json).
+The buyer and seller are the same owner-confirmed test wallet:
+`0xefc70a0dedefee6a010bac44de489bafb2fd8422`. This is a functional experiment,
+not a customer sale. Earlier deployment records and testnet media are historical.
+The owner confirmed no prior prizes or funding, including Circle or Arc.
 
-Remaining validation and submission work:
-
-- Anonymous public deployment verification after eligible trial/plan activation.
-- An HTTPS seller deployment and a public repository with the reviewed code.
-- One approved real mainnet paid response and its local audit/receipt.
-- A confirmed Arc mainnet transaction and explorer link.
-- A short demo recording.
-
-The owner confirmed on October 8, 2026 that this project has received no prior
-prizes or funding, including from Circle or Arc.
-
-Configuration checks and a local dry-run do not prove mainnet readiness.
-Testnet-only projects and work already funded by Circle/Arc are ineligible.
+Remaining work: actual wallet approval/deposit if needed, one real paid query,
+receipt/CSV checks, verified funding explorer evidence, mainnet demo recording
+and final application review/submission. A confirmed deposit is labelled as
+funding, never as API-fee settlement. The video is optional in the official
+DoraHacks form; it is an evidence aid, not an additional official entry rule.
 
 ## Seller deployment
 
-The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication, two-factor setup, seller configuration and a protected cloud deployment are complete. The user confirmed the mainnet recipient. The owner completed Pro Trial activation on October 9; Billing shows October 23 as the end date, and a local reminder is scheduled for October 18 at 10:00 Asia/Shanghai. Public promotion and anonymous checks remain pending.
+The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication, two-factor setup, seller configuration and a protected cloud deployment are complete. The user confirmed the mainnet recipient. The owner completed Pro Trial activation on October 9; Billing shows October 23 as the end date, and a local reminder is scheduled for October 18 at 10:00 Asia/Shanghai. Public promotion and all 13 anonymous checks passed on October 12.
 
 Use `npm ci`, `npm run build`, `npm start` on a Next.js host. The seller needs
 only these environment variables:

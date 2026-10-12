@@ -1,52 +1,59 @@
 # Mainnet pilot runbook
 
-Prepared October 9, 2026. The owner confirmed the intended test wallet and
-no prior prizes or funding. No owner-wallet payment signature, deposit or paid purchase has
-been made during this implementation.
+Updated October 12, 2026. Public hosting, Free Redis storage, the browser
+funding flow and the one-query pilot are ready. All 59 tests and 13 anonymous
+cloud checks pass. No owner-wallet transaction or paid response has been
+verified yet. [Current evidence](deployment-public-vercel-2026-10-12.json).
 
-On October 9, the owner corrected both the mainnet pilot wallet and seller
-recipient to `0xefc70a0dedefee6a010bac44de489bafb2fd8422`. Earlier deployment evidence records retain
-the previous recipient and are historical. Ten read-only checks pass for the
-[new deployment](deployment-wallet-vercel-2026-10-09.json); recheck before
-any signing. Wallet identity configuration does not authorize funding or payment.
+## Owner-confirmed identities and bounded experiment
 
-## Prepared
+- Arc Mainnet, chain 5042; gas is native USDC, not ETH or ARC.
+- Buyer and recipient: `0xefc70a0dedefee6a010bac44de489bafb2fd8422`.
+- USDC: `0x3600000000000000000000000000000000000000` (ERC-20 decimals: 6).
+- Gateway Wallet: `0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE`.
+- Optional deposit: exactly 0.01 USDC into the buyer's own Gateway balance.
+- Approval: exactly 0.01 USDC; no unlimited approval.
+- Gas cap: 0.005 USDC per funding transaction, 0.01 USDC for the two steps.
+- API fee: one 0.001 USDC query, deducted from Gateway funds.
+- No automatic funding, recurring purchases or mainnet treasury execution.
 
-- Vercel-compatible durable receipt adapter and safe response replay.
-- Wallet-authenticated receipt query, JSON/CSV export and `/billing` page.
-- Browser wallet `/pilot`, pinned to the owner-confirmed same-wallet test.
-- Agent discovery example and OpenAPI contract.
-- Budget reservations, unknown-payment pause and buyer process lock.
-- Full regression suite and production build.
+The owner must review this budget and personally confirm wallet transactions.
+The server has no buyer signing key. Never put a key or seed phrase in chat.
 
-## Required sequence
+## Browser sequence
 
-1. GitHub authorization and branch publication are complete. Verify the final
-   `codex/arc-microgrants` source and evidence links before submission.
-2. The owner activated the Vercel Pro trial on October 9. Billing shows
-   October 23 as the trial end; a local reminder is scheduled for October 18
-   at 10:00 Asia/Shanghai to review cancellation and hosting needs.
-3. Free Upstash Redis is connected, with eviction disabled; storage readiness
-   and synthetic signed billing reads pass. Recheck `/api/health?feed=1&store=1`
-   before the paid pilot. Do not replace it with a 72-hour scratch database.
-4. Publish the intended public origin and verify anonymous health, OpenAPI,
-   unpaid 402, receipt authentication and the disabled payment pilot.
-5. Read the approved wallet's Gateway balance. If sufficient, approve one
-   0.001 USDC purchase. If not, prepare a separate exact Gateway deposit and gas
-   quote for owner approval. No auto-deposit or unlimited token approval.
-6. Enable payments only after those gates, then the owner signs through `/pilot`
-   or an approved locally configured buyer. Do not export a wallet key for chat.
-7. Validate the received signal, exact response digest and wallet-scoped receipt;
-   export a redacted audit and CSV. A lost result must stop new payments.
-8. Independently verify any mainnet transaction evidence. Label deposits,
-   Gateway acceptance references and confirmed fee settlements separately.
-9. Record the 90-second mainnet demo and finalize the application fields.
-   Review the final application before submission; it has not been submitted.
+1. Open https://radar-agent-ivory.vercel.app/pilot. Connect the approved wallet
+   and select Arc Mainnet. Check the displayed recipient and budget.
+2. Check Gateway balance. If at least 0.001 USDC is available, skip funding.
+3. If funding is needed, review the funding quote. The first quote simulates
+   approval; deposit gas is only a conservative ceiling at this stage.
+4. Approve exactly 0.01 USDC in the wallet. After confirmation, review again
+   to simulate the deposit. Quotes expire after 60 seconds.
+5. Confirm the separate 0.01 USDC deposit in the wallet. Check Gateway balance
+   after the confirmed transaction is indexed. Do not use a plain token transfer
+   to the Gateway contract.
+6. Authorize the single 0.001 USDC purchase. The browser verifies the returned
+   signal and response digest. The authorization is valid for approximately
+   seven days for Gateway batching; treat it as reusable sensitive data.
+7. Read the receipt using the Request ID and export CSV. The read signature
+   expires after five minutes and does not authorize spending.
+8. If a result is lost, retain the reservation and reconcile. Do not clear
+   browser state or sign another purchase. Saved funding hashes can be checked
+   through the Reconcile buttons; unresolved outcomes block repeat funding.
+9. Independently verify the funding receipt and explorer link. Funding proves
+   a deposit, not API-fee settlement. Record Gateway acceptance separately;
+   verify a later batch transaction if one is supplied.
+10. Finish the mainnet demo and application once actual paid delivery and
+    receipt checks pass. Inspect the final application and any terms before
+    submission. The application has not been submitted.
 
-The payment authorization permits a single 0.001 USDC payment and has an
-approximately seven-day validity window required by Gateway batching. This
-runbook and configured caps are preparation, not owner payment approval.
+## Hosting and submission
 
-The seller currently sells public Coinbase market observations. Exchange-order
-execution, profitable trading claims and third-party customer revenue are out
-of scope for this pilot.
+Pro Trial ends October 23. The existing local reminder is October 18 at 10:00
+Asia/Shanghai. No cancellation or new server purchase has been performed.
+DoraHacks requires Telegram plus one backup contact; these private contact
+fields must be supplied by the owner, not inferred or committed.
+
+This same-wallet run verifies functionality, not independent demand or revenue.
+The product buys public Coinbase observations; exchange-order execution and
+trading profit-and-loss accounting remain out of scope.

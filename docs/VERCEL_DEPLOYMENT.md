@@ -57,7 +57,7 @@ PUBLIC_BASE_URL=https://YOUR_PRODUCTION_DOMAIN
 SELLER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
-RADAR_ACCEPT_PAYMENTS=false
+RADAR_ACCEPT_PAYMENTS=true
 ```
 
 6. Deploy with `vercel deploy --prod`. Pin `PUBLIC_BASE_URL` to the actual
@@ -75,55 +75,31 @@ RADAR_ACCEPT_PAYMENTS=false
 The hosting choice does not authorize chain funding, signing or USDC spending.
 Retain buyer audit logs locally because Vercel function filesystems are ephemeral.
 
-## Current status
+## Current status — October 12, 2026
 
-- CLI authentication and user-operated two-factor setup are complete.
-- Vercel project: https://vercel.com/chris-6239/radar-agent
-- The project is linked locally. Cloud settings use Node 22.x and the verified
-  Next.js build/install commands.
-- All 56 tests and the Next.js production build pass.
-- Official Vercel upload dry-run succeeds: 38 regular files
-  plus six empty directory entries. Environment files, key files, buyer state,
-  tests, private Twitter data and local build output are excluded.
-- The user supplied and confirmed the mainnet recipient above. Five seller-only
-  production environment variables are saved, with price 0.001 USDC.
-- Cloud production build is READY. Deployment was prepared with `--skip-domain`
-  and retains Vercel authentication:
-  https://radar-agent-galvp9yot-chris-6239.vercel.app
-- Authenticated owner checks pass: homepage 200, health 200, unpaid quote 402,
-  fresh Coinbase feed, Arc chain 5042, exact recipient/price/Gateway contract.
-  Latest proof: [wallet correction checks](deployment-wallet-vercel-2026-10-09.json).
-  Previous cloud and storage records retain the former recipient and are historical.
-- Planned public origin: https://radar-agent-ivory.vercel.app. It is not promoted
-  and currently returns 404. The deployment is not an anonymous public API.
-- Pro Trial activation was confirmed by the owner and verified in Billing on
-  October 9. Public promotion and anonymous deployment checks remain pending.
-- Cloud checks also verify the pilot and billing pages, OpenAPI, billing 401,
-  invalid symbol 400 and disabled payments 503. The original missing-store
-  readiness failure is retained in the earlier evidence record.
-- On October 9, the owner completed Upstash installation. Resource
-  `upstash-kv-red-pebble` is Free, in iad1, with eviction disabled and connected
-  to radar-agent. The integration injected server-only KV REST variables.
-- The redeployed storage probe returns 200 with `payment_store.status=available`.
-  Five signed billing checks pass with ephemeral synthetic wallets: empty JSON
-  receipts, CSV, missing request 404, wrong wallet 401 and expired signature 401.
-  [Storage activation evidence](deployment-storage-vercel-2026-10-09.json).
-- After the owner corrected the wallet, ten read-only cloud checks pass with
-  the new recipient, including the pinned pilot page, unpaid quote, live feed,
-  storage readiness and disabled-payment guard.
-- Paid delivery and real payment-record writes remain unverified in the cloud.
-  Payments remain discovery-only. No owner-wallet payment signature, deposit,
-  purchase has been performed. Pro Trial was activated separately by the owner.
+- Public origin: https://radar-agent-ivory.vercel.app.
+- Production deployment: `dpl_229Z6YpPSnk8Hq24roz4PCsW8ZsM`, source `1d255c8`.
+- Standard Protection makes the production domain public while generated
+  deployment and preview URLs still require Vercel login.
+- Thirteen anonymous checks pass: pages, live feed, durable storage, 402 quote,
+  billing authentication, OpenAPI, bounded funding quote, wrong-wallet refusal,
+  balance read, logo and preview protection. No protection bypass was used.
+- Wallet-confirmed payments are enabled at 0.001 USDC. Funding is optional and
+  exactly 0.01 USDC, with a 0.005 USDC gas cap per funding transaction.
+- Free Upstash Redis remains connected with eviction disabled. Secret server
+  variables are integration-managed; no buyer key is hosted.
+- 59 tests, TypeScript and the production build pass. The dry-run manifest
+  contains 47 entries and excludes environment files, keys and buyer state.
+- No owner-wallet signature, deposit or paid purchase has yet been verified.
+- Application preparation is saved in DoraHacks; contact fields and the actual
+  mainnet evidence remain pending. No application has been submitted.
 
-The updated materials package is
-`/private/tmp/radar-agent-arc-microgrants-materials-2026-10-09.zip`.
-The official upload manifest is
-`/private/tmp/arc-vercel-dry-run-2026-10-09.json`.
+[Public deployment evidence](deployment-public-vercel-2026-10-12.json).
+Earlier October 9 records retain their historical statuses and recipients.
 
 ## Local network note
 
-The local system HTTPS proxy is necessary for the deployment host on this Mac.
-The CLI's external curl otherwise times out; Python follows the system proxy.
-Authenticated checks used official `vercel curl` with the existing proxy and
-its managed deployment authentication. The cloud Coinbase feed itself works.
-Do not publish protection tokens or request cookies in check records.
+On this Mac, deployment-host checks use the existing local HTTPS proxy.
+Anonymous checks use ordinary curl with no cookies or protection bypass.
+Official Vercel CLI commands use its existing authorization. Never publish
+request cookies, protection tokens, keys or private wallet balances.
