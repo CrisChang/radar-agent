@@ -108,7 +108,8 @@
     "okx_connection_permissions_revoked": true,
     "dedicated_okx_provider_detected": true,
     "fresh_okx_connection_prompt_opened": true,
-    "approved_pilot_account_connected": false,
-    "financial_wallet_action_attempted": false
+    "approved_pilot_account_connected": true,
+    "financial_wallet_action_attempted": false,
+    "approved_account_evidence": "Owner-provided screenshot from another computer shows the configured wallet, Arc Mainnet 5042 and checked budget. Quote/funding/payment remain unverified."
   }
 }

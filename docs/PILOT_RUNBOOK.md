@@ -68,8 +68,9 @@ trading profit-and-loss accounting remain out of scope.
 The current deployment detects the dedicated OKX injected provider as well as
 the standard EVM provider. Disconnect and account selection are visible on the
 public page. The old site connection was revoked in OKX, and a fresh account
-access prompt opened in Chrome. The approved pilot account still needs to be
-selected by its owner. No wallet signature or financial action was attempted.
+access prompt opened in Chrome. A subsequent owner-provided screenshot from another computer confirms the
+approved account, chain 5042 and checked budget. Funding and paid delivery
+remain pending. No wallet signature or financial action was attempted.
 
 Owner-supplied application contacts are filled privately in DoraHacks. Prior
 Arc deployment is Testnet, confirmed by the owner. Verified mainnet transaction
