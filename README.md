@@ -156,18 +156,21 @@ preview login protection. See the
 [public deployment evidence](docs/deployment-public-vercel-2026-10-12.json).
 No owner signature, funding transaction or paid response was used by those checks.
 
-The owner's 0.01 USDC Gateway deposit is independently verified in the
-[mainnet pilot record](docs/mainnet-pilot-2026-10-12.json). A wallet-edited
-approval exceeded the requested limit; its zero-allowance revoke is now verified.
-The attempted API payment was rejected with self_transfer before settlement.
-The funded buyer and owner-confirmed recipient are now separate; paid delivery
-remains pending the corrected two-wallet test.
+The [mainnet pilot record](docs/mainnet-pilot-2026-10-12.json) verifies the
+owner's 0.01 USDC Gateway deposit, zero-allowance revoke and corrected two-wallet
+purchase. Exactly 0.001 USDC bought a live ETH signal; its response digest
+matches independently. Wallet-authenticated billing returned 200 and the owner
+confirmed CSV export. Circle marked the transfer completed, Arc RPC confirmed
+the linked batch, and the seller's Gateway credit is 0.001 USDC.
 
-The wallet-confirmed pilot is enabled. Actual paid mainnet delivery, owner
-receipt/CSV verification, the mainnet recording and final application submission
-remain pending. The application draft is open on the final DoraHacks step. Owner-supplied
-contacts, deployment history and verified funding hash are filled; paid
-functionality verification and final review remain pending.
+Both wallets belong to the owner. This proves functionality; independent users,
+customer revenue and production readiness are not claimed. The one-query pilot
+budget is spent: do not repeat a purchase or clear its reservation.
+
+The application is prepared on the final DoraHacks step with owner-supplied
+contacts and prior Testnet deployment. Final terms acceptance and submission
+remain outstanding. A new mainnet recording has not been made; video is optional
+in the application form.
 
 Application prose, recording script and open gates are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
@@ -196,8 +199,9 @@ execution remain disabled.
 
 `/billing` reads wallet-scoped receipts and exports CSV using a five-minute
 read-only wallet signature. Gateway acceptance and independently confirmed
-chain transactions are labelled separately. The buyer and recipient currently
-use the same test wallet; this experiment does not establish customer revenue.
+chain transactions are labelled separately. The funded buyer and recipient are separate owner-controlled wallets.
+The billing receipt labels Gateway acceptance conservatively; later batch
+confirmation is recorded separately in the mainnet pilot evidence.
 
 See [Agent integration](docs/AGENT_INTEGRATION.md),
 [payment recovery](docs/PAYMENT_RECOVERY.md), and the

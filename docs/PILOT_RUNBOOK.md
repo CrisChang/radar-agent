@@ -2,8 +2,8 @@
 
 Updated October 12, 2026. Public hosting, Free Redis storage, the browser
 funding flow and the one-query pilot are ready. All 70 tests and 16 anonymous
-cloud checks pass. Owner funding is independently verified; a paid response
-remains unverified. [Current evidence](deployment-public-vercel-2026-10-12.json).
+cloud checks pass. Owner funding, paid delivery, billing/CSV and subsequent batch settlement
+have passed. The one-query budget is spent; do not repeat the purchase. [Current evidence](deployment-public-vercel-2026-10-12.json).
 
 ## Owner-confirmed identities and bounded experiment
 
@@ -21,7 +21,10 @@ remains unverified. [Current evidence](deployment-public-vercel-2026-10-12.json)
 The owner must review this budget and personally confirm wallet transactions.
 The server has no buyer signing key. Never put a key or seed phrase in chat.
 
-## Browser sequence
+## Browser sequence for a newly authorized experiment
+
+The October 12 experiment below is already complete. These are operating
+instructions, not authorization to repeat it with the spent pilot budget.
 
 1. Open https://radar-agent-ivory.vercel.app/pilot. Connect the approved wallet
    and select Arc Mainnet. Check the displayed recipient and budget.
@@ -64,69 +67,45 @@ This owner-controlled two-wallet run verifies functionality, not independent dem
 The product buys public Coinbase observations; exchange-order execution and
 trading profit-and-loss accounting remain out of scope.
 
-## Browser connection verification — October 12
+## Completed October 12 pilot
 
-The current deployment detects the dedicated OKX injected provider as well as
-the standard EVM provider. Disconnect and account selection are visible on the
-public page. The old site connection was revoked in OKX, and a fresh account
-access prompt opened in Chrome. A subsequent owner-provided screenshot from another computer confirms the
-approved account, chain 5042 and checked budget. Funding and paid delivery
-remain pending. No wallet signature or financial action was attempted by the agent.
+1. Owner funded Gateway with 0.01 USDC. Funding gas totaled
+   0.002956020170266752 USDC, within the reviewed caps.
+2. The wallet confirmation had increased the allowance above the requested
+   limit. Owner revoked it to zero; RPC verification passed. Revocation gas
+   was 0.00066980003576732 USDC. Gateway funds were retained.
+3. Earlier payments failed with self_transfer before settlement. Buyer and
+   recipient were separated; new reservations bind buyer, recipient and chain,
+   while old reservations remain intact.
+4. Owner signed one exact 0.001 USDC purchase. The unsigned quote returned 402;
+   the signed request returned 200 with a live ETH signal and matching digest.
+5. Owner signed a free billing read request and exported CSV. Two production
+   billing requests returned 200; exported contents were not independently read.
+6. Circle marked the transfer completed. Arc RPC confirmed successful batch
+   0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41; seller Gateway credit is 0.001 USDC, pending batch zero.
 
-Owner-supplied application contacts are filled privately in DoraHacks. Prior
-Arc deployment is Testnet, confirmed by the owner. Verified mainnet transaction
-evidence and final submission remain pending.
+[Redacted evidence](mainnet-pilot-2026-10-12.json) separates funding, immediate
+Gateway acceptance and later batch settlement. The billing record retains its
+conservative acceptance classification. A UUID is never an explorer hash.
 
-## Funded pilot and recovery checkpoint
+## Recovery and repeat protection
 
-The owner deposit of 0.01 USDC succeeded and Gateway credit is verified.
-[Independent chain evidence](mainnet-pilot-2026-10-12.json). Funding gas totaled
-0.002956020170266752 USDC, within the original caps. The wallet confirmation
-edited approval above the requested amount, and a separate zero-allowance
-revoke has now been confirmed by the owner and verified onchain. This revoke never withdraws Gateway
-funds, transfers USDC or clears payment reservations. Its extra gas cap is
-0.005 USDC, reviewed separately in the browser.
+The successful pilot has consumed its one-query budget. Do not sign again,
+fund again or clear local storage to make the button available. Use the saved
+Request ID with Sign read request for recovery. Read signatures expire after
+five minutes and never authorize payment. Do not share them or payment headers.
 
-The last observed API attempt returned 402. Refreshing the page does not
-reconcile an existing signed authorization. Do not clear browser storage or
-authorize a replacement purchase. Reconnect, retain the saved Request ID and
-use Sign read request to inspect wallet-scoped billing. Report the result
-before deciding whether any new payment can be authorized. Rejected payments
-now display bounded reason codes and log only request ID, sanitized reason
-and the fact that settlement was not attempted.
+The project uses an atomic persistent cap across distinct authorizations.
+Accepted, settling and unknown outcomes block replacement settlement; migration
+honors prior receipts. Rejection before settlement releases the cap. Client
+recovery permits only one explicit, consented missing-receipt retry and never
+automatically retries a signed payment. Real Redis tests cover concurrency,
+restart durability, lost acknowledgements, unknown outcomes and migration.
 
-## Explicit recovery after the missing receipt
+## Application handoff
 
-The owner's approve-to-zero transaction succeeded and remaining allowance is
-zero. Gateway still has the 0.01 USDC deposit. The authenticated lookup of the
-failed request returned 404; this is not a successful payment receipt.
-
-Refresh and reconnect, query the original Request ID with Sign read request,
-then review the displayed one-retry consent. Prepare one guarded retry retains
-the old request and opens one extra attempt. Recheck the purchase budget and
-confirm exactly 0.001 USDC in the wallet. Do not choose a maximum amount or
-fund Gateway again. Report the new result/Request ID or full bounded error.
-
-This does not cancel the old signature. The project's mainnet same-wallet
-pilot has an atomic persistent cap across different authorizations. Accepted,
-settling and unknown outcomes block replacement settlement; migration also
-honors pre-existing receipts. Content rejected before settlement releases the
-cap. The client permits only one explicit recovery, never an automatic retry.
-Real Redis tests cover parallel different nonces, unknown outcomes, release
-only before settlement, restart durability and policy migration.
-
-## Definitive rejection reason and corrected next action
-
-The signed request was rejected as self_transfer; settlement was not attempted.
-The prior same-address design was invalid for Circle Gateway. It is now
-corrected with distinct buyer/recipient roles. The previous failed signatures
-pay to the old address and cannot satisfy the new endpoint terms. Old browser
-reservations remain intact; new payment reservations bind buyer, recipient and
-chain. The durable one-query cap now binds the approved buyer to its recipient.
-
-Refresh the pilot, connect the existing funded buyer and check both displayed
-addresses and chain 5042. Approve the purchase budget and personally sign exactly
-one 0.001 USDC purchase to the new recipient. No new USDC approval or deposit is
-needed. The first unsigned 402 is expected; inspect the final response and the
-page's validated signal result. Report the new request/result or bounded reason
-code. Paid delivery and wallet billing/CSV remain pending this owner action.
+Owner-supplied contacts and prior Testnet deployment are filled privately in
+DoraHacks. The confirmed batch hash and accurate functional-test disclosure are
+prepared for final review. Terms acceptance and final submission are outstanding.
+An optional mainnet video is not required to submit; never generate another
+payment merely for recording.

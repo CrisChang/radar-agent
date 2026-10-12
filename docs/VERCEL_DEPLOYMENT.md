@@ -54,7 +54,8 @@ https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage.
 ```dotenv
 ARC_NETWORK=mainnet
 PUBLIC_BASE_URL=https://YOUR_PRODUCTION_DOMAIN
-SELLER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
+SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
+PILOT_BUYER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
 RADAR_ACCEPT_PAYMENTS=true
@@ -91,12 +92,16 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
   variables are integration-managed; no buyer key is hosted.
 - 70 tests, TypeScript and the production build pass. The dry-run manifest
   contains 49 entries and excludes environment files, keys and buyer state.
-- Owner Gateway deposit and zero-allowance revoke are verified. The signed
-  billing lookup returned 404; paid delivery/receipts remain pending. One explicit
-  recovery attempt is available under a durable same-wallet settlement cap.
-- Application is on the final DoraHacks step with owner-supplied contacts and
-  deployment history and a verified funding hash filled; paid functionality
-  verification and final review remain. No application has been submitted.
+- Owner Gateway deposit and zero-allowance revoke are verified. One corrected
+  two-wallet 0.001 USDC query returned a live signal with matching digest;
+  authenticated billing returned 200 and the owner confirmed CSV export.
+- Circle transfer completed; linked Arc batch receipt succeeded and the seller's
+  Gateway credit is 0.001 USDC. The billing record preserves its original
+  Gateway-acceptance classification. See the separate pilot evidence.
+- Both wallets belong to the owner; no independent customer revenue is claimed.
+  The one-query budget is spent. No additional purchase is needed.
+- Application is on the final DoraHacks step with owner contacts, deployment
+  history and mainnet evidence prepared; terms and final submission remain.
 
 [Public deployment evidence](deployment-public-vercel-2026-10-12.json).
 Earlier October 9 records retain their historical statuses and recipients.

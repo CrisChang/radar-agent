@@ -130,9 +130,12 @@
   ],
   "owner_signature_used": false,
   "wallet_transaction_created": false,
-  "paid_mainnet_delivery_verified": false,
+  "paid_mainnet_delivery_verified": true,
   "application_submitted": false,
   "separate_owner_funding_evidence": "mainnet-pilot-2026-10-12.json",
   "pilot_one_query_cap_verified": true,
-  "parties_distinct_verified": true
+  "parties_distinct_verified": true,
+  "separate_owner_pilot_evidence": "mainnet-pilot-2026-10-12.json",
+  "owner_pilot_checked_at": "2026-10-12T10:23:49.319216+00:00",
+  "anonymous_probe_scope_note": "owner_signature_used and wallet_transaction_created describe only the sixteen anonymous probes. The separately confirmed owner-operated paid pilot is recorded in mainnet-pilot-2026-10-12.json."
 }

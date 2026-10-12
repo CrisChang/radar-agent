@@ -1,127 +1,67 @@
 # Radar Agent Arc Microgrants submission checklist
 
-Updated October 12, 2026. Code and application prose are prepared on the October
-Vercel branch. The application remains a draft until the open gates below pass.
+Updated October 12, 2026. Technical pilot passed; final submission is outstanding.
 
-## Verified preparation
+## Verified
 
-- Durable receipt recovery, budget reservations and buyer locking are ported.
-- Wallet-authenticated billing API, browser receipt page, CSV export, browser
-  payment pilot, OpenAPI and external-agent examples are implemented.
-- All 59 regression tests pass, including real local Redis concurrency, restart,
-  lost-acknowledgement recovery and wallet privacy isolation. TypeScript and
-  production build pass. Free Upstash Redis is connected with eviction disabled.
-- Cloud storage readiness and five synthetic signed billing checks pass; all
-  15 hosted checks pass. No owner wallet or paid request was used.
+- Public Vercel production domain: https://radar-agent-ivory.vercel.app.
+  Generated deployment and preview URLs retain login protection.
+- Runtime source e01709c passes 70 tests, TypeScript and production build.
+  Sixteen anonymous cloud checks pass, including live Coinbase data, durable
+  Free Upstash Redis, chain 5042 quotes, exact funding and allowance safeguards,
+  buyer/recipient separation, authenticated billing and preview protection.
+- Public code: https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
+- Owner-operated funding: 0.01 USDC deposit confirmed; excessive allowance
+  revoked to zero. Actual transaction calldata and bounded gas verified.
+- Two distinct owner-controlled wallets completed one 0.001 USDC paid query.
+  Live ETH response and SHA-256 matched; buyer Gateway funds decreased by 0.001.
+- Two production billing requests returned 200; the owner confirmed CSV export.
+  Exported file contents were not independently inspected.
+- Circle transfer status completed; Arc RPC receipt success at the Gateway
+  contract; seller Gateway credit 0.001 USDC, pending batch zero.
+- Persistent one-query cap and stored reservations prevent another pilot
+  settlement. Accepted and unknown outcomes are not automatically retried.
+- Owner confirmed no previous Circle/Arc grant, bounty or prize for this project.
+  Prior Arc deployment is Testnet.
+- DoraHacks profile/logo/links/descriptions/team and owner-supplied contact
+  fields are filled. Private contact details are excluded from public files.
+- Pro Trial ends October 23; existing cancellation-review reminder is October
+  18 at 10:00 Asia/Shanghai. No cancellation or extra server purchase performed.
 
-- Vercel production build is READY. The production domain is public; generated
-  deployment and preview URLs retain login protection.
-- Authenticated homepage and health return 200; unpaid signal requests return 402.
-- Hosted Coinbase candles are fresh. Price is 0.001 USDC; chain is 5042.
-- Owner corrected the mainnet pilot wallet and recipient on October 9 to
-  `0xefc70a0dedefee6a010bac44de489bafb2fd8422`. Earlier deployment records are historical.
-- Ten current hosted checks verify the corrected recipient, pilot page, unpaid
-  quote, live feed, storage and disabled payments; no owner signature was used.
-- Owner personally activated Pro Trial; Billing shows October 23 as the end
-  date, with a local cancellation review reminder on October 18 at 10:00.
-- Owner confirmed on October 8, 2026 that this project has received no prior
-  prizes or funding, including from Circle or Arc.
-- The repository and October branch are publicly visible. GitHub authorization
-  is complete and `codex/arc-microgrants` has been pushed. Source link:
-  https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
-- A local mainnet configuration is prepared with the approved buyer address,
-  a one-query fee cap, zero treasury budget and deposits disabled. It contains
-  no signing key. These settings do not authorize a payment.
-- English and Chinese application descriptions and a 90 second demo script
-  are included in this folder.
+## Remaining
 
-## Open gates
-
-| Gate | What completes it |
+| Item | State |
 | --- | --- |
-| Anonymous access | Complete: public domain promoted and 13 anonymous checks pass |
-| Buyer signing | Browser-wallet signing is implemented; connect the owner-confirmed test wallet and approve the exact bounded experiment |
-| Bounded payment approval | Owner reviews optional 0.01 USDC deposit, 0.005 USDC gas cap per transaction and one 0.001 USDC query in the published wallet UI |
-| Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
-| Confirmed chain evidence | Verify the actual funding receipt; label funding and Gateway acceptance separately from API-fee batch settlement |
-| Demo recording | Record after real payment; optional in the official form |
-| Application contact and review | Owner-supplied contacts, prior Testnet deployment and no prior funding are filled; add verified mainnet evidence and review before submission |
+| Final application review | Prepared on DoraHacks final step; verify the updated paid-test disclosure and batch hash |
+| Terms and Submit for Review | Owner must complete; not submitted |
+| Optional mainnet video | Not recorded; not required by the form |
+| Independent customers/revenue | Not established; two wallets belong to the owner |
 
-The wallet and recipient currently refer to the same owner-confirmed address.
-A same-wallet test must be labelled as such. It proves a functional path, not
-independent demand or earned revenue.
+## Evidence
 
-## Evidence directory
-
-| Item | Location or state |
+| Evidence | Location |
 | --- | --- |
-| Current wallet and hosted read-only checks | ../deployment-wallet-vercel-2026-10-09.json |
-| Historical hosted checks before wallet correction | ../deployment-vercel-2026-10-09.json |
-| Historical Free storage activation and signed read checks | ../deployment-storage-vercel-2026-10-09.json |
-| Agent integration and API contract | ../AGENT_INTEGRATION.md |
-| Payment recovery and storage setup | ../PAYMENT_RECOVERY.md |
-| Mainnet execution sequence | ../PILOT_RUNBOOK.md |
-| October application fields | ARC_MICROGRANTS_APPLICATION.md |
-| Demo script and bilingual narration | ARC_MICROGRANTS_DEMO.md |
-| Existing September architecture and recovery work | https://github.com/CrisChang/radar-agent/blob/main/docs/ARC_MAINNET_PLAN.md |
-| Paid mainnet receipt | Not captured |
-| Confirmed mainnet explorer link | Not captured |
-| New mainnet video | Not recorded |
-| Prior funding declaration | No prior prizes or funding, confirmed by the owner on October 8, 2026 |
+| Current anonymous deployment checks | ../deployment-public-vercel-2026-10-12.json |
+| Funding/revoke/paid signal/billing/batch checks | ../mainnet-pilot-2026-10-12.json |
+| Confirmed API-fee batch | https://explorer.arc.io/tx/0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41 |
+| Confirmed funding deposit | https://explorer.arc.io/tx/0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30 |
+| Agent API contract | ../AGENT_INTEGRATION.md |
+| Recovery and storage design | ../PAYMENT_RECOVERY.md |
+| Mainnet operating runbook | ../PILOT_RUNBOOK.md |
+| Application prose | ARC_MICROGRANTS_APPLICATION.md |
+| Optional demo script | ARC_MICROGRANTS_DEMO.md |
 
-Keep balances, secrets, full reusable authorizations and private runtime logs
-out of public materials. The hosting check record includes no wallet signature.
+The funding transaction is not API-fee settlement. The API's UUID is an
+acceptance reference; Circle subsequently linked it to a shared batch whose
+success was independently checked through Arc RPC. Billing exports preserve
+the original acceptance classification. The earlier self_transfer failures
+never reached settlement and are not counted as paid tests.
 
-## Submission process
-
-Review the final links and descriptions, recheck the official rules, fill the
-DoraHacks application, and inspect it before submission. Submission has not
-been performed. Owner identity, contact information and eligibility declarations
-must be accurate; do not infer them from repository history.
+Keep request IDs, reusable authorizations, signatures, contact information,
+private runtime logs and unrelated wallet balances out of public materials.
+Historical October 9 records retain their original statuses and recipients.
+Do not buy again to record a video or retry after refresh.
 
 Official program: https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq.
 Application: https://dorahacks.io/hackathon/arc-microgrants.
-
-## October 12 additions
-
-- [Public deployment evidence](../deployment-public-vercel-2026-10-12.json):
-  13 passing anonymous checks, live feed and store ready, no owner signatures.
-- Bounded browser funding implemented and deployed; exact approval, expiring
-  simulated quotes, account/chain checks, gas ceilings and repeat protection.
-- Wallet-confirmed one-query payment enabled. Actual mainnet delivery pending.
-- DoraHacks profile, logo, public links, details, team and owner-supplied contacts
-  are filled. Prior Arc deployment is Testnet. Mainnet evidence and final
-  application submission remain pending.
-
-## Funded pilot checkpoint
-
-- [Funding evidence](../mainnet-pilot-2026-10-12.json): real 0.01 USDC deposit
-  and Gateway credit independently verified; funding only.
-- Excess allowance detected; owner revoke confirmation remains open. A zero
-  allowance quote and bounded revoke UI are deployed. Actual wallet calldata
-  is checked during reconciliation; failed purchases retain reservations.
-- Current source passes 63 tests, TypeScript, build and 15 anonymous checks.
-- API attempt returned 402. Paid delivery, owner billing/CSV and actual failure
-  reason remain unverified. Do not authorize a fresh payment after refresh.
-- Final DoraHacks form contains the verified funding hash and funding-only
-  disclosure. Terms acceptance and final submission remain pending.
-
-## Verified revocation and guarded recovery
-
-- Approve-to-zero confirmed onchain; remaining Gateway allowance is zero.
-- Gateway deposit retained. Signed billing lookup returned 404.
-- Explicit one-retry browser flow and durable same-wallet settlement cap are
-  deployed. 67 tests, TypeScript, production build and 15 cloud checks pass.
-- Parallel distinct authorizations settle only once; unknown outcomes and
-  prior accepted receipts keep the cap, including after Redis restart.
-- Paid delivery, owner receipt/CSV and final submission remain open.
-
-## Corrected buyer/seller roles
-
-- Signed failure reason confirmed as self_transfer; no settlement was attempted.
-- Funded buyer and user-confirmed seller now differ. Self-signatures are blocked
-  before wallet use; funding remains buyer-only.
-- New offer recipient/amount and roles verified. 70 tests and 16 anonymous
-  checks pass, including a two-wallet durable-cap Redis test.
-- Old reservations are retained. Await the new-recipient signed purchase,
-  validated delivery, wallet receipt/CSV and final application review.
+Deadline: October 15, 2026, 11:59 Asia/Shanghai.

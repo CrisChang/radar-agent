@@ -1,11 +1,12 @@
 {
-  "checked_at": "2026-10-12T08:53:54.295Z",
+  "checked_at": "2026-10-12T10:23:49.319216+00:00",
   "network": "eip155:5042",
   "wallet": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
   "evidence_sources": [
+    "Owner-provided paid response and CSV-export confirmation",
     "Arc RPC transaction, receipt and contract reads",
-    "Circle Gateway balance API",
-    "Vercel request status metadata"
+    "Circle Gateway balance and transfer APIs",
+    "Vercel production request status metadata"
   ],
   "approval": {
     "transaction_hash": "0xecd1df736e620bfec9fa67849b27ab3a20bef9dc24d8c0725f9f7f31830507dd",
@@ -24,17 +25,17 @@
   "funding_gas_total_usdc": "0.002956020170266752",
   "gateway_deposit_credit_verified": true,
   "over_limit_allowance_revoke_verified": true,
-  "paid_mainnet_delivery_verified": false,
-  "owner_billing_csv_verified": false,
-  "request_status_observation": "Two /api/signals/latest responses around the owner attempt were 402; no successful delivery was observed. Exact rejection reason is unavailable.",
+  "paid_mainnet_delivery_verified": true,
+  "owner_billing_csv_verified": true,
+  "request_status_observation": "Owner received a live paid response at 10:09 UTC. Vercel reports /api/signals/latest 402 then 200; two subsequent /api/billing requests returned 200 at 10:16 UTC. The owner confirmed CSV export succeeded.",
   "no_new_payment_authorized": true,
   "application_funding_hash_entered": true,
   "application_submitted": false,
-  "interpretation": "Verified funding and revoke. Earlier self-transfer attempts were rejected before settlement. A two-wallet owner-controlled functional test is now ready; paid delivery and customer revenue are not claimed.",
+  "interpretation": "Owner-controlled two-wallet functional test: exact 0.001 USDC paid delivery and digest match, wallet-scoped billing/CSV observed, Circle transfer completed, batch receipt successful, seller Gateway credit verified. No independent customer revenue or production readiness is claimed.",
   "revoke_checked_at": "2026-10-12T09:23:32.063Z",
   "remaining_gateway_allowance_zero": true,
   "gateway_deposit_retained_verified": true,
-  "owner_authenticated_billing_lookup_status": 404,
+  "owner_authenticated_billing_lookup_status": 200,
   "guarded_recovery": "Authenticated missing-receipt check plus explicit owner consent permits one extra signing attempt. Old request is retained; old authorization is not cancelled. Durable wallet cap limits the project to one successful or uncertain settlement.",
   "revoke": {
     "transaction_hash": "0x41ceb9019cf22cb650c94d241adb94a3ad47c2a1c7f2c7a1933d94c57d06a70e",
@@ -44,12 +45,58 @@
     "explorer_url": "https://explorer.arc.io/tx/0x41ceb9019cf22cb650c94d241adb94a3ad47c2a1c7f2c7a1933d94c57d06a70e"
   },
   "funding_and_revoke_gas_total_usdc": "0.003625820206034072",
-  "last_signed_rejection_reason": "self_transfer",
+  "last_signed_rejection_reason": "self_transfer (historical; corrected before the successful two-wallet test)",
   "rejection_settlement_attempted": false,
   "corrected_buyer": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
   "corrected_recipient": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
   "corrected_parties_distinct": true,
   "pilot_one_query_cap_deployed": true,
-  "new_recipient_payment_verified": false,
-  "correction": "Circle rejected the earlier same-address buyer/payee design. Buyer and seller are now configured independently; old self-transfer authorizations are invalid for the new recipient and old browser reservations are retained."
+  "new_recipient_payment_verified": true,
+  "correction": "Circle rejected the earlier same-address buyer/payee design. Buyer and seller are now configured independently; old self-transfer authorizations are invalid for the new recipient and old browser reservations are retained.",
+  "billing_verification": {
+    "owner_reported_csv_export_success": true,
+    "production_billing_statuses": [
+      200,
+      200
+    ],
+    "observed_at_utc": [
+      "2026-10-12T10:16:01.975Z",
+      "2026-10-12T10:16:13.639Z"
+    ],
+    "exported_file_contents_independently_inspected": false,
+    "note": "No wallet read signature, private request ID or CSV contents are published."
+  },
+  "paid_delivery": {
+    "amount_usdc": "0.001",
+    "amount_atomic": "1000",
+    "payer": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+    "pay_to": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+    "network": "eip155:5042",
+    "signal_id": "pr-2026-10-12-773536ddab",
+    "signal_timestamp": "2026-10-12T10:09:00.000Z",
+    "symbol": "ETH-USD",
+    "source": "coinbase-exchange-candles",
+    "feed_status": "live",
+    "response_sha256": "d96dd00784985a2e9d074cb5fcb989538a4b14d0f8f2c5448f1ce0b6b01d1b5e",
+    "response_digest_independently_matched": true,
+    "production_http_status": 200,
+    "gateway_reference_kind": "acceptance_uuid_not_transaction_hash",
+    "private_identifiers_omitted": true
+  },
+  "api_fee_settlement": {
+    "provider": "Circle Gateway transfer API",
+    "status": "completed",
+    "amount_atomic": "1000",
+    "network": "eip155:5042",
+    "created_at": "2026-10-12T10:09:22.044Z",
+    "completed_at": "2026-10-12T10:18:04.082Z",
+    "batch_transaction_hash": "0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41",
+    "batch_explorer_url": "https://explorer.arc.io/tx/0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41",
+    "rpc_receipt_status": "success",
+    "rpc_block_number": 25566423,
+    "rpc_contract": "0x77777777dcc4d5a8b6e418fd04d8997ef11000ee",
+    "seller_gateway_credit_usdc": "0.001000",
+    "seller_pending_batch_usdc": "0",
+    "attribution": "Circle links the accepted transfer to this batch; Arc RPC independently confirms batch execution. This is a shared batch transaction, not a dedicated per-query transaction."
+  }
 }

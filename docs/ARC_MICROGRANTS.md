@@ -1,173 +1,84 @@
 # Arc Microgrants submission pack
 
 Target: [Arc Microgrants](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq).
-Deadline: October 14, 2026, 23:59 ET (October 15, 11:59 Asia/Shanghai).
+Deadline: October 14, 2026, 23:59 ET; October 15, 11:59 Asia/Shanghai.
 
-## Scope and current gate
+## Project and current result
 
-Continue the July Radar Agent MVP: a paid price-signal API and a
-budget-constrained buyer on Arc mainnet using Circle Gateway. The feed uses
-public Coinbase candles; the private Twitter Radar pipeline is not connected
-or included in this public repository. Mainnet treasury execution is disabled
-because the installed App Kit adapter lacks Arc mainnet support.
+Radar Agent sells timestamped public ETH/BTC market observations to other agents
+for 0.001 USDC per query. Its buyer checks quotes and budgets before signing,
+validates delivery and records decisions. Durable receipts can be queried by
+wallet and exported as CSV. Exchange trading and profit-and-loss accounting
+are not implemented. Mainnet treasury execution is disabled. The private Twitter
+Radar pipeline is neither connected nor included in this public repository.
 
-Code now supports both networks, final-quote checks before signing,
-conservative accounting for signed payments, failed-resource cancellation,
-explicit mainnet/deposit flags and network-isolated runtime state.
+The October 12 runtime e01709c is public at
+https://radar-agent-ivory.vercel.app. All 70 tests, TypeScript, production build
+and 16 anonymous cloud checks pass. Free Upstash Redis retains payment state;
+preview URLs remain protected. No buyer key is hosted.
 
-Latest validation: October 12, 2026. All 70 tests, TypeScript and production
-build pass. The public app is https://radar-agent-ivory.vercel.app. Sixteen
-anonymous cloud checks verify pages, fresh Coinbase data, retained Redis,
-Arc chain 5042 quotes, wallet-pinned funding simulation and preview protection.
-[Current deployment evidence](deployment-public-vercel-2026-10-12.json).
+A real owner-operated two-wallet mainnet test passed: exact 0.001 USDC purchase,
+live ETH response and matching digest, authenticated receipt reads, owner-confirmed
+CSV export, completed Circle transfer, successful Arc batch and 0.001 USDC seller
+Gateway credit. Both wallets belong to the owner. This proves functionality;
+no independent customers, revenue or production readiness are claimed.
 
-Wallet-confirmed payment is enabled for the single-query pilot. Optional
-funding is exactly 0.01 USDC, exact approval, with a 0.005 USDC gas cap per
-funding transaction. Real paid mainnet delivery and receipts remain pending
-owner wallet confirmation. No signing key is hosted or requested in chat.
+- Buyer: 0xefc70a0dedefee6a010bac44de489bafb2fd8422.
+- Recipient: 0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C.
+- [Public deployment checks](deployment-public-vercel-2026-10-12.json).
+- [Redacted mainnet evidence](mainnet-pilot-2026-10-12.json).
+- [Confirmed API-fee batch](https://explorer.arc.io/tx/0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41).
+- [Separate funding deposit](https://explorer.arc.io/tx/0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30).
 
-The [application draft](submission/ARC_MICROGRANTS_APPLICATION.md),
-[demo script](submission/ARC_MICROGRANTS_DEMO.md) and
-[submission checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) distinguish
-verified results from outstanding owner actions. DoraHacks profile, details
-and team fields are saved; owner-supplied contacts and prior testnet deployment
-are filled on the final step. Mainnet transaction evidence and final submission remain.
+Earlier same-address attempts were rejected with self_transfer before settlement.
+That configuration was corrected before the successful test. A wallet-edited
+excess allowance was revoked to zero. Funding and fee settlement are separate;
+the API UUID is an acceptance reference, not a transaction hash. Circle links
+that reference to the shared batch confirmed independently by Arc RPC.
 
-The buyer and seller are the same owner-confirmed test wallet:
-`0xefc70a0dedefee6a010bac44de489bafb2fd8422`. This is a functional experiment,
-not a customer sale. Earlier deployment records and testnet media are historical.
-The owner confirmed no prior prizes or funding, including Circle or Arc.
+## Application readiness
 
-Remaining work: actual wallet approval/deposit if needed, one real paid query,
-receipt/CSV checks, verified funding explorer evidence, mainnet demo recording
-and final application review/submission. A confirmed deposit is labelled as
-funding, never as API-fee settlement. The video is optional in the official
-DoraHacks form; it is an evidence aid, not an additional official entry rule.
+[Application prose](submission/ARC_MICROGRANTS_APPLICATION.md),
+[checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) and
+[optional demo script](submission/ARC_MICROGRANTS_DEMO.md) are prepared.
+DoraHacks profile, logo, public links, project/team details and owner-supplied
+contacts are filled. Prior Arc deployment is Testnet; the owner confirmed no
+Circle/Arc grant, bounty or prize for this project. Contacts remain private.
 
-## Seller deployment
+Final terms acceptance and Submit for Review remain owner actions. A mainnet
+video has not been recorded; the form makes it optional. Historical testnet
+media remains clearly labelled and does not substitute for current evidence.
 
-The user selected Vercel on October 8. Follow [Vercel deployment steps](VERCEL_DEPLOYMENT.md); account authentication, two-factor setup, seller configuration and a protected cloud deployment are complete. The user confirmed the mainnet recipient. The owner completed Pro Trial activation on October 9; Billing shows October 23 as the end date, and a local reminder is scheduled for October 18 at 10:00 Asia/Shanghai. Public promotion and all 13 anonymous checks passed on October 12.
+## Hosting and configuration
 
-Use `npm ci`, `npm run build`, `npm start` on a Next.js host. The seller needs
-only these environment variables:
+The owner selected Vercel and activated Pro Trial. Trial ends October 23; the
+existing cancellation-review reminder is October 18 at 10:00 Asia/Shanghai.
+No cancellation or separate server purchase has occurred.
+See [deployment operations](VERCEL_DEPLOYMENT.md).
 
 ```dotenv
 ARC_NETWORK=mainnet
-PUBLIC_BASE_URL=https://YOUR_DEPLOYMENT
-SELLER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
+PUBLIC_BASE_URL=https://radar-agent-ivory.vercel.app
+SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
+PILOT_BUYER_ADDRESS=0xefc70a0dedefee6a010bac44de489bafb2fd8422
 SIGNAL_PRICE_USDC=0.001
 RADAR_ALLOW_DEMO_SIGNALS=false
+RADAR_ACCEPT_PAYMENTS=true
 ```
 
-Never upload buyer keys, Circle API keys, entity secrets, `.env.local`,
-`.env.mainnet.local`, private Twitter code or runtime state. Filesystem logs
-are ephemeral on a serverless host; retain the buyer audit locally.
+Keep buyer credentials, Circle secrets, environment files, private Twitter code
+and runtime logs off the host and public repository. Redis integration secrets
+remain managed by Vercel/Upstash. The local buyer retains its own audit.
 
-Verify the URL without signing or paying:
+## Operating boundaries
 
-```bash
-npm run check:deployment -- --url https://YOUR_DEPLOYMENT --network mainnet --check-feed
-```
+The October 12 one-query budget is spent. Do not purchase again, clear stored
+reservations or redeposit for a recording. Read the existing receipt with a
+five-minute read-only wallet signature. Unknown outcomes require reconciliation;
+accepted and unknown authorizations retain the durable one-settlement cap.
 
-## Buyer and proof
-
-Copy `.env.mainnet.example` to `.env.mainnet.local` locally. Use a dedicated
-wallet, not the historical testnet key. Set `BUYER_ADDRESS` to the approved
-identity; a mismatched key is refused before any paid request. Obtain approval for the actual wallet,
-recipient and total USDC budget before mainnet signing, funding or payment.
-
-Read-only RPC/contract/facilitator checks:
-
-```bash
-node_modules/.bin/tsx --env-file=.env.mainnet.local scripts/preflight.mts
-```
-
-After approval, purchase a live signal with treasury disabled:
-
-```bash
-npm run agent:mainnet -- --allow-mainnet
-```
-
-Automatic Gateway deposits are disabled. If funding is needed, prepare a
-separate exact deposit amount and gas cap for owner approval. A deposit is
-an onchain funding action, separate from the 0.001 USDC API purchase.
-
-Retain `agent/state/mainnet/audit.jsonl`. A batched payment receipt may be an
-acceptance identifier rather than a confirmed transaction hash: do not label
-it as an onchain transaction. Use a confirmed deposit transaction or a later
-confirmed batch settlement for the explorer proof. Do not publish signatures.
-
-## Application draft (English)
-
-**Project:** Radar Agent
-
-**One-line description:** A USDC pay-per-query market-signal API with an
-autonomous buyer that enforces spending limits before signing on Arc.
-
-**What it does:** Radar Agent converts public ETH and BTC market candles into
-timestamped price signals. Circle Gateway protects the API with x402
-payments. The buyer validates the final price, recipient and network,
-reserves a daily budget before sending the authorization, receives the
-signal and logs an explainable decision. Failed or unavailable signals are
-not settled. A circuit breaker and idempotency protect the optional testnet
-treasury demonstration.
-
-**Why Arc:** Arc USDC and Circle Gateway make per-query agent payments
-possible. The chain, Gateway contract, asset and signing policy are explicitly
-matched to mainnet. This is a small, auditable agent-commerce flow using real
-market data.
-
-**Development history:** Started for the Encode x Circle hackathon in July
-2026; continued in October with mainnet payments, stronger authorization
-checks, state separation and deployment verification.
-
-**Live deployment:** REQUIRED — protected cloud build is ready at
-https://radar-agent-galvp9yot-chris-6239.vercel.app; publish and verify
-https://radar-agent-ivory.vercel.app after the eligible plan is active.
-
-**Public repository:** https://github.com/CrisChang/radar-agent.
-The October branch is published at
-https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants.
-The default branch retains September integration work and historical testnet media.
-
-**Mainnet transaction:** REQUIRED — confirmed explorer link.
-
-**Demo:** Recording script prepared for paid response, budget refusal and audit; clearly label
-any synthetic fixture or dry-run as simulated.
-
-**Builder profile:** https://github.com/CrisChang
-
-**Prior Circle/Arc prizes or funding:** None. The owner confirmed on
-October 8, 2026 that this project has received no previous prizes or funding.
-Participation in a hackathon is not proof of a grant or prize payment.
-
-Do not submit while required links or mainnet evidence are missing. The prior
-funding declaration is recorded above; other application requirements still apply.
-
-## October 12 funded pilot checkpoint
-
-A real 0.01 USDC Gateway deposit and its chain receipt are verified in
-[the pilot record](mainnet-pilot-2026-10-12.json). The owner-edited approval
-exceeds the pilot limit; an approve-to-zero revoke flow is deployed and still
-requires owner confirmation. Funding/approval reconciliation checks actual
-calldata, destination and gas. Excess allowances block new funding/purchases.
-
-The latest API attempt returned 402. Paid delivery, owner receipt/CSV checks
-and final submission remain open. The verified funding hash has been entered
-in DoraHacks with an explicit funding-only label. No API-fee settlement or
-revenue is claimed. Never reset a payment reservation merely after refresh.
-
-The excessive allowance has now been revoked and verified as zero. Gateway
-funding remains intact. An authenticated billing query returned 404. One
-owner-confirmed recovery attempt is deployed with a durable one-settlement
-cap for the same-wallet pilot. Paid delivery still requires verification.
-
-## Self-transfer correction
-
-The final observed verification reason is self_transfer, with no settlement
-attempt. The original same-address pilot configuration was invalid and has
-been replaced with separate buyer and seller addresses. The funded buyer is
-0xefc70a0dedefee6a010bac44de489bafb2fd8422 and the owner-confirmed recipient is
-0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C. Both roles and the 0.001 USDC offer are
-verified in the current public evidence. Funding/allowance checks still target
-the buyer. The corrected paid test, billing/CSV and final application remain.
+A new bounded experiment requires its own explicit owner-approved wallet,
+recipient and budget. Optional funding is exact 0.01 USDC, with exact approval
+and gas at most 0.005 USDC per transaction. Never select unlimited approval or
+send a plain token transfer to the Gateway contract. Refer to the
+[runbook](PILOT_RUNBOOK.md) and [recovery design](PAYMENT_RECOVERY.md).
