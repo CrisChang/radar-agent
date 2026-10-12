@@ -13,10 +13,10 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — public, anonymous checks pass |
-| Protected build preview | https://radar-agent-psico0t0m-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-545qcr29h-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
-| Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
+| Mainnet transaction evidence | Verified 0.01 USDC Gateway deposit: 0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30; funding only, paid API delivery pending |
 | Mainnet demo video | Pending the paid experiment; recording script is included |
 | Prior Circle or Arc prizes or funding | None, confirmed by the owner on October 8, 2026 |
 
@@ -43,7 +43,8 @@ Arc provides the mainnet USDC and Gateway infrastructure for the payment flow.
 The October Vercel build has passed authenticated homepage, health, fresh-feed
 and unpaid 402 checks with chain 5042 and the configured recipient. These are
 configuration and data-availability checks, not proof of paid mainnet delivery.
-A real paid response and confirmed chain evidence remain to be collected.
+A real paid API response remains to be collected. The owner Gateway deposit
+is independently verified; it is funding evidence, not API-fee settlement.
 
 The project began as an Encode Club and Circle hackathon prototype. The
 historical testnet demo and September receipt-recovery work are retained on the
@@ -127,3 +128,12 @@ The owner supplied Telegram, backup contact and application email. These fields
 are filled in the final form, and prior Arc deployment is recorded as Testnet
 per the owner. Contact data is not committed or packaged. Final submission has not occurred. Demo video is
 optional in the form; no mainnet video has been invented or submitted.
+
+## October 12 funding and recovery update
+
+A confirmed 0.01 USDC Gateway deposit is entered in the final application as
+funding evidence. The API attempt returned 402; a paid response and owner
+receipt/CSV are not yet verified. An excessive wallet-edited allowance was
+detected; a bounded approve-to-zero recovery flow is deployed. The owner must
+complete revocation and inspect the existing request before any further
+payment decision. Application submission and terms acceptance have not occurred.

@@ -78,21 +78,24 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 ## Current status — October 12, 2026
 
 - Public origin: https://radar-agent-ivory.vercel.app.
-- Production deployment: `dpl_FPVeuzr9mXqPUThQizKx7re3kM2R`, source `62c12bc`.
+- Production deployment: `dpl_BqQRVNfUJRZ1X3VR816jjy2VpA9L`, source `f65ba9d`.
 - Standard Protection makes the production domain public while generated
   deployment and preview URLs still require Vercel login.
-- Thirteen anonymous checks pass: pages, live feed, durable storage, 402 quote,
+- Fifteen anonymous checks pass: pages, live feed, durable storage, 402 quote,
   billing authentication, OpenAPI, bounded funding quote, wrong-wallet refusal,
-  balance read, logo and preview protection. No protection bypass was used.
+  balance read, bounded allowance review, wrong-wallet allowance refusal,
+  excess-allowance funding refusal, logo and preview protection. No protection bypass was used.
 - Wallet-confirmed payments are enabled at 0.001 USDC. Funding is optional and
   exactly 0.01 USDC, with a 0.005 USDC gas cap per funding transaction.
 - Free Upstash Redis remains connected with eviction disabled. Secret server
   variables are integration-managed; no buyer key is hosted.
-- 59 tests, TypeScript and the production build pass. The dry-run manifest
-  contains 47 entries and excludes environment files, keys and buyer state.
-- No owner-wallet signature, deposit or paid purchase has yet been verified.
+- 63 tests, TypeScript and the production build pass. The dry-run manifest
+  contains 49 entries and excludes environment files, keys and buyer state.
+- Owner Gateway deposit is verified. Excess allowance revoke and paid
+  delivery/receipts remain pending; the attempted API request returned 402.
 - Application is on the final DoraHacks step with owner-supplied contacts and
-  deployment history filled; actual mainnet evidence and final review remain. No application has been submitted.
+  deployment history and a verified funding hash filled; paid functionality
+  verification and final review remain. No application has been submitted.
 
 [Public deployment evidence](deployment-public-vercel-2026-10-12.json).
 Earlier October 9 records retain their historical statuses and recipients.

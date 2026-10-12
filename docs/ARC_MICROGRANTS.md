@@ -15,8 +15,8 @@ Code now supports both networks, final-quote checks before signing,
 conservative accounting for signed payments, failed-resource cancellation,
 explicit mainnet/deposit flags and network-isolated runtime state.
 
-Latest validation: October 12, 2026. All 59 tests, TypeScript and production
-build pass. The public app is https://radar-agent-ivory.vercel.app. Thirteen
+Latest validation: October 12, 2026. All 63 tests, TypeScript and production
+build pass. The public app is https://radar-agent-ivory.vercel.app. Fifteen
 anonymous cloud checks verify pages, fresh Coinbase data, retained Redis,
 Arc chain 5042 quotes, wallet-pinned funding simulation and preview protection.
 [Current deployment evidence](deployment-public-vercel-2026-10-12.json).
@@ -143,3 +143,16 @@ Participation in a hackathon is not proof of a grant or prize payment.
 
 Do not submit while required links or mainnet evidence are missing. The prior
 funding declaration is recorded above; other application requirements still apply.
+
+## October 12 funded pilot checkpoint
+
+A real 0.01 USDC Gateway deposit and its chain receipt are verified in
+[the pilot record](mainnet-pilot-2026-10-12.json). The owner-edited approval
+exceeds the pilot limit; an approve-to-zero revoke flow is deployed and still
+requires owner confirmation. Funding/approval reconciliation checks actual
+calldata, destination and gas. Excess allowances block new funding/purchases.
+
+The latest API attempt returned 402. Paid delivery, owner receipt/CSV checks
+and final submission remain open. The verified funding hash has been entered
+in DoraHacks with an explicit funding-only label. No API-fee settlement or
+revenue is claimed. Never reset a payment reservation merely after refresh.

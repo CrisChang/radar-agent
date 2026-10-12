@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-10-12T08:53:54.295Z",
+  "network": "eip155:5042",
+  "wallet": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+  "evidence_sources": [
+    "Arc RPC transaction, receipt and contract reads",
+    "Circle Gateway balance API",
+    "Vercel request status metadata"
+  ],
+  "approval": {
+    "transaction_hash": "0xecd1df736e620bfec9fa67849b27ab3a20bef9dc24d8c0725f9f7f31830507dd",
+    "status": "success",
+    "requested_amount_usdc": "0.01",
+    "exceeded_requested_limit": true,
+    "gas_usdc": "0.001109480063906048"
+  },
+  "deposit": {
+    "transaction_hash": "0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30",
+    "status": "success",
+    "amount_usdc": "0.01",
+    "gas_usdc": "0.001846540106360704",
+    "explorer_url": "https://explorer.arc.io/tx/0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30"
+  },
+  "funding_gas_total_usdc": "0.002956020170266752",
+  "gateway_deposit_credit_verified": true,
+  "over_limit_allowance_revoke_verified": false,
+  "paid_mainnet_delivery_verified": false,
+  "owner_billing_csv_verified": false,
+  "request_status_observation": "Two /api/signals/latest responses around the owner attempt were 402; no successful delivery was observed. Exact rejection reason is unavailable.",
+  "no_new_payment_authorized": true,
+  "application_funding_hash_entered": true,
+  "application_submitted": false,
+  "interpretation": "Funding proof only. Same-wallet experiment; no customer revenue, paid API delivery or API-fee batch settlement is claimed."
+}

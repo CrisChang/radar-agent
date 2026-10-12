@@ -1,9 +1,9 @@
 # Mainnet pilot runbook
 
 Updated October 12, 2026. Public hosting, Free Redis storage, the browser
-funding flow and the one-query pilot are ready. All 59 tests and 13 anonymous
-cloud checks pass. No owner-wallet transaction or paid response has been
-verified yet. [Current evidence](deployment-public-vercel-2026-10-12.json).
+funding flow and the one-query pilot are ready. All 63 tests and 15 anonymous
+cloud checks pass. Owner funding is independently verified; a paid response
+remains unverified. [Current evidence](deployment-public-vercel-2026-10-12.json).
 
 ## Owner-confirmed identities and bounded experiment
 
@@ -70,8 +70,26 @@ the standard EVM provider. Disconnect and account selection are visible on the
 public page. The old site connection was revoked in OKX, and a fresh account
 access prompt opened in Chrome. A subsequent owner-provided screenshot from another computer confirms the
 approved account, chain 5042 and checked budget. Funding and paid delivery
-remain pending. No wallet signature or financial action was attempted.
+remain pending. No wallet signature or financial action was attempted by the agent.
 
 Owner-supplied application contacts are filled privately in DoraHacks. Prior
 Arc deployment is Testnet, confirmed by the owner. Verified mainnet transaction
 evidence and final submission remain pending.
+
+## Funded pilot and recovery checkpoint
+
+The owner deposit of 0.01 USDC succeeded and Gateway credit is verified.
+[Independent chain evidence](mainnet-pilot-2026-10-12.json). Funding gas totaled
+0.002956020170266752 USDC, within the original caps. The wallet confirmation
+edited approval above the requested amount, so a separate zero-allowance
+revoke must be confirmed by the owner. This revoke never withdraws Gateway
+funds, transfers USDC or clears payment reservations. Its extra gas cap is
+0.005 USDC, reviewed separately in the browser.
+
+The last observed API attempt returned 402. Refreshing the page does not
+reconcile an existing signed authorization. Do not clear browser storage or
+authorize a replacement purchase. Reconnect, retain the saved Request ID and
+use Sign read request to inspect wallet-scoped billing. Report the result
+before deciding whether any new payment can be authorized. Rejected payments
+now display bounded reason codes and log only request ID, sanitized reason
+and the fact that settlement was not attempted.

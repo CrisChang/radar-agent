@@ -92,3 +92,16 @@ Application: https://dorahacks.io/hackathon/arc-microgrants.
 - DoraHacks profile, logo, public links, details, team and owner-supplied contacts
   are filled. Prior Arc deployment is Testnet. Mainnet evidence and final
   application submission remain pending.
+
+## Funded pilot checkpoint
+
+- [Funding evidence](../mainnet-pilot-2026-10-12.json): real 0.01 USDC deposit
+  and Gateway credit independently verified; funding only.
+- Excess allowance detected; owner revoke confirmation remains open. A zero
+  allowance quote and bounded revoke UI are deployed. Actual wallet calldata
+  is checked during reconciliation; failed purchases retain reservations.
+- Current source passes 63 tests, TypeScript, build and 15 anonymous checks.
+- API attempt returned 402. Paid delivery, owner billing/CSV and actual failure
+  reason remain unverified. Do not authorize a fresh payment after refresh.
+- Final DoraHacks form contains the verified funding hash and funding-only
+  disclosure. Terms acceptance and final submission remain pending.

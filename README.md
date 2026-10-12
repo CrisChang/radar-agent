@@ -149,18 +149,23 @@ The October Arc mainnet continuation is public at
 The reviewed source is on `codex/arc-microgrants`; the main branch retains
 historical testnet media and the September implementation.
 
-Validated October 12, 2026: 59 tests, TypeScript and the production build pass.
-Thirteen anonymous cloud checks pass, including fresh Coinbase data, retained
+Validated October 12, 2026: 63 tests, TypeScript and the production build pass.
+Fifteen anonymous cloud checks pass, including fresh Coinbase data, retained
 Free Upstash Redis readiness, Arc mainnet 402 quotes, funding simulation and
 preview login protection. See the
 [public deployment evidence](docs/deployment-public-vercel-2026-10-12.json).
 No owner signature, funding transaction or paid response was used by those checks.
 
+The owner's 0.01 USDC Gateway deposit is independently verified in the
+[mainnet pilot record](docs/mainnet-pilot-2026-10-12.json). A wallet-edited
+approval exceeded the requested limit; its zero-allowance revoke is pending.
+The attempted API payment returned 402, so paid delivery is not claimed.
+
 The wallet-confirmed pilot is enabled. Actual paid mainnet delivery, owner
 receipt/CSV verification, the mainnet recording and final application submission
 remain pending. The application draft is open on the final DoraHacks step. Owner-supplied
-contacts and deployment history are filled; the mainnet transaction evidence
-and final review remain pending.
+contacts, deployment history and verified funding hash are filled; paid
+functionality verification and final review remain pending.
 
 Application prose, recording script and open gates are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
@@ -179,7 +184,10 @@ Durable nonce/request claims preserve the exact response for recovery.
 exporting its key. Optional Gateway funding is exactly 0.01 USDC, with an exact
 approval and a 0.005 USDC gas cap per funding transaction. A read-only quote
 simulates approval first; deposit simulation runs after approval confirms.
-Separate buttons require owner confirmation for every transaction. Expired
+Separate buttons require owner confirmation for every transaction. Actual
+broadcast calldata and gas are checked against the approved transaction.
+Allowance review and a separate approve-to-zero revoke flow are available;
+excessive allowances block new funding and purchase authorizations. Expired
 quotes, wrong accounts/chains and unresolved transactions block new funding.
 The API fee is paid from the deposit; automatic deposits and mainnet treasury
 execution remain disabled.
