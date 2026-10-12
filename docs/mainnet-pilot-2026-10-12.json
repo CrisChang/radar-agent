@@ -30,12 +30,11 @@
   "no_new_payment_authorized": true,
   "application_funding_hash_entered": true,
   "application_submitted": false,
-  "interpretation": "Funding proof only. Same-wallet experiment; no customer revenue, paid API delivery or API-fee batch settlement is claimed.",
+  "interpretation": "Verified funding and revoke. Earlier self-transfer attempts were rejected before settlement. A two-wallet owner-controlled functional test is now ready; paid delivery and customer revenue are not claimed.",
   "revoke_checked_at": "2026-10-12T09:23:32.063Z",
   "remaining_gateway_allowance_zero": true,
   "gateway_deposit_retained_verified": true,
   "owner_authenticated_billing_lookup_status": 404,
-  "same_wallet_pilot_one_query_cap_deployed": true,
   "guarded_recovery": "Authenticated missing-receipt check plus explicit owner consent permits one extra signing attempt. Old request is retained; old authorization is not cancelled. Durable wallet cap limits the project to one successful or uncertain settlement.",
   "revoke": {
     "transaction_hash": "0x41ceb9019cf22cb650c94d241adb94a3ad47c2a1c7f2c7a1933d94c57d06a70e",
@@ -44,5 +43,13 @@
     "gas_usdc": "0.00066980003576732",
     "explorer_url": "https://explorer.arc.io/tx/0x41ceb9019cf22cb650c94d241adb94a3ad47c2a1c7f2c7a1933d94c57d06a70e"
   },
-  "funding_and_revoke_gas_total_usdc": "0.003625820206034072"
+  "funding_and_revoke_gas_total_usdc": "0.003625820206034072",
+  "last_signed_rejection_reason": "self_transfer",
+  "rejection_settlement_attempted": false,
+  "corrected_buyer": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+  "corrected_recipient": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+  "corrected_parties_distinct": true,
+  "pilot_one_query_cap_deployed": true,
+  "new_recipient_payment_verified": false,
+  "correction": "Circle rejected the earlier same-address buyer/payee design. Buyer and seller are now configured independently; old self-transfer authorizations are invalid for the new recipient and old browser reservations are retained."
 }

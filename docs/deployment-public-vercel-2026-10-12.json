@@ -1,13 +1,14 @@
 {
-  "checked_at": "2026-10-12T09:33:01.673059+00:00",
+  "checked_at": "2026-10-12T10:04:14.969993+00:00",
   "public_origin": "https://radar-agent-ivory.vercel.app",
-  "deployment_url": "https://radar-agent-7m7hbmljb-chris-6239.vercel.app",
-  "deployment_id": "dpl_AcHHbuZacRTTaP2HLmYgp7uniRKZ",
-  "source_commit": "c9b2115",
+  "deployment_url": "https://radar-agent-r46ijlqe2-chris-6239.vercel.app",
+  "deployment_id": "dpl_6M1X3nSJiTryGCLV86s4MghGKtCn",
+  "source_commit": "e01709c",
   "network": "eip155:5042",
-  "recipient": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+  "pilot_buyer": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+  "recipient": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
   "access": "anonymous; no cookies or protection bypass",
-  "tests_passed": 67,
+  "tests_passed": 70,
   "checks": [
     {
       "check": "home",
@@ -36,13 +37,19 @@
       "payment_acceptance": "enabled",
       "store_status": "available",
       "feed_status": "live",
-      "feed_timestamp": "2026-10-12T09:32:00.000Z"
+      "feed_timestamp": "2026-10-12T10:03:00.000Z",
+      "pilot_recipient_distinct": true,
+      "pilot_buyer": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
+      "recipient": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C"
     },
     {
       "check": "unpaid_quote",
       "status": 402,
       "expected_status": 402,
-      "passed": true
+      "passed": true,
+      "amount_atomic": "1000",
+      "recipient": "0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C",
+      "network": "eip155:5042"
     },
     {
       "check": "unsupported_symbol",
@@ -70,12 +77,18 @@
       "amount_usdc": "0.01",
       "approval_needed": true,
       "deposit_simulated": false,
-      "maximum_gas_usdc": "0.006523830375772608",
+      "maximum_gas_usdc": "0.006523830339674082",
       "per_transaction_gas_cap_usdc": "0.005",
       "automatic_deposit": false
     },
     {
       "check": "wrong_funding_wallet",
+      "status": 400,
+      "expected_status": 400,
+      "passed": true
+    },
+    {
+      "check": "recipient_cannot_fund_buyer",
       "status": 400,
       "expected_status": 400,
       "passed": true
@@ -120,5 +133,6 @@
   "paid_mainnet_delivery_verified": false,
   "application_submitted": false,
   "separate_owner_funding_evidence": "mainnet-pilot-2026-10-12.json",
-  "same_wallet_pilot_one_query_cap_verified": true
+  "pilot_one_query_cap_verified": true,
+  "parties_distinct_verified": true
 }

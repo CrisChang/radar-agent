@@ -1,14 +1,15 @@
 # Mainnet pilot runbook
 
 Updated October 12, 2026. Public hosting, Free Redis storage, the browser
-funding flow and the one-query pilot are ready. All 67 tests and 15 anonymous
+funding flow and the one-query pilot are ready. All 70 tests and 16 anonymous
 cloud checks pass. Owner funding is independently verified; a paid response
 remains unverified. [Current evidence](deployment-public-vercel-2026-10-12.json).
 
 ## Owner-confirmed identities and bounded experiment
 
 - Arc Mainnet, chain 5042; gas is native USDC, not ETH or ARC.
-- Buyer and recipient: `0xefc70a0dedefee6a010bac44de489bafb2fd8422`.
+- Buyer: `0xefc70a0dedefee6a010bac44de489bafb2fd8422`.
+- Recipient: `0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C`; the wallets must differ.
 - USDC: `0x3600000000000000000000000000000000000000` (ERC-20 decimals: 6).
 - Gateway Wallet: `0x77777777Dcc4d5A8B6E418Fd04D8997ef11000eE`.
 - Optional deposit: exactly 0.01 USDC into the buyer's own Gateway balance.
@@ -59,7 +60,7 @@ Asia/Shanghai. No cancellation or new server purchase has been performed.
 DoraHacks requires Telegram plus one backup contact; these private contact
 fields must be supplied by the owner, not inferred or committed.
 
-This same-wallet run verifies functionality, not independent demand or revenue.
+This owner-controlled two-wallet run verifies functionality, not independent demand or revenue.
 The product buys public Coinbase observations; exchange-order execution and
 trading profit-and-loss accounting remain out of scope.
 
@@ -113,3 +114,19 @@ honors pre-existing receipts. Content rejected before settlement releases the
 cap. The client permits only one explicit recovery, never an automatic retry.
 Real Redis tests cover parallel different nonces, unknown outcomes, release
 only before settlement, restart durability and policy migration.
+
+## Definitive rejection reason and corrected next action
+
+The signed request was rejected as self_transfer; settlement was not attempted.
+The prior same-address design was invalid for Circle Gateway. It is now
+corrected with distinct buyer/recipient roles. The previous failed signatures
+pay to the old address and cannot satisfy the new endpoint terms. Old browser
+reservations remain intact; new payment reservations bind buyer, recipient and
+chain. The durable one-query cap now binds the approved buyer to its recipient.
+
+Refresh the pilot, connect the existing funded buyer and check both displayed
+addresses and chain 5042. Approve the purchase budget and personally sign exactly
+one 0.001 USDC purchase to the new recipient. No new USDC approval or deposit is
+needed. The first unsigned 402 is expected; inspect the final response and the
+page's validated signal result. Report the new request/result or bounded reason
+code. Paid delivery and wallet billing/CSV remain pending this owner action.

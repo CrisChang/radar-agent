@@ -15,8 +15,8 @@ Code now supports both networks, final-quote checks before signing,
 conservative accounting for signed payments, failed-resource cancellation,
 explicit mainnet/deposit flags and network-isolated runtime state.
 
-Latest validation: October 12, 2026. All 67 tests, TypeScript and production
-build pass. The public app is https://radar-agent-ivory.vercel.app. Fifteen
+Latest validation: October 12, 2026. All 70 tests, TypeScript and production
+build pass. The public app is https://radar-agent-ivory.vercel.app. Sixteen
 anonymous cloud checks verify pages, fresh Coinbase data, retained Redis,
 Arc chain 5042 quotes, wallet-pinned funding simulation and preview protection.
 [Current deployment evidence](deployment-public-vercel-2026-10-12.json).
@@ -161,3 +161,13 @@ The excessive allowance has now been revoked and verified as zero. Gateway
 funding remains intact. An authenticated billing query returned 404. One
 owner-confirmed recovery attempt is deployed with a durable one-settlement
 cap for the same-wallet pilot. Paid delivery still requires verification.
+
+## Self-transfer correction
+
+The final observed verification reason is self_transfer, with no settlement
+attempt. The original same-address pilot configuration was invalid and has
+been replaced with separate buyer and seller addresses. The funded buyer is
+0xefc70a0dedefee6a010bac44de489bafb2fd8422 and the owner-confirmed recipient is
+0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C. Both roles and the 0.001 USDC offer are
+verified in the current public evidence. Funding/allowance checks still target
+the buyer. The corrected paid test, billing/CSV and final application remain.

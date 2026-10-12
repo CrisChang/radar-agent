@@ -149,8 +149,8 @@ The October Arc mainnet continuation is public at
 The reviewed source is on `codex/arc-microgrants`; the main branch retains
 historical testnet media and the September implementation.
 
-Validated October 12, 2026: 67 tests, TypeScript and the production build pass.
-Fifteen anonymous cloud checks pass, including fresh Coinbase data, retained
+Validated October 12, 2026: 70 tests, TypeScript and the production build pass.
+Sixteen anonymous cloud checks pass, including fresh Coinbase data, retained
 Free Upstash Redis readiness, Arc mainnet 402 quotes, funding simulation and
 preview login protection. See the
 [public deployment evidence](docs/deployment-public-vercel-2026-10-12.json).
@@ -159,7 +159,9 @@ No owner signature, funding transaction or paid response was used by those check
 The owner's 0.01 USDC Gateway deposit is independently verified in the
 [mainnet pilot record](docs/mainnet-pilot-2026-10-12.json). A wallet-edited
 approval exceeded the requested limit; its zero-allowance revoke is now verified.
-The attempted API payment returned 402, so paid delivery is not claimed.
+The attempted API payment was rejected with self_transfer before settlement.
+The funded buyer and owner-confirmed recipient are now separate; paid delivery
+remains pending the corrected two-wallet test.
 
 The wallet-confirmed pilot is enabled. Actual paid mainnet delivery, owner
 receipt/CSV verification, the mainnet recording and final application submission
@@ -205,7 +207,13 @@ record contains the current hosting configuration and verification results.
 
 The owner pilot supports one explicit recovery attempt after an authenticated
 missing-receipt query. The previous request stays recorded. An atomic Redis
-wallet cap limits this same-wallet mainnet pilot to one successful or uncertain
+wallet cap limits the configured mainnet pilot buyer to one successful or uncertain
 settlement across different authorizations and browsers. Rejected content before
 settlement releases the cap; unknown outcomes retain it. No automatic retry or
 replacement signature is created. Other buyers retain their normal API flow.
+
+The browser pilot has separate approved buyer and seller addresses and refuses
+self-transfers before signing. Buyer funding/allowance routes remain pinned to
+the funded buyer, and the durable cap allows one exact 0.001 USDC payment to the
+approved distinct recipient. Browser reservations bind buyer, recipient and
+chain; older failed self-transfer reservations are retained, not cleared.

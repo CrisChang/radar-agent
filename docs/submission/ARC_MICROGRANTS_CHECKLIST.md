@@ -115,3 +115,13 @@ Application: https://dorahacks.io/hackathon/arc-microgrants.
 - Parallel distinct authorizations settle only once; unknown outcomes and
   prior accepted receipts keep the cap, including after Redis restart.
 - Paid delivery, owner receipt/CSV and final submission remain open.
+
+## Corrected buyer/seller roles
+
+- Signed failure reason confirmed as self_transfer; no settlement was attempted.
+- Funded buyer and user-confirmed seller now differ. Self-signatures are blocked
+  before wallet use; funding remains buyer-only.
+- New offer recipient/amount and roles verified. 70 tests and 16 anonymous
+  checks pass, including a two-wallet durable-cap Redis test.
+- Old reservations are retained. Await the new-recipient signed purchase,
+  validated delivery, wallet receipt/CSV and final application review.

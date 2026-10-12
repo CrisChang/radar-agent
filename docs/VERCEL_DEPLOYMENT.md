@@ -78,10 +78,10 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 ## Current status — October 12, 2026
 
 - Public origin: https://radar-agent-ivory.vercel.app.
-- Production deployment: `dpl_AcHHbuZacRTTaP2HLmYgp7uniRKZ`, source `c9b2115`.
+- Production deployment: `dpl_6M1X3nSJiTryGCLV86s4MghGKtCn`, source `e01709c`.
 - Standard Protection makes the production domain public while generated
   deployment and preview URLs still require Vercel login.
-- Fifteen anonymous checks pass: pages, live feed, durable storage, 402 quote,
+- Sixteen anonymous checks pass: pages, live feed, durable storage, 402 quote,
   billing authentication, OpenAPI, bounded funding quote, wrong-wallet refusal,
   balance read, bounded allowance review, wrong-wallet allowance refusal,
   zero-allowance verification, the durable pilot cap, logo and preview protection. No protection bypass was used.
@@ -89,7 +89,7 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
   exactly 0.01 USDC, with a 0.005 USDC gas cap per funding transaction.
 - Free Upstash Redis remains connected with eviction disabled. Secret server
   variables are integration-managed; no buyer key is hosted.
-- 67 tests, TypeScript and the production build pass. The dry-run manifest
+- 70 tests, TypeScript and the production build pass. The dry-run manifest
   contains 49 entries and excludes environment files, keys and buyer state.
 - Owner Gateway deposit and zero-allowance revoke are verified. The signed
   billing lookup returned 404; paid delivery/receipts remain pending. One explicit
@@ -107,3 +107,13 @@ On this Mac, deployment-host checks use the existing local HTTPS proxy.
 Anonymous checks use ordinary curl with no cookies or protection bypass.
 Official Vercel CLI commands use its existing authorization. Never publish
 request cookies, protection tokens, keys or private wallet balances.
+
+## Buyer and seller correction
+
+PILOT_BUYER_ADDRESS is the funded buyer, independent from SELLER_ADDRESS.
+Current buyer: 0xefc70a0dedefee6a010bac44de489bafb2fd8422.
+Current owner-confirmed recipient: 0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C.
+The earlier signature was rejected with self_transfer before settlement.
+Current anonymous checks decode the 402 offer to verify the new recipient and
+exact 0.001 USDC price, and refuse funding calls from the recipient address.
+The buyer keeps its existing Gateway deposit; no extra funding is required.

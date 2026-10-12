@@ -13,7 +13,7 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — public, anonymous checks pass |
-| Protected build preview | https://radar-agent-7m7hbmljb-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-r46ijlqe2-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Verified 0.01 USDC Gateway deposit: 0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30; funding only, paid API delivery pending |
@@ -143,3 +143,9 @@ as zero and Gateway funding is retained. An authenticated query found no
 receipt for the failed request. One explicit retry is prepared through the
 browser under a durable same-wallet settlement cap; no paid response or
 customer revenue is yet claimed.
+
+The exact rejected-payment reason was self_transfer. That configuration is
+corrected: the funded buyer and owner-controlled seller use different wallets.
+A new-recipient 0.001 USDC offer and separate roles are verified anonymously.
+The owner still needs to sign the corrected purchase and verify receipt/CSV.
+Funding and revoke evidence remain valid; no customer revenue is claimed.
