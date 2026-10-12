@@ -24,6 +24,11 @@ The server has no buyer signing key. Never put a key or seed phrase in chat.
 
 1. Open https://radar-agent-ivory.vercel.app/pilot. Connect the approved wallet
    and select Arc Mainnet. Check the displayed recipient and budget.
+   If the wrong account connects, use **Disconnect wallet**, then **Choose
+   account** to request account access again. Unsupported permission revocation
+   is reported explicitly; disconnect this site in the wallet extension if
+   necessary. Account/network changes clear consent and quotes, while saved
+   payment reservations remain in place to prevent duplicate spending.
 2. Check Gateway balance. If at least 0.001 USDC is available, skip funding.
 3. If funding is needed, review the funding quote. The first quote simulates
    approval; deposit gas is only a conservative ceiling at this stage.

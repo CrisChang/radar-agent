@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BatchEvmScheme } from "@circle-fin/x402-batching/client";
 import { createPublicClient, createWalletClient, custom, defineChain, erc20Abi, type EIP1193Provider } from "viem";
 import type { ArcConfig } from "@/lib/arc";
@@ -26,6 +26,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
 }) {
   const [wallet, setWallet] = useState<`0x${string}`>();
   const [busy, setBusy] = useState(false);
+  const [connectedChainId, setConnectedChainId] = useState<number>();
   const [message, setMessage] = useState("");
   const [requestId, setRequestId] = useState("");
   const [bills, setBills] = useState<Bill[]>([]);
@@ -34,16 +35,71 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
   const [funding, setFunding] = useState<FundingQuote>();
   const [consent, setConsent] = useState(false);
   const [fundingHash, setFundingHash] = useState<string>();
+  const correctWallet = !!wallet && wallet.toLowerCase() === seller.toLowerCase();
+  const correctChain = connectedChainId === arc.chainId;
+  function accountSelected(value: unknown) {
+    const address = Array.isArray(value) && typeof value[0] === "string" && /^0x[\da-fA-F]{40}$/.test(value[0]) ? value[0] as `0x${string}` : undefined;
+    setWallet(address); setBalance(undefined); setFunding(undefined); setConsent(false); setBills([]); setResult(undefined); setFundingHash(undefined);
+    return address;
+  }
+  useEffect(() => {
+    let ethereum: EIP1193Provider;
+    try { ethereum = provider(); } catch { return; }
+    const accountsChanged = (value: unknown) => {
+      const address = accountSelected(value);
+      setMessage(address ? "Wallet account changed. Check the address and approve the displayed budget again." : "Wallet disconnected. Connect the approved pilot wallet.");
+    };
+    const chainChanged = (value: unknown) => {
+      setConnectedChainId(typeof value === "string" ? Number(value) : undefined);
+      setFunding(undefined); setConsent(false); setMessage("Wallet network changed. Check the network before continuing.");
+    };
+    ethereum.on?.("accountsChanged", accountsChanged); ethereum.on?.("chainChanged", chainChanged);
+    return () => { ethereum.removeListener?.("accountsChanged", accountsChanged); ethereum.removeListener?.("chainChanged", chainChanged); };
+  }, []);
   async function run(action: () => Promise<void>) {
-    if (busy) return; setBusy(true); setMessage("");
+    if (busy) return; setBusy(true); setMessage("处理中，请查看钱包弹窗 / Processing — check your wallet popup.");
     try { await action(); } catch (error) { setMessage(safeError(error)); } finally { setBusy(false); }
   }
   async function connect() {
     const accounts = await provider().request({ method: "eth_requestAccounts" });
     const address = accounts[0];
     if (!address || !/^0x[\da-fA-F]{40}$/.test(address)) throw new Error("No wallet account was connected.");
-    setWallet(address); setBalance(undefined); setBills([]); setResult(undefined); setFunding(undefined); setConsent(false); setFundingHash(undefined);
-    setMessage("Wallet connected. No payment has been authorized.");
+    accountSelected(accounts);
+    setConnectedChainId(Number(await provider().request({ method: "eth_chainId" })));
+    setMessage(mode === "pilot" && address.toLowerCase() !== seller.toLowerCase()
+      ? "钱包地址不匹配。请在钱包扩展中选择页面指定的测试地址，然后重新连接。No payment was attempted."
+      : "钱包已连接。请核对网络并勾选预算后继续；尚未授权付款。Wallet connected; no payment authorized.");
+  }
+  async function chooseAccount() {
+    try {
+      await provider().request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+    } catch (error) {
+      const code = (error as { code?: number })?.code;
+      if (code !== 4200 && code !== -32601) throw error;
+      throw new Error("Wallet account selection is unavailable. Select the approved account in your wallet extension, then connect again.");
+    }
+    await connect();
+  }
+  async function disconnect() {
+    accountSelected([]); setConnectedChainId(undefined);
+    try {
+      await provider().request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+      accountSelected([]); setConnectedChainId(undefined);
+      setMessage("已断开并撤销此网站的钱包连接权限。点击选择账户重新授权；历史付款预算仍保留。Disconnected. Choose an account to authorize again; payment reservations are preserved.");
+    } catch {
+      accountSelected([]); setConnectedChainId(undefined);
+      setMessage("页面已断开。钱包未确认撤销授权，请点击选择账户重新授权，或在钱包的已连接网站中断开本站。Page disconnected; wallet permission revocation was not confirmed. Payment reservations are preserved.");
+    }
+  }
+  async function switchNetwork() {
+    try {
+      await provider().request({ method: "wallet_switchEthereumChain", params: [{ chainId: `0x${arc.chainId.toString(16)}` }] });
+      setConnectedChainId(Number(await provider().request({ method: "eth_chainId" })));
+      setFunding(undefined); setConsent(false);
+      setMessage("网络已切换，请重新核对预算。Network selected; review the budget again.");
+    } catch {
+      throw new Error(`Wallet network switch did not complete. Add/select ${arc.name} manually: chain ${arc.chainId}, RPC ${arc.rpcUrl}, native gas USDC.`);
+    }
   }
   async function assertAccount() {
     if (!wallet) throw new Error("Connect your wallet first.");
@@ -195,23 +251,31 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
       <p className="lede">{mode === "pilot" ? "Buy one ETH market signal for 0.001 USDC using your wallet. The pilot preserves its budget if a response is lost." : "Read and export receipts using a wallet signature. This read authorization expires after five minutes and does not spend funds."}</p>
       <div className="tool-card">
         <p><b>Connected wallet</b><br/><code>{wallet ?? "Not connected"}</code></p>
-        <button disabled={busy} onClick={() => run(connect)}>Connect wallet</button>
+        <button disabled={busy} onClick={() => run(connect)}>{wallet ? "Reconnect wallet / 重新连接" : "Connect wallet / 连接钱包"}</button>
+        <button disabled={busy} onClick={() => run(chooseAccount)}>Choose account / 选择账户</button>
+        <button disabled={busy || !wallet} onClick={() => run(disconnect)}>Disconnect wallet / 断开连接</button>
+        {busy && <p role="status" className="tool-notice">处理中，请查看钱包扩展弹窗。Processing — check the wallet popup.</p>}
+        {message && <p className="tool-notice" role="status">{message}</p>}
         {mode === "pilot" && <>
           <p><b>Approved pilot wallet / recipient</b><br/><code>{seller}</code></p>
+          {wallet && !correctWallet && <p className="tool-notice" role="alert">当前钱包与测试地址不一致，充值和购买已阻止。请在钱包扩展切换到上面的完整地址，再点击重新连接。Wrong wallet selected; funding and purchase are blocked.</p>}
+          {wallet && <p>当前网络 / Connected chain: <b>{connectedChainId ?? "Unknown"}</b> · 所需网络 / Required: {arc.name} ({arc.chainId})</p>}
+          {wallet && !correctChain && <><p className="tool-notice">请先切换到 Arc 主网，链 ID 5042。Select the required network before funding or purchasing.</p><button disabled={busy} onClick={() => run(switchNetwork)}>Switch to {arc.name} / 切换网络</button></>}
           <p>Same-wallet functional test · one query maximum · no automatic deposits or treasury transfers.</p>
           <p>The payment signature authorizes exactly 0.001 USDC and remains valid for approximately seven days for Gateway batching.</p>
           {!paymentsEnabled && <p className="tool-notice">Payment pilot is paused. Discovery and wallet receipt reads remain available when storage is configured.</p>}
           <p>Optional funding: exactly 0.01 USDC into your own Gateway balance. Approval is limited to 0.01 USDC. Each of the two funding transactions is capped at 0.005 USDC gas; the combined gas cap is 0.01 USDC. The signal fee comes from the deposit. No recurring payments.</p>
+          {!consent && <p className="tool-notice">购买按钮尚未启用：核对钱包、网络后，勾选下面的预算框。Tick the budget checkbox after checking your wallet and network.</p>}
           <label><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} /> I approve this optional funding budget and one 0.001 USDC signal purchase.</label>
-          <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(reviewFunding)}>Review Gateway funding quote</button></div>
+          <div className="tool-actions"><button disabled={busy || !correctWallet || !correctChain} onClick={() => run(reviewFunding)}>Review Gateway funding quote</button></div>
           {funding && <div className="tool-notice"><p>Deposit: <b>{funding.amount_usdc} USDC</b> · maximum gas for the remaining steps: <b>{funding.maximum_gas_usdc} USDC</b>. Quote expires in 60 seconds.</p>
             <p>{funding.approval_needed ? "Approval simulated. Deposit gas is a ceiling until approval confirms; review again to simulate the deposit." : "Deposit simulation passed."}</p>
-            <button disabled={busy || !consent} onClick={() => run(() => fund(funding.approval_needed ? "approve" : "deposit"))}>{funding.approval_needed ? "Approve exactly 0.01 USDC in wallet" : "Deposit exactly 0.01 USDC in wallet"}</button></div>}
+            <button disabled={busy || !consent || !correctWallet || !correctChain} onClick={() => run(() => fund(funding.approval_needed ? "approve" : "deposit"))}>{funding.approval_needed ? "Approve exactly 0.01 USDC in wallet" : "Deposit exactly 0.01 USDC in wallet"}</button></div>}
           <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(() => reconcileFunding("approve"))}>Reconcile approval</button>
             <button disabled={busy || !wallet} onClick={() => run(() => reconcileFunding("deposit"))}>Reconcile deposit</button></div>
           {fundingHash && <p>Funding transaction: <a href={`${arc.explorerUrl}/tx/${fundingHash}`} target="_blank" rel="noreferrer">{fundingHash}</a> (funding, not API fee settlement)</p>}
           <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(checkBalance)}>Check Gateway balance</button>
-          <button disabled={busy || !wallet || !paymentsEnabled || !consent} onClick={() => run(buy)}>Authorize one 0.001 USDC purchase</button></div>
+          <button disabled={busy || !correctWallet || !correctChain || !paymentsEnabled || !consent} onClick={() => run(buy)}>Authorize one 0.001 USDC purchase</button></div>
           {balance !== undefined && <p>Available in Gateway: <b>{balance} USDC</b>. Wallet funds and Gateway funds are separate.</p>}
         </>}
       </div>
@@ -223,7 +287,6 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
         <button disabled={busy || !wallet} onClick={() => run(() => readBills(true))}>Export CSV</button></div>
         {bills.length > 0 && <div className="table-scroll"><table><thead><tr><th>Created</th><th>USDC</th><th>Status</th><th>Signal</th><th>Request</th></tr></thead><tbody>{bills.map(bill => <tr key={bill.bill_id}><td>{bill.created_at}</td><td>{bill.amount_usdc}</td><td>{bill.status}</td><td>{bill.signal_id ?? "—"}</td><td><code>{bill.request_id}</code></td></tr>)}</tbody></table></div>}
       </div>
-      {message && <p className="tool-notice" role="status">{message}</p>}
       {result !== undefined && <details open><summary>Validated signal and payment reference</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}
       <p>Gateway-accepted receipts are labelled separately from independently confirmed chain transactions.</p>
     </section>
