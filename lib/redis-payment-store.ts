@@ -1,4 +1,4 @@
-import { getArcConfig, getSellerAddress } from "./arc";
+import { getArcConfig, getPilotBuyerAddress, getSellerAddress } from "./arc";
 import type { BillingStore, PaymentRecord, PaymentState, SavedResponse } from "./payment-store";
 
 const CLAIM = `
@@ -45,7 +45,7 @@ export class RedisPaymentStore implements BillingStore {
   private readonly base: URL;
   private readonly prefix: string;
   constructor(private readonly options: {
-    url: string; token: string; namespace: string; fetcher?: typeof fetch; allowLoopback?: boolean; pilotPayer?: string;
+    url: string; token: string; namespace: string; fetcher?: typeof fetch; allowLoopback?: boolean; pilotPayer?: string; pilotPayTo?: string;
   }) {
     this.base = new URL(options.url);
     const loopback = options.allowLoopback && !process.env.VERCEL &&
@@ -53,7 +53,8 @@ export class RedisPaymentStore implements BillingStore {
     if ((!loopback && (this.base.protocol !== "https:" || !this.base.hostname.endsWith(".upstash.io"))) ||
         this.base.username || this.base.password || this.base.search || this.base.hash || this.base.pathname !== "/" ||
         !options.token || !/^[a-zA-Z0-9:_-]{1,160}$/.test(options.namespace) ||
-        (options.pilotPayer !== undefined && !/^0x[\da-fA-F]{40}$/.test(options.pilotPayer))) {
+        (options.pilotPayer !== undefined && !/^0x[\da-fA-F]{40}$/.test(options.pilotPayer)) ||
+        (options.pilotPayTo !== undefined && (!options.pilotPayer || !/^0x[\da-fA-F]{40}$/.test(options.pilotPayTo)))) {
       throw new Error("Invalid durable payment store configuration");
     }
     this.prefix = `{${options.namespace}}:`;
@@ -100,7 +101,7 @@ export class RedisPaymentStore implements BillingStore {
     const now = new Date().toISOString();
     const record = { ...input, createdAt: now, updatedAt: now };
     const capped = this.options.pilotPayer?.toLowerCase() === input.authorization.payer.toLowerCase();
-    if (capped && (input.terms?.amountAtomic !== "1000" || input.terms.payTo.toLowerCase() !== this.options.pilotPayer?.toLowerCase())) throw new Error("Same-wallet pilot requires exactly one 0.001 USDC payment.");
+    if (capped && (input.terms?.amountAtomic !== "1000" || input.terms.payTo.toLowerCase() !== (this.options.pilotPayTo ?? this.options.pilotPayer)?.toLowerCase())) throw new Error("Pilot requires exactly one 0.001 USDC payment to its approved recipient.");
     const result = await this.command(["EVAL", CLAIM, 4, this.key("payment", input.paymentKey),
       this.key("request", input.requestKey), this.key("payer", input.authorization.payer.toLowerCase()), this.pilotKey(),
       JSON.stringify(record), input.paymentKey, Date.parse(now), capped ? "1" : "0", this.key("payment", "")]);
@@ -145,6 +146,6 @@ export function currentPaymentStore(): RedisPaymentStore | undefined {
     url: (process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL)!,
     token: (process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN)!,
     namespace: process.env.RADAR_PAYMENT_NAMESPACE ?? `radar:v1:${arc.chainId}:${getSellerAddress().toLowerCase()}`,
-    ...(arc.mode === "mainnet" ? { pilotPayer: getSellerAddress() } : {}),
+    ...(arc.mode === "mainnet" ? { pilotPayer: getPilotBuyerAddress(), pilotPayTo: getSellerAddress() } : {}),
   });
 }

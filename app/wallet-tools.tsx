@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { BatchEvmScheme } from "@circle-fin/x402-batching/client";
 import { createPublicClient, createWalletClient, custom, defineChain, erc20Abi, type EIP1193Provider } from "viem";
 import type { ArcConfig } from "@/lib/arc";
+import { assertDistinctPaymentParties, pilotBudgetKey } from "@/lib/arc";
 import type { Bill } from "@/lib/billing";
 import { assertFundingQuote, assertFundingTransaction, gatewayDepositAbi, PILOT_DEPOSIT_ATOMIC, type FundingQuote } from "@/lib/gateway-funding";
 import { assertAllowanceQuote, type AllowanceQuote } from "@/lib/gateway-allowance";
@@ -23,8 +24,8 @@ function walletClient(arc: ArcConfig, address: `0x${string}`) {
 const safeError = (error: unknown) => error instanceof Error && /wallet|chain|budget|Gateway|quote|offer|paused|signature|Receipt|authorization|endpoint|store|balance|request|connect/i.test(error.message)
   ? error.message.slice(0,240) : "The operation did not complete. Check your wallet and reconcile before another payment.";
 
-export default function WalletTools({ arc, seller, price, mode, paymentsEnabled }: {
-  arc: ArcConfig; seller: string; price: string; mode: "pilot" | "billing"; paymentsEnabled: boolean;
+export default function WalletTools({ arc, seller, pilotBuyer, price, mode, paymentsEnabled }: {
+  arc: ArcConfig; seller: string; pilotBuyer: string; price: string; mode: "pilot" | "billing"; paymentsEnabled: boolean;
 }) {
   const [wallet, setWallet] = useState<`0x${string}`>();
   const [busy, setBusy] = useState(false);
@@ -41,7 +42,8 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
   const [revokeConsent, setRevokeConsent] = useState(false);
   const [missingReceiptId, setMissingReceiptId] = useState<string>();
   const [retryConsent, setRetryConsent] = useState(false);
-  const correctWallet = !!wallet && wallet.toLowerCase() === seller.toLowerCase();
+  const correctWallet = !!wallet && wallet.toLowerCase() === pilotBuyer.toLowerCase();
+  const distinctParties = pilotBuyer.toLowerCase() !== seller.toLowerCase();
   const correctChain = connectedChainId === arc.chainId;
   function accountSelected(value: unknown) {
     const address = Array.isArray(value) && typeof value[0] === "string" && /^0x[\da-fA-F]{40}$/.test(value[0]) ? value[0] as `0x${string}` : undefined;
@@ -49,7 +51,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     setRequestId(""); setMissingReceiptId(undefined); setRetryConsent(false);
     if (address) {
       try {
-        const saved = JSON.parse(localStorage.getItem(`radar:pilot:v1:${arc.chainId}:${address.toLowerCase()}`) ?? "null") as { request_id?: unknown } | null;
+        const saved = JSON.parse(localStorage.getItem(pilotBudgetKey(arc.chainId, address, seller)) ?? "null") as { request_id?: unknown } | null;
         if (typeof saved?.request_id === "string") setRequestId(saved.request_id);
       } catch { /* Existing reservations remain intact; never clear them to reconnect. */ }
     }
@@ -79,7 +81,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     if (!address || !/^0x[\da-fA-F]{40}$/.test(address)) throw new Error("No wallet account was connected.");
     accountSelected(accounts);
     setConnectedChainId(Number(await provider().request({ method: "eth_chainId" })));
-    setMessage(mode === "pilot" && address.toLowerCase() !== seller.toLowerCase()
+    setMessage(mode === "pilot" && address.toLowerCase() !== pilotBuyer.toLowerCase()
       ? "钱包地址不匹配。请在钱包扩展中选择页面指定的测试地址，然后重新连接。No payment was attempted."
       : "钱包已连接。请核对网络并勾选预算后继续；尚未授权付款。Wallet connected; no payment authorized.");
   }
@@ -129,7 +131,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
   }
   async function assertPilot() {
     const address = await assertAccount();
-    if (address.toLowerCase() !== seller.toLowerCase()) throw new Error("Connect the owner-confirmed pilot wallet shown on this page.");
+    if (address.toLowerCase() !== pilotBuyer.toLowerCase()) throw new Error("Connect the owner-confirmed pilot wallet shown on this page.");
     if (Number(await provider().request({ method: "eth_chainId" })) !== arc.chainId) throw new Error(`Switch your wallet to ${arc.name}, chain ${arc.chainId}.`);
     return address;
   }
@@ -237,7 +239,8 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
   }
   async function buy() {
     const address = await assertAccount();
-    if (address.toLowerCase() !== seller.toLowerCase()) throw new Error("This pilot is pinned to the owner-confirmed test wallet shown below.");
+    if (address.toLowerCase() !== pilotBuyer.toLowerCase()) throw new Error("This pilot is pinned to the owner-confirmed buyer wallet shown below.");
+    assertDistinctPaymentParties(address, seller);
     if (!consent) throw new Error("Approve the displayed one-query pilot budget before signing.");
     if (!paymentsEnabled) throw new Error("Payments are paused until hosting, storage and the spending budget are approved.");
     const chainId = await provider().request({ method: "eth_chainId" });
@@ -252,7 +255,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
       throw new Error("Gateway balance is insufficient or unverified. Any deposit needs a separate amount and gas approval.");
     }
     if (!navigator.locks) throw new Error("This browser cannot safely lock the single-payment budget. Use a current Chrome browser.");
-    const key = `radar:pilot:v1:${arc.chainId}:${address.toLowerCase()}`;
+    const key = pilotBudgetKey(arc.chainId, address, seller);
     await navigator.locks.request(key, { ifAvailable: true }, async lock => {
       const raw = localStorage.getItem(key);
       const previous = raw ? JSON.parse(raw) as { status?: string; request_id?: string; retry_count?: number; previous_request_id?: string } : undefined;
@@ -317,9 +320,9 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     const address = await assertPilot();
     if (!retryConsent || !missingReceiptId || requestId.trim() !== missingReceiptId) throw new Error("Read the missing request's receipt and approve the separate retry confirmation first.");
     const health = await fetch("/api/health?store=1", { cache: "no-store" }).then(r => r.json());
-    if (health.same_wallet_pilot_one_query_cap !== true || health.payment_store?.status !== "available") throw new Error("Durable one-query pilot cap is unavailable. No new payment prepared.");
+    if (health.pilot_one_query_cap !== true || health.payment_store?.status !== "available") throw new Error("Durable one-query pilot cap is unavailable. No new payment prepared.");
     if (!navigator.locks) throw new Error("This browser cannot lock the pilot recovery budget. Use current Chrome.");
-    const key = `radar:pilot:v1:${arc.chainId}:${address.toLowerCase()}`;
+    const key = pilotBudgetKey(arc.chainId, address, seller);
     await navigator.locks.request(key, { ifAvailable: true }, async lock => {
       const raw = localStorage.getItem(key);
       const saved = raw ? JSON.parse(raw) as { request_id?: string; status?: string; retry_count?: number } : undefined;
@@ -343,11 +346,13 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
         {busy && <p role="status" className="tool-notice">处理中，请查看钱包扩展弹窗。Processing — check the wallet popup.</p>}
         {message && <p className="tool-notice" role="status">{message}</p>}
         {mode === "pilot" && <>
-          <p><b>Approved pilot wallet / recipient</b><br/><code>{seller}</code></p>
-          {wallet && !correctWallet && <p className="tool-notice" role="alert">当前钱包与测试地址不一致，充值和购买已阻止。请在钱包扩展切换到上面的完整地址，再点击重新连接。Wrong wallet selected; funding and purchase are blocked.</p>}
+          <p><b>Approved buyer wallet / 指定付款钱包</b><br/><code>{pilotBuyer}</code></p>
+          <p><b>Payment recipient / 收款地址</b><br/><code>{seller}</code></p>
+          {!distinctParties && <p className="tool-notice" role="alert">付款和收款地址相同，Circle 会拒绝 self_transfer。购买已禁用，请先设置不同的收款地址。</p>}
+          {wallet && !correctWallet && <p className="tool-notice" role="alert">当前钱包与指定付款钱包不一致，充值和购买已阻止。请在钱包扩展切换到“指定付款钱包”的完整地址，再点击重新连接。Wrong buyer wallet selected; funding and purchase are blocked.</p>}
           {wallet && <p>当前网络 / Connected chain: <b>{connectedChainId ?? "Unknown"}</b> · 所需网络 / Required: {arc.name} ({arc.chainId})</p>}
           {wallet && !correctChain && <><p className="tool-notice">请先切换到 Arc 主网，链 ID 5042。Select the required network before funding or purchasing.</p><button disabled={busy} onClick={() => run(switchNetwork)}>Switch to {arc.name} / 切换网络</button></>}
-          <p>Same-wallet functional test · one query maximum · no automatic deposits or treasury transfers.</p>
+          <p>Two-wallet functional test · one query maximum · no automatic deposits or treasury transfers.</p>
           <p>The payment signature authorizes exactly 0.001 USDC and remains valid for approximately seven days for Gateway batching.</p>
           {!paymentsEnabled && <p className="tool-notice">Payment pilot is paused. Discovery and wallet receipt reads remain available when storage is configured.</p>}
           <p>Optional funding: exactly 0.01 USDC into your own Gateway balance. Approval is limited to 0.01 USDC. Each of the two funding transactions is capped at 0.005 USDC gas; the combined gas cap is 0.01 USDC. The signal fee comes from the deposit. No recurring payments.</p>
@@ -372,7 +377,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
             <button disabled={busy || !wallet} onClick={() => run(() => reconcileFunding("deposit"))}>Reconcile deposit</button></div>
           {fundingHash && <p>Wallet transaction: <a href={`${arc.explorerUrl}/tx/${fundingHash}`} target="_blank" rel="noreferrer">{fundingHash}</a> (approval, funding or revoke; not API fee settlement)</p>}
           <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(checkBalance)}>Check Gateway balance</button>
-          <button disabled={busy || !correctWallet || !correctChain || !paymentsEnabled || !consent || allowance?.exceeds_pilot_limit} onClick={() => run(buy)}>Authorize one 0.001 USDC purchase</button></div>
+          <button disabled={busy || !correctWallet || !correctChain || !distinctParties || !paymentsEnabled || !consent || allowance?.exceeds_pilot_limit} onClick={() => run(buy)}>Authorize one 0.001 USDC purchase</button></div>
           {balance !== undefined && <p>Available in Gateway: <b>{balance} USDC</b>. Wallet funds and Gateway funds are separate.</p>}
         </>}
       </div>

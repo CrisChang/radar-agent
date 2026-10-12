@@ -10,7 +10,7 @@ import type { PriceSignal } from "../lib/signals";
 import { buildDemoSignal, getLatestSignal } from "../lib/signals";
 import { decide } from "../lib/decision";
 import { DisciplineEngine } from "../lib/discipline";
-import { getArcConfig, getSellerAddress, parseUsdcAtomic } from "../lib/arc";
+import { assertDistinctPaymentParties, getArcConfig, getSellerAddress, parseUsdcAtomic } from "../lib/arc";
 import { validateBuyerSigner } from "../lib/buyer-payment";
 
 const args = new Set(process.argv.slice(2));
@@ -72,6 +72,7 @@ async function buySignal(): Promise<{
   }
 
   validateBuyerSigner(privateKey, process.env.BUYER_ADDRESS, arc);
+  assertDistinctPaymentParties(privateKeyToAccount(privateKey).address, getSellerAddress());
 
   const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
   const endpoint = signalEndpoint(baseUrl, demoSignal);

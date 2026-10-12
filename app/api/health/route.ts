@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArcConfig } from "@/lib/arc";
+import { getArcConfig, getPilotBuyerAddress, getSellerAddress } from "@/lib/arc";
 import { getLatestSignal } from "@/lib/signals";
 import { currentPaymentStore, paymentStoreConfigured } from "@/lib/redis-payment-store";
 import { buildPaymentRequirements } from "@/lib/x402";
@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
       status: feedUnavailable ? "feed_unavailable" : storeUnavailable ? "store_unavailable" : "configured",
       payment_acceptance: process.env.RADAR_ACCEPT_PAYMENTS === "true" ? "enabled" : "discovery_only",
       payment_store: { configured: paymentStoreConfigured(), status: storeStatus },
-      same_wallet_pilot_one_query_cap: arc.mode === "mainnet" && paymentStoreConfigured(),
+      pilot_one_query_cap: arc.mode === "mainnet" && paymentStoreConfigured(),
+      pilot_buyer: getPilotBuyerAddress(),
+      pilot_recipient_distinct: getPilotBuyerAddress().toLowerCase() !== getSellerAddress().toLowerCase(),
       network: arc.name,
       chain_id: arc.chainId,
       paid_endpoint: "/api/signals/latest",

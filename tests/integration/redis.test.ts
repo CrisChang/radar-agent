@@ -65,7 +65,7 @@ test("real Redis atomic claims, durable restarts and payment recovery", async t 
     const result = JSON.parse(stdout);
     return Response.json({ result });
   };
-  const makeStore = (namespace: string, fetcher = bridge, pilot = false) => new RedisPaymentStore({ url: "http://127.0.0.1/", token: "explicit-test-token", namespace, fetcher, allowLoopback: true, ...(pilot ? { pilotPayer: payer } : {}) });
+  const makeStore = (namespace: string, fetcher = bridge, pilot = false) => new RedisPaymentStore({ url: "http://127.0.0.1/", token: "explicit-test-token", namespace, fetcher, allowLoopback: true, ...(pilot ? { pilotPayer: payer, pilotPayTo: process.env.SELLER_ADDRESS! } : {}) });
   try {
     await start();
     await t.test("concurrent Vercel-style requests settle only once", async () => {
@@ -148,6 +148,21 @@ test("real Redis atomic claims, durable restarts and payment recovery", async t 
       const protectedRoute = withGateway(async () => NextResponse.json({}), "0.001", endpoint, { store: makeStore("test-pilot-migration", bridge, true), facilitator: provider });
       assert.equal((await protectedRoute(differentRequest(3))).status, 409);
       assert.equal(provider.settled, 1);
+    });
+    await t.test("distinct buyer and seller retain the one-settlement pilot cap", async () => {
+      const oldSeller = process.env.SELLER_ADDRESS;
+      process.env.SELLER_ADDRESS = "0x2222222222222222222222222222222222222222";
+      try {
+        const provider = facilitator(); const store = makeStore("test-distinct-wallets", bridge, true);
+        const route = withGateway(async () => NextResponse.json({ signal_id: "explicit-two-wallet-fixture" }), "0.001", endpoint, { store, facilitator: provider });
+        assert.equal((await route(differentRequest(2))).status, 200);
+        assert.equal((await route(differentRequest(3))).status, 409);
+        assert.equal(provider.settled, 1);
+        const records = await store.listForPayer(payer, 50);
+        assert.equal(records.length, 1);
+        assert.equal(records[0].authorization?.payer, payer);
+        assert.equal(records[0].terms?.payTo, process.env.SELLER_ADDRESS);
+      } finally { process.env.SELLER_ADDRESS = oldSeller; }
     });
   } finally { await stop(); await rm(root, { recursive: true, force: true }); }
 });

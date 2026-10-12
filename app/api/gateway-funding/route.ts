@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, erc20Abi, http } from "viem";
-import { getArcConfig, getSellerAddress } from "@/lib/arc";
+import { getArcConfig, getPilotBuyerAddress } from "@/lib/arc";
 import { fundingQuote, gatewayDepositAbi, PILOT_DEPOSIT_ATOMIC } from "@/lib/gateway-funding";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const maxDuration = 30;
 export async function GET(request: NextRequest) {
   const wallet = request.nextUrl.searchParams.get("wallet") ?? "";
   const arc = getArcConfig();
-  if (arc.mode !== "mainnet" || wallet.toLowerCase() !== getSellerAddress().toLowerCase()) {
+  if (arc.mode !== "mainnet" || wallet.toLowerCase() !== getPilotBuyerAddress().toLowerCase()) {
     return NextResponse.json({ error: "Gateway funding is pinned to the approved mainnet pilot wallet" }, { status: 400 });
   }
   const account = wallet as `0x${string}`;

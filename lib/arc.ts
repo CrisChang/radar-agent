@@ -51,6 +51,24 @@ export function getSellerAddress(env: Record<string, string | undefined> = proce
   return address as `0x${string}`;
 }
 
+export function getPilotBuyerAddress(env: Record<string, string | undefined> = process.env): `0x${string}` {
+  const address = env.PILOT_BUYER_ADDRESS;
+  if (address === undefined) return getSellerAddress(env);
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address) || /^0x0{40}$/i.test(address)) throw new Error("PILOT_BUYER_ADDRESS must be a nonzero EVM address");
+  return address as `0x${string}`;
+}
+
+export function assertDistinctPaymentParties(buyer: string, seller: string) {
+  if (!/^0x[a-fA-F0-9]{40}$/.test(buyer) || !/^0x[a-fA-F0-9]{40}$/.test(seller) || /^0x0{40}$/i.test(buyer) || /^0x0{40}$/i.test(seller)) throw new Error("Wallet buyer and recipient must be nonzero EVM addresses.");
+  if (buyer.toLowerCase() === seller.toLowerCase()) throw new Error("Wallet buyer and payment recipient must differ; Circle rejects self_transfer.");
+}
+
+export function pilotBudgetKey(chainId: number, buyer: string, seller: string) {
+  assertDistinctPaymentParties(buyer, seller);
+  if (!Number.isSafeInteger(chainId) || chainId <= 0) throw new Error("Wallet payment chain is invalid.");
+  return `radar:pilot:v2:${chainId}:${buyer.toLowerCase()}:${seller.toLowerCase()}`;
+}
+
 export function parseUsdcAtomic(price: string): bigint {
   if (!/^(0|[1-9]\d*)(\.\d{1,6})?$/.test(price)) {
     throw new Error("USDC amount must be a decimal with at most 6 fractional digits");
