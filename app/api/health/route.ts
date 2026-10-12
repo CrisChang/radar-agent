@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       status: feedUnavailable ? "feed_unavailable" : storeUnavailable ? "store_unavailable" : "configured",
       payment_acceptance: process.env.RADAR_ACCEPT_PAYMENTS === "true" ? "enabled" : "discovery_only",
       payment_store: { configured: paymentStoreConfigured(), status: storeStatus },
+      same_wallet_pilot_one_query_cap: arc.mode === "mainnet" && paymentStoreConfigured(),
       network: arc.name,
       chain_id: arc.chainId,
       paid_endpoint: "/api/signals/latest",

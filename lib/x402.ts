@@ -207,7 +207,8 @@ export function withGateway(
         terms: { amountAtomic: requirements.amount, asset: requirements.asset, payTo: requirements.payTo } });
       if (!claimed) {
         const concurrent = await store.find(identity.paymentKey, identity.requestKey);
-        if (!concurrent) throw new Error("Concurrent payment claim unavailable");
+        if (!concurrent) return NextResponse.json({ error: "Payment reservation unavailable or same-wallet pilot budget already reserved. Reconcile; do not repay.",
+          request_id: requestId, payment_status: "budget_reserved_do_not_repay", retry_safe: false }, { status: 409, headers: { "cache-control": "no-store" } });
         return replay(concurrent, identity);
       }
 

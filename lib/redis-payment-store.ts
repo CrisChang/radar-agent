@@ -3,9 +3,22 @@ import type { BillingStore, PaymentRecord, PaymentState, SavedResponse } from ".
 
 const CLAIM = `
 if redis.call('EXISTS', KEYS[1]) == 1 or redis.call('EXISTS', KEYS[2]) == 1 then return 0 end
+if ARGV[4] == '1' then
+  if redis.call('EXISTS', KEYS[4]) == 1 then return 0 end
+  if redis.call('ZCARD', KEYS[3]) > 100 then return 0 end
+  for _, prior in ipairs(redis.call('ZRANGE', KEYS[3], 0, -1)) do
+    local raw = redis.call('GET', ARGV[5] .. prior)
+    if not raw then return 0 end
+    if cjson.decode(raw).state ~= 'rejected' then
+      redis.call('SET', KEYS[4], prior)
+      return 0
+    end
+  end
+end
 redis.call('SET', KEYS[1], ARGV[1])
 redis.call('SET', KEYS[2], ARGV[2])
 redis.call('ZADD', KEYS[3], ARGV[3], ARGV[2])
+if ARGV[4] == '1' then redis.call('SET', KEYS[4], ARGV[2]) end
 return 1`;
 const TRANSITION = `
 local raw = redis.call('GET', KEYS[1])
@@ -16,6 +29,7 @@ record.state = ARGV[2]
 record.updatedAt = ARGV[3]
 if ARGV[4] ~= '' then record.response = cjson.decode(ARGV[4]) end
 redis.call('SET', KEYS[1], cjson.encode(record))
+if ARGV[2] == 'rejected' and redis.call('GET', KEYS[2]) == ARGV[5] then redis.call('DEL', KEYS[2]) end
 return 1`;
 const ALLOWED: Record<PaymentState, PaymentState[]> = {
   preparing: ["settling", "rejected"], settling: ["accepted", "unknown"],
@@ -31,19 +45,21 @@ export class RedisPaymentStore implements BillingStore {
   private readonly base: URL;
   private readonly prefix: string;
   constructor(private readonly options: {
-    url: string; token: string; namespace: string; fetcher?: typeof fetch; allowLoopback?: boolean;
+    url: string; token: string; namespace: string; fetcher?: typeof fetch; allowLoopback?: boolean; pilotPayer?: string;
   }) {
     this.base = new URL(options.url);
     const loopback = options.allowLoopback && !process.env.VERCEL &&
       this.base.protocol === "http:" && ["127.0.0.1", "localhost"].includes(this.base.hostname);
     if ((!loopback && (this.base.protocol !== "https:" || !this.base.hostname.endsWith(".upstash.io"))) ||
         this.base.username || this.base.password || this.base.search || this.base.hash || this.base.pathname !== "/" ||
-        !options.token || !/^[a-zA-Z0-9:_-]{1,160}$/.test(options.namespace)) {
+        !options.token || !/^[a-zA-Z0-9:_-]{1,160}$/.test(options.namespace) ||
+        (options.pilotPayer !== undefined && !/^0x[\da-fA-F]{40}$/.test(options.pilotPayer))) {
       throw new Error("Invalid durable payment store configuration");
     }
     this.prefix = `{${options.namespace}}:`;
   }
   private key(kind: string, value: string): string { return `${this.prefix}${kind}:${value}`; }
+  private pilotKey(): string { return this.key("pilot-cap", this.options.pilotPayer?.toLowerCase() ?? "unused"); }
   private async command(args: (string | number)[]): Promise<unknown> {
     const result = await (this.options.fetcher ?? fetch)(this.base, {
       method: "POST", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(10_000),
@@ -83,16 +99,18 @@ export class RedisPaymentStore implements BillingStore {
         !/^[a-f0-9]{64}$/.test(input.requestKey)) throw new Error("Invalid payment claim");
     const now = new Date().toISOString();
     const record = { ...input, createdAt: now, updatedAt: now };
-    const result = await this.command(["EVAL", CLAIM, 3, this.key("payment", input.paymentKey),
-      this.key("request", input.requestKey), this.key("payer", input.authorization.payer.toLowerCase()),
-      JSON.stringify(record), input.paymentKey, Date.parse(now)]);
+    const capped = this.options.pilotPayer?.toLowerCase() === input.authorization.payer.toLowerCase();
+    if (capped && (input.terms?.amountAtomic !== "1000" || input.terms.payTo.toLowerCase() !== this.options.pilotPayer?.toLowerCase())) throw new Error("Same-wallet pilot requires exactly one 0.001 USDC payment.");
+    const result = await this.command(["EVAL", CLAIM, 4, this.key("payment", input.paymentKey),
+      this.key("request", input.requestKey), this.key("payer", input.authorization.payer.toLowerCase()), this.pilotKey(),
+      JSON.stringify(record), input.paymentKey, Date.parse(now), capped ? "1" : "0", this.key("payment", "")]);
     if (result !== 0 && result !== 1) throw new Error("Invalid payment claim acknowledgement");
     return result === 1;
   }
   async transition(paymentKey: string, from: PaymentState, to: PaymentState, response?: SavedResponse): Promise<void> {
     if (!ALLOWED[from].includes(to)) throw new Error("Invalid payment transition");
-    const result = await this.command(["EVAL", TRANSITION, 1, this.key("payment", paymentKey), from, to,
-      new Date().toISOString(), response ? JSON.stringify(response) : ""]);
+    const result = await this.command(["EVAL", TRANSITION, 2, this.key("payment", paymentKey), this.pilotKey(), from, to,
+      new Date().toISOString(), response ? JSON.stringify(response) : "", paymentKey]);
     if (result !== 1) throw new Error("Payment state conflict or missing claim");
   }
   async listForPayer(payer: string, limit: number): Promise<PaymentRecord[]> {
@@ -127,5 +145,6 @@ export function currentPaymentStore(): RedisPaymentStore | undefined {
     url: (process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL)!,
     token: (process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN)!,
     namespace: process.env.RADAR_PAYMENT_NAMESPACE ?? `radar:v1:${arc.chainId}:${getSellerAddress().toLowerCase()}`,
+    ...(arc.mode === "mainnet" ? { pilotPayer: getSellerAddress() } : {}),
   });
 }

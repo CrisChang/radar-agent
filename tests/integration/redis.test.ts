@@ -22,6 +22,13 @@ const payload = () => ({ x402Version: 2, accepted: buildPaymentRequirements("0.0
   payload: { signature: "explicit-mocked-fixture-never-broadcast", authorization: { from: payer, nonce: `0x${"1".repeat(64)}` } } });
 function request() { return new NextRequest(`http://localhost:3000${endpoint}`, { headers: { "x-radar-request-id": requestId,
   "payment-signature": Buffer.from(JSON.stringify(payload())).toString("base64") } }); }
+function differentRequest(n: number) {
+  const p = payload(); p.payload.authorization.nonce = `0x${n.toString(16).padStart(64,"0")}`;
+  return new NextRequest(`http://localhost:3000${endpoint}`, { headers: {
+    "x-radar-request-id": `00000000-0000-4000-8000-${n.toString(16).padStart(12,"0")}`,
+    "payment-signature": Buffer.from(JSON.stringify(p)).toString("base64"),
+  } });
+}
 function facilitator(fail = false) {
   let settled = 0;
   return { get settled() { return settled; }, async verify() { return { isValid: true, payer }; }, async settle() {
@@ -58,7 +65,7 @@ test("real Redis atomic claims, durable restarts and payment recovery", async t 
     const result = JSON.parse(stdout);
     return Response.json({ result });
   };
-  const makeStore = (namespace: string, fetcher = bridge) => new RedisPaymentStore({ url: "http://127.0.0.1/", token: "explicit-test-token", namespace, fetcher, allowLoopback: true });
+  const makeStore = (namespace: string, fetcher = bridge, pilot = false) => new RedisPaymentStore({ url: "http://127.0.0.1/", token: "explicit-test-token", namespace, fetcher, allowLoopback: true, ...(pilot ? { pilotPayer: payer } : {}) });
   try {
     await start();
     await t.test("concurrent Vercel-style requests settle only once", async () => {
@@ -85,7 +92,7 @@ test("real Redis atomic claims, durable restarts and payment recovery", async t 
       let lost = false;
       const flaky: typeof fetch = async (url, init) => {
         const response = await bridge(url, init); const args = JSON.parse(String(init?.body));
-        if (!lost && args[0] === "EVAL" && args[5] === "accepted") { lost = true; throw new Error("synthetic lost acknowledgement"); }
+        if (!lost && args[0] === "EVAL" && args.includes("accepted")) { lost = true; throw new Error("synthetic lost acknowledgement"); }
         return response;
       };
       const provider = facilitator(); const store = makeStore("test-ack", flaky);
@@ -107,6 +114,40 @@ test("real Redis atomic claims, durable restarts and payment recovery", async t 
       assert.equal(restored?.state, "accepted"); assert.deepEqual(restored?.response, response);
       assert.equal(await store.claim({ ...identity, requestId, state: "preparing" }), false);
       await store.ping();
+    });
+    await t.test("pilot cap allows one settlement across different authorizations and survives restart", async () => {
+      const provider = facilitator(); const store = makeStore("test-pilot-cap", bridge, true);
+      const route = withGateway(async () => NextResponse.json({ signal_id: "explicit-pilot-fixture" }), "0.001", endpoint, { store, facilitator: provider });
+      const responses = await Promise.all(Array.from({ length: 12 }, (_, n) => route(differentRequest(n+2))));
+      assert.equal(responses.filter(r => r.status === 200).length, 1);
+      assert.ok(responses.every(r => [200,409].includes(r.status)));
+      assert.equal(provider.settled, 1);
+      await stop(); await start();
+      const restored = withGateway(async () => NextResponse.json({}), "0.001", endpoint, { store: makeStore("test-pilot-cap", bridge, true), facilitator: provider });
+      assert.equal((await restored(differentRequest(50))).status, 409);
+      assert.equal(provider.settled, 1);
+    });
+    await t.test("unknown settlement keeps the wallet cap across a replacement authorization", async () => {
+      const provider = facilitator(true); const store = makeStore("test-pilot-unknown", bridge, true);
+      const route = withGateway(async () => NextResponse.json({}), "0.001", endpoint, { store, facilitator: provider });
+      assert.equal((await route(differentRequest(2))).status, 502);
+      assert.equal((await route(differentRequest(3))).status, 409);
+      assert.equal(provider.settled, 1);
+    });
+    await t.test("content rejected before settlement releases the wallet cap", async () => {
+      const provider = facilitator(); const store = makeStore("test-pilot-rejected", bridge, true); let requests = 0;
+      const route = withGateway(async () => ++requests === 1 ? NextResponse.json({ error: "synthetic unavailable feed" }, { status: 503 }) : NextResponse.json({ signal_id: "explicit-fixture" }), "0.001", endpoint, { store, facilitator: provider });
+      assert.equal((await route(differentRequest(2))).status, 503);
+      assert.equal((await route(differentRequest(3))).status, 200);
+      assert.equal(provider.settled, 1);
+    });
+    await t.test("pilot cap honors accepted receipts created before policy deployment", async () => {
+      const provider = facilitator();
+      const oldRoute = withGateway(async () => NextResponse.json({}), "0.001", endpoint, { store: makeStore("test-pilot-migration"), facilitator: provider });
+      assert.equal((await oldRoute(differentRequest(2))).status, 200);
+      const protectedRoute = withGateway(async () => NextResponse.json({}), "0.001", endpoint, { store: makeStore("test-pilot-migration", bridge, true), facilitator: provider });
+      assert.equal((await protectedRoute(differentRequest(3))).status, 409);
+      assert.equal(provider.settled, 1);
     });
   } finally { await stop(); await rm(root, { recursive: true, force: true }); }
 });

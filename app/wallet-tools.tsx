@@ -39,12 +39,14 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
   const [fundingHash, setFundingHash] = useState<string>();
   const [allowance, setAllowance] = useState<AllowanceQuote>();
   const [revokeConsent, setRevokeConsent] = useState(false);
+  const [missingReceiptId, setMissingReceiptId] = useState<string>();
+  const [retryConsent, setRetryConsent] = useState(false);
   const correctWallet = !!wallet && wallet.toLowerCase() === seller.toLowerCase();
   const correctChain = connectedChainId === arc.chainId;
   function accountSelected(value: unknown) {
     const address = Array.isArray(value) && typeof value[0] === "string" && /^0x[\da-fA-F]{40}$/.test(value[0]) ? value[0] as `0x${string}` : undefined;
     setWallet(address); setBalance(undefined); setFunding(undefined); setConsent(false); setBills([]); setResult(undefined); setFundingHash(undefined); setAllowance(undefined); setRevokeConsent(false);
-    setRequestId("");
+    setRequestId(""); setMissingReceiptId(undefined); setRetryConsent(false);
     if (address) {
       try {
         const saved = JSON.parse(localStorage.getItem(`radar:pilot:v1:${arc.chainId}:${address.toLowerCase()}`) ?? "null") as { request_id?: unknown } | null;
@@ -62,7 +64,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     };
     const chainChanged = (value: unknown) => {
       setConnectedChainId(typeof value === "string" ? Number(value) : undefined);
-      setFunding(undefined); setConsent(false); setAllowance(undefined); setRevokeConsent(false); setMessage("Wallet network changed. Check the network before continuing.");
+      setFunding(undefined); setConsent(false); setAllowance(undefined); setRevokeConsent(false); setMissingReceiptId(undefined); setRetryConsent(false); setMessage("Wallet network changed. Check the network before continuing.");
     };
     ethereum.on?.("accountsChanged", accountsChanged); ethereum.on?.("chainChanged", chainChanged);
     return () => { ethereum.removeListener?.("accountsChanged", accountsChanged); ethereum.removeListener?.("chainChanged", chainChanged); };
@@ -252,12 +254,15 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     if (!navigator.locks) throw new Error("This browser cannot safely lock the single-payment budget. Use a current Chrome browser.");
     const key = `radar:pilot:v1:${arc.chainId}:${address.toLowerCase()}`;
     await navigator.locks.request(key, { ifAvailable: true }, async lock => {
-      if (!lock || localStorage.getItem(key)) throw new Error("The pilot budget is already reserved or used. Query the receipt; do not authorize a new payment.");
+      const raw = localStorage.getItem(key);
+      const previous = raw ? JSON.parse(raw) as { status?: string; request_id?: string; retry_count?: number; previous_request_id?: string } : undefined;
+      if (!lock || (previous && (previous.status !== "retry_ready" || previous.retry_count !== 1))) throw new Error("The pilot budget is already reserved or used. Query the receipt; do not authorize a new payment.");
       const id = crypto.randomUUID(); setRequestId(id);
       const endpoint = signalEndpoint(window.location.origin);
       const quote = await discoverSignal(endpoint, arc, seller, "1000", id);
       if (quote.offer.amountAtomic !== "1000" || price !== "0.001") throw new Error("Pilot quote must be exactly 0.001 USDC.");
-      const reservation = { request_id: id, amount_usdc: "0.001", status: "pending", created_at: new Date().toISOString() };
+      const reservation = { request_id: id, amount_usdc: "0.001", status: "pending", created_at: new Date().toISOString(),
+        ...(previous ? { retry_count: previous.retry_count, previous_request_id: previous.previous_request_id ?? previous.request_id } : {}) };
       localStorage.setItem(key, JSON.stringify(reservation));
       let signatureCreated = false;
       try {
@@ -273,13 +278,15 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
         setResult(purchase); setMessage("Signal received and digest verified. Gateway acceptance is not independent onchain confirmation.");
       } catch (error) {
         const rejected = !signatureCreated && (error as { code?: number })?.code === 4001;
-        if (rejected) localStorage.removeItem(key);
+        if (rejected && previous) localStorage.setItem(key, JSON.stringify(previous));
+        else if (rejected) localStorage.removeItem(key);
         else localStorage.setItem(key, JSON.stringify({ ...reservation, status: "unknown" }));
         throw error;
       }
     });
   }
   async function readBills(csv = false) {
+    setMissingReceiptId(undefined); setRetryConsent(false);
     const address = await assertAccount();
     const url = new URL("/api/billing", window.location.origin);
     if (requestId.trim()) url.searchParams.set("request_id", requestId.trim());
@@ -290,7 +297,14 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
       message: billingMessage({ url: url.toString(), network: arc.network, wallet: address, timestamp }) });
     const response = await fetch(url, { cache: "no-store", redirect: "error", headers: {
       "x-radar-wallet": address, "x-radar-auth-timestamp": timestamp, "x-radar-auth-signature": signature } });
-    if (!response.ok) throw new Error(response.status === 404 ? "Receipt not found for this wallet; do not create a replacement payment." : "Billing read failed. Check that storage is ready and your wallet read signature is valid.");
+    if (response.status === 404 && requestId.trim() && !csv) {
+      const body = await response.json();
+      if (body.error === "Receipt not found for this wallet") {
+        setMissingReceiptId(requestId.trim());
+        setMessage("此请求未找到钱包账单。请核对下面的一次重试说明，不要清除旧预算记录。No receipt exists for this request; review the guarded recovery step."); return;
+      }
+    }
+    if (!response.ok) throw new Error("Billing read failed. Check that storage is ready and your wallet read signature is valid.");
     if (csv) {
       const blob = await response.blob(); const href = URL.createObjectURL(blob);
       const a = document.createElement("a"); a.href = href; a.download = "radar-agent-bills.csv"; a.click(); URL.revokeObjectURL(href);
@@ -298,6 +312,22 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
       const data = await response.json(); setBills(data.bills);
       setMessage(data.bills.length ? "Receipts loaded for the connected wallet." : "No receipts exist for this wallet. No payment was made by this query.");
     }
+  }
+  async function prepareRetry() {
+    const address = await assertPilot();
+    if (!retryConsent || !missingReceiptId || requestId.trim() !== missingReceiptId) throw new Error("Read the missing request's receipt and approve the separate retry confirmation first.");
+    const health = await fetch("/api/health?store=1", { cache: "no-store" }).then(r => r.json());
+    if (health.same_wallet_pilot_one_query_cap !== true || health.payment_store?.status !== "available") throw new Error("Durable one-query pilot cap is unavailable. No new payment prepared.");
+    if (!navigator.locks) throw new Error("This browser cannot lock the pilot recovery budget. Use current Chrome.");
+    const key = `radar:pilot:v1:${arc.chainId}:${address.toLowerCase()}`;
+    await navigator.locks.request(key, { ifAvailable: true }, async lock => {
+      const raw = localStorage.getItem(key);
+      const saved = raw ? JSON.parse(raw) as { request_id?: string; status?: string; retry_count?: number } : undefined;
+      if (!lock || saved?.request_id !== missingReceiptId || saved.status !== "unknown" || (saved.retry_count ?? 0) !== 0) throw new Error("Gateway recovery is unavailable or already used. Retain the existing request and reconcile before another payment.");
+      localStorage.setItem(key, JSON.stringify({ ...saved, previous_request_id: saved.request_id, retry_count: 1, status: "retry_ready", receipt_checked_at: new Date().toISOString() }));
+    });
+    setMissingReceiptId(undefined); setRetryConsent(false); setConsent(false);
+    setMessage("已保留旧请求，准备一次重试；本站对这个测试钱包最多成功结算一次 0.001 USDC。重新勾选购买预算，再由钱包确认。One guarded retry prepared; the old signature is not revoked.");
   }
   return <main>
     <nav><a className="brand" href="/">RADAR<span>•</span>AGENT</a><a href={mode === "pilot" ? "/billing" : "/pilot"}>{mode === "pilot" ? "My receipts" : "Payment pilot"}</a></nav>
@@ -352,6 +382,11 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
         <input id="request-id" value={requestId} onChange={event => setRequestId(event.target.value)} placeholder="Leave blank for the latest 50 receipts"/>
         <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(() => readBills())}>Sign read request</button>
         <button disabled={busy || !wallet} onClick={() => run(() => readBills(true))}>Export CSV</button></div>
+        {mode === "pilot" && missingReceiptId && <div className="tool-notice">
+          <p>只读查询确认此请求没有账单。重试会保留旧请求编号；旧签名仍可能有效。本站使用持久记录，限制同一测试钱包最多成功结算一次 0.001 USDC。只允许准备一次额外尝试，不自动签名或付款。</p>
+          <label><input type="checkbox" checked={retryConsent} onChange={event => setRetryConsent(event.target.checked)} /> 我同意在上述限制下再尝试一次 0.001 USDC 查询。</label>
+          <div className="tool-actions"><button disabled={busy || !correctWallet || !correctChain || !retryConsent} onClick={() => run(prepareRetry)}>Prepare one guarded retry / 准备一次重试</button></div>
+        </div>}
         {bills.length > 0 && <div className="table-scroll"><table><thead><tr><th>Created</th><th>USDC</th><th>Status</th><th>Signal</th><th>Request</th></tr></thead><tbody>{bills.map(bill => <tr key={bill.bill_id}><td>{bill.created_at}</td><td>{bill.amount_usdc}</td><td>{bill.status}</td><td>{bill.signal_id ?? "—"}</td><td><code>{bill.request_id}</code></td></tr>)}</tbody></table></div>}
       </div>
       {result !== undefined && <details open><summary>Validated signal and payment reference</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}
