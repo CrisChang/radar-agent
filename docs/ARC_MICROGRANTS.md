@@ -15,7 +15,7 @@ Code now supports both networks, final-quote checks before signing,
 conservative accounting for signed payments, failed-resource cancellation,
 explicit mainnet/deposit flags and network-isolated runtime state.
 
-Latest validation: October 12, 2026. All 63 tests, TypeScript and production
+Latest validation: October 12, 2026. All 67 tests, TypeScript and production
 build pass. The public app is https://radar-agent-ivory.vercel.app. Fifteen
 anonymous cloud checks verify pages, fresh Coinbase data, retained Redis,
 Arc chain 5042 quotes, wallet-pinned funding simulation and preview protection.
@@ -156,3 +156,8 @@ The latest API attempt returned 402. Paid delivery, owner receipt/CSV checks
 and final submission remain open. The verified funding hash has been entered
 in DoraHacks with an explicit funding-only label. No API-fee settlement or
 revenue is claimed. Never reset a payment reservation merely after refresh.
+
+The excessive allowance has now been revoked and verified as zero. Gateway
+funding remains intact. An authenticated billing query returned 404. One
+owner-confirmed recovery attempt is deployed with a durable one-settlement
+cap for the same-wallet pilot. Paid delivery still requires verification.

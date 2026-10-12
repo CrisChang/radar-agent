@@ -13,7 +13,7 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — public, anonymous checks pass |
-| Protected build preview | https://radar-agent-545qcr29h-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-7m7hbmljb-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Verified 0.01 USDC Gateway deposit: 0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30; funding only, paid API delivery pending |
@@ -137,3 +137,9 @@ receipt/CSV are not yet verified. An excessive wallet-edited allowance was
 detected; a bounded approve-to-zero recovery flow is deployed. The owner must
 complete revocation and inspect the existing request before any further
 payment decision. Application submission and terms acceptance have not occurred.
+
+The owner has completed allowance revocation; remaining allowance is verified
+as zero and Gateway funding is retained. An authenticated query found no
+receipt for the failed request. One explicit retry is prepared through the
+browser under a durable same-wallet settlement cap; no paid response or
+customer revenue is yet claimed.

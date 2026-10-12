@@ -23,12 +23,26 @@
   },
   "funding_gas_total_usdc": "0.002956020170266752",
   "gateway_deposit_credit_verified": true,
-  "over_limit_allowance_revoke_verified": false,
+  "over_limit_allowance_revoke_verified": true,
   "paid_mainnet_delivery_verified": false,
   "owner_billing_csv_verified": false,
   "request_status_observation": "Two /api/signals/latest responses around the owner attempt were 402; no successful delivery was observed. Exact rejection reason is unavailable.",
   "no_new_payment_authorized": true,
   "application_funding_hash_entered": true,
   "application_submitted": false,
-  "interpretation": "Funding proof only. Same-wallet experiment; no customer revenue, paid API delivery or API-fee batch settlement is claimed."
+  "interpretation": "Funding proof only. Same-wallet experiment; no customer revenue, paid API delivery or API-fee batch settlement is claimed.",
+  "revoke_checked_at": "2026-10-12T09:23:32.063Z",
+  "remaining_gateway_allowance_zero": true,
+  "gateway_deposit_retained_verified": true,
+  "owner_authenticated_billing_lookup_status": 404,
+  "same_wallet_pilot_one_query_cap_deployed": true,
+  "guarded_recovery": "Authenticated missing-receipt check plus explicit owner consent permits one extra signing attempt. Old request is retained; old authorization is not cancelled. Durable wallet cap limits the project to one successful or uncertain settlement.",
+  "revoke": {
+    "transaction_hash": "0x41ceb9019cf22cb650c94d241adb94a3ad47c2a1c7f2c7a1933d94c57d06a70e",
+    "status": "success",
+    "amount_atomic": "0",
+    "gas_usdc": "0.00066980003576732",
+    "explorer_url": "https://explorer.arc.io/tx/0x41ceb9019cf22cb650c94d241adb94a3ad47c2a1c7f2c7a1933d94c57d06a70e"
+  },
+  "funding_and_revoke_gas_total_usdc": "0.003625820206034072"
 }

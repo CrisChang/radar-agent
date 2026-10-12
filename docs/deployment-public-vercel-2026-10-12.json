@@ -1,13 +1,13 @@
 {
-  "checked_at": "2026-10-12T09:12:48.535436+00:00",
+  "checked_at": "2026-10-12T09:33:01.673059+00:00",
   "public_origin": "https://radar-agent-ivory.vercel.app",
-  "deployment_url": "https://radar-agent-545qcr29h-chris-6239.vercel.app",
-  "deployment_id": "dpl_BqQRVNfUJRZ1X3VR816jjy2VpA9L",
-  "source_commit": "f65ba9d",
+  "deployment_url": "https://radar-agent-7m7hbmljb-chris-6239.vercel.app",
+  "deployment_id": "dpl_AcHHbuZacRTTaP2HLmYgp7uniRKZ",
+  "source_commit": "c9b2115",
   "network": "eip155:5042",
   "recipient": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
   "access": "anonymous; no cookies or protection bypass",
-  "tests_passed": 63,
+  "tests_passed": 67,
   "checks": [
     {
       "check": "home",
@@ -36,7 +36,7 @@
       "payment_acceptance": "enabled",
       "store_status": "available",
       "feed_status": "live",
-      "feed_timestamp": "2026-10-12T09:12:00.000Z"
+      "feed_timestamp": "2026-10-12T09:32:00.000Z"
     },
     {
       "check": "unpaid_quote",
@@ -63,10 +63,16 @@
       "passed": true
     },
     {
-      "check": "excess_allowance_blocks_funding",
-      "status": 503,
-      "expected_status": 503,
-      "passed": true
+      "check": "funding_quote",
+      "status": 200,
+      "expected_status": 200,
+      "passed": true,
+      "amount_usdc": "0.01",
+      "approval_needed": true,
+      "deposit_simulated": false,
+      "maximum_gas_usdc": "0.006523830375772608",
+      "per_transaction_gas_cap_usdc": "0.005",
+      "automatic_deposit": false
     },
     {
       "check": "wrong_funding_wallet",
@@ -85,9 +91,9 @@
       "status": 200,
       "expected_status": 200,
       "passed": true,
-      "exceeds_pilot_limit": true,
+      "exceeds_pilot_limit": false,
       "revoke_amount_atomic": "0",
-      "maximum_gas_usdc": "0.00139728007754904",
+      "maximum_gas_usdc": "0",
       "per_transaction_gas_cap_usdc": "0.005"
     },
     {
@@ -113,10 +119,6 @@
   "wallet_transaction_created": false,
   "paid_mainnet_delivery_verified": false,
   "application_submitted": false,
-  "browser_verification": {
-    "allowance_review_and_reconciliation_buttons_visible": true,
-    "approved_pilot_account_evidence": "Owner screenshot on another computer; correct wallet, chain 5042 and budget",
-    "financial_wallet_action_attempted_by_agent": false
-  },
-  "separate_owner_funding_evidence": "mainnet-pilot-2026-10-12.json"
+  "separate_owner_funding_evidence": "mainnet-pilot-2026-10-12.json",
+  "same_wallet_pilot_one_query_cap_verified": true
 }

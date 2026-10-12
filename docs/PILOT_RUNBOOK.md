@@ -1,7 +1,7 @@
 # Mainnet pilot runbook
 
 Updated October 12, 2026. Public hosting, Free Redis storage, the browser
-funding flow and the one-query pilot are ready. All 63 tests and 15 anonymous
+funding flow and the one-query pilot are ready. All 67 tests and 15 anonymous
 cloud checks pass. Owner funding is independently verified; a paid response
 remains unverified. [Current evidence](deployment-public-vercel-2026-10-12.json).
 
@@ -81,8 +81,8 @@ evidence and final submission remain pending.
 The owner deposit of 0.01 USDC succeeded and Gateway credit is verified.
 [Independent chain evidence](mainnet-pilot-2026-10-12.json). Funding gas totaled
 0.002956020170266752 USDC, within the original caps. The wallet confirmation
-edited approval above the requested amount, so a separate zero-allowance
-revoke must be confirmed by the owner. This revoke never withdraws Gateway
+edited approval above the requested amount, and a separate zero-allowance
+revoke has now been confirmed by the owner and verified onchain. This revoke never withdraws Gateway
 funds, transfers USDC or clears payment reservations. Its extra gas cap is
 0.005 USDC, reviewed separately in the browser.
 
@@ -93,3 +93,23 @@ use Sign read request to inspect wallet-scoped billing. Report the result
 before deciding whether any new payment can be authorized. Rejected payments
 now display bounded reason codes and log only request ID, sanitized reason
 and the fact that settlement was not attempted.
+
+## Explicit recovery after the missing receipt
+
+The owner's approve-to-zero transaction succeeded and remaining allowance is
+zero. Gateway still has the 0.01 USDC deposit. The authenticated lookup of the
+failed request returned 404; this is not a successful payment receipt.
+
+Refresh and reconnect, query the original Request ID with Sign read request,
+then review the displayed one-retry consent. Prepare one guarded retry retains
+the old request and opens one extra attempt. Recheck the purchase budget and
+confirm exactly 0.001 USDC in the wallet. Do not choose a maximum amount or
+fund Gateway again. Report the new result/Request ID or full bounded error.
+
+This does not cancel the old signature. The project's mainnet same-wallet
+pilot has an atomic persistent cap across different authorizations. Accepted,
+settling and unknown outcomes block replacement settlement; migration also
+honors pre-existing receipts. Content rejected before settlement releases the
+cap. The client permits only one explicit recovery, never an automatic retry.
+Real Redis tests cover parallel different nonces, unknown outcomes, release
+only before settlement, restart durability and policy migration.

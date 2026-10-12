@@ -105,3 +105,13 @@ Application: https://dorahacks.io/hackathon/arc-microgrants.
   reason remain unverified. Do not authorize a fresh payment after refresh.
 - Final DoraHacks form contains the verified funding hash and funding-only
   disclosure. Terms acceptance and final submission remain pending.
+
+## Verified revocation and guarded recovery
+
+- Approve-to-zero confirmed onchain; remaining Gateway allowance is zero.
+- Gateway deposit retained. Signed billing lookup returned 404.
+- Explicit one-retry browser flow and durable same-wallet settlement cap are
+  deployed. 67 tests, TypeScript, production build and 15 cloud checks pass.
+- Parallel distinct authorizations settle only once; unknown outcomes and
+  prior accepted receipts keep the cap, including after Redis restart.
+- Paid delivery, owner receipt/CSV and final submission remain open.

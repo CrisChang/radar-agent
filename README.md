@@ -149,7 +149,7 @@ The October Arc mainnet continuation is public at
 The reviewed source is on `codex/arc-microgrants`; the main branch retains
 historical testnet media and the September implementation.
 
-Validated October 12, 2026: 63 tests, TypeScript and the production build pass.
+Validated October 12, 2026: 67 tests, TypeScript and the production build pass.
 Fifteen anonymous cloud checks pass, including fresh Coinbase data, retained
 Free Upstash Redis readiness, Arc mainnet 402 quotes, funding simulation and
 preview login protection. See the
@@ -158,7 +158,7 @@ No owner signature, funding transaction or paid response was used by those check
 
 The owner's 0.01 USDC Gateway deposit is independently verified in the
 [mainnet pilot record](docs/mainnet-pilot-2026-10-12.json). A wallet-edited
-approval exceeded the requested limit; its zero-allowance revoke is pending.
+approval exceeded the requested limit; its zero-allowance revoke is now verified.
 The attempted API payment returned 402, so paid delivery is not claimed.
 
 The wallet-confirmed pilot is enabled. Actual paid mainnet delivery, owner
@@ -202,3 +202,10 @@ See [Agent integration](docs/AGENT_INTEGRATION.md),
 [mainnet pilot runbook](docs/PILOT_RUNBOOK.md).
 Earlier October 9 deployment evidence is historical; the October 12 public
 record contains the current hosting configuration and verification results.
+
+The owner pilot supports one explicit recovery attempt after an authenticated
+missing-receipt query. The previous request stays recorded. An atomic Redis
+wallet cap limits this same-wallet mainnet pilot to one successful or uncertain
+settlement across different authorizations and browsers. Rejected content before
+settlement releases the cap; unknown outcomes retain it. No automatic retry or
+replacement signature is created. Other buyers retain their normal API flow.
