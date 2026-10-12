@@ -158,8 +158,9 @@ No owner signature, funding transaction or paid response was used by those check
 
 The wallet-confirmed pilot is enabled. Actual paid mainnet delivery, owner
 receipt/CSV verification, the mainnet recording and final application submission
-remain pending. The application draft is saved in DoraHacks through the team
-step and is awaiting required private contact fields.
+remain pending. The application draft is open on the final DoraHacks step. Owner-supplied
+contacts and deployment history are filled; the mainnet transaction evidence
+and final review remain pending.
 
 Application prose, recording script and open gates are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).

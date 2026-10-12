@@ -78,7 +78,7 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 ## Current status — October 12, 2026
 
 - Public origin: https://radar-agent-ivory.vercel.app.
-- Production deployment: `dpl_229Z6YpPSnk8Hq24roz4PCsW8ZsM`, source `1d255c8`.
+- Production deployment: `dpl_FPVeuzr9mXqPUThQizKx7re3kM2R`, source `62c12bc`.
 - Standard Protection makes the production domain public while generated
   deployment and preview URLs still require Vercel login.
 - Thirteen anonymous checks pass: pages, live feed, durable storage, 402 quote,
@@ -91,8 +91,8 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
 - 59 tests, TypeScript and the production build pass. The dry-run manifest
   contains 47 entries and excludes environment files, keys and buyer state.
 - No owner-wallet signature, deposit or paid purchase has yet been verified.
-- Application preparation is saved in DoraHacks; contact fields and the actual
-  mainnet evidence remain pending. No application has been submitted.
+- Application is on the final DoraHacks step with owner-supplied contacts and
+  deployment history filled; actual mainnet evidence and final review remain. No application has been submitted.
 
 [Public deployment evidence](deployment-public-vercel-2026-10-12.json).
 Earlier October 9 records retain their historical statuses and recipients.

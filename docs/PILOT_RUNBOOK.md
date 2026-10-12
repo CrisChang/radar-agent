@@ -62,3 +62,15 @@ fields must be supplied by the owner, not inferred or committed.
 This same-wallet run verifies functionality, not independent demand or revenue.
 The product buys public Coinbase observations; exchange-order execution and
 trading profit-and-loss accounting remain out of scope.
+
+## Browser connection verification — October 12
+
+The current deployment detects the dedicated OKX injected provider as well as
+the standard EVM provider. Disconnect and account selection are visible on the
+public page. The old site connection was revoked in OKX, and a fresh account
+access prompt opened in Chrome. The approved pilot account still needs to be
+selected by its owner. No wallet signature or financial action was attempted.
+
+Owner-supplied application contacts are filled privately in DoraHacks. Prior
+Arc deployment is Testnet, confirmed by the owner. Verified mainnet transaction
+evidence and final submission remain pending.

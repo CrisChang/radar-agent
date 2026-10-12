@@ -13,7 +13,7 @@ project has received no prior prizes or funding.
 | Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
 | Builder profile | https://github.com/CrisChang |
 | Intended public deployment | https://radar-agent-ivory.vercel.app — public, anonymous checks pass |
-| Protected build preview | https://radar-agent-pdzf59gce-chris-6239.vercel.app — Vercel login required |
+| Protected build preview | https://radar-agent-psico0t0m-chris-6239.vercel.app — Vercel login required |
 | Network | Arc Mainnet, chain 5042 |
 | Signal price | 0.001 USDC per request |
 | Mainnet transaction evidence | Pending a real, approved payment experiment and independent receipt verification |
@@ -123,6 +123,7 @@ pilot is enabled, requires wallet-owner confirmation and retains reservations
 on unresolved outcomes. No owner signature or real paid response is claimed.
 
 DoraHacks profile, logo, links, project details and team description are saved.
-Required Telegram and backup contact fields await the owner. Contact data will
-not be committed or packaged. Final submission has not occurred. Demo video is
+The owner supplied Telegram, backup contact and application email. These fields
+are filled in the final form, and prior Arc deployment is recorded as Testnet
+per the owner. Contact data is not committed or packaged. Final submission has not occurred. Demo video is
 optional in the form; no mainnet video has been invented or submitted.

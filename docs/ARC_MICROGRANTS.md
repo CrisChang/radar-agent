@@ -30,7 +30,8 @@ The [application draft](submission/ARC_MICROGRANTS_APPLICATION.md),
 [demo script](submission/ARC_MICROGRANTS_DEMO.md) and
 [submission checklist](submission/ARC_MICROGRANTS_CHECKLIST.md) distinguish
 verified results from outstanding owner actions. DoraHacks profile, details
-and team fields are saved; private contact fields and final submission remain.
+and team fields are saved; owner-supplied contacts and prior testnet deployment
+are filled on the final step. Mainnet transaction evidence and final submission remain.
 
 The buyer and seller are the same owner-confirmed test wallet:
 `0xefc70a0dedefee6a010bac44de489bafb2fd8422`. This is a functional experiment,

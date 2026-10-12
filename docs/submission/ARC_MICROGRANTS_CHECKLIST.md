@@ -45,7 +45,7 @@ Vercel branch. The application remains a draft until the open gates below pass.
 | Real mainnet delivery | Receive and validate a fresh paid response; save a redacted buyer receipt and audit |
 | Confirmed chain evidence | Verify the actual funding receipt; label funding and Gateway acceptance separately from API-fee batch settlement |
 | Demo recording | Record after real payment; optional in the official form |
-| Application contact and review | Owner supplies Telegram and backup contact; inspect and submit the completed application |
+| Application contact and review | Owner-supplied contacts, prior Testnet deployment and no prior funding are filled; add verified mainnet evidence and review before submission |
 
 The wallet and recipient currently refer to the same owner-confirmed address.
 A same-wallet test must be labelled as such. It proves a functional path, not
@@ -89,5 +89,6 @@ Application: https://dorahacks.io/hackathon/arc-microgrants.
 - Bounded browser funding implemented and deployed; exact approval, expiring
   simulated quotes, account/chain checks, gas ceilings and repeat protection.
 - Wallet-confirmed one-query payment enabled. Actual mainnet delivery pending.
-- DoraHacks profile, logo, public links, details and team fields saved. Private
-  contacts and final application submission remain pending.
+- DoraHacks profile, logo, public links, details, team and owner-supplied contacts
+  are filled. Prior Arc deployment is Testnet. Mainnet evidence and final
+  application submission remain pending.

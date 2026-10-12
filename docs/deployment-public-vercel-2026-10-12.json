@@ -1,9 +1,9 @@
 {
-  "checked_at": "2026-10-12T07:51:53.976417+00:00",
+  "checked_at": "2026-10-12T08:37:25.317730+00:00",
   "public_origin": "https://radar-agent-ivory.vercel.app",
-  "deployment_url": "https://radar-agent-pdzf59gce-chris-6239.vercel.app",
-  "deployment_id": "dpl_229Z6YpPSnk8Hq24roz4PCsW8ZsM",
-  "source_commit": "1d255c8",
+  "deployment_url": "https://radar-agent-psico0t0m-chris-6239.vercel.app",
+  "deployment_id": "dpl_FPVeuzr9mXqPUThQizKx7re3kM2R",
+  "source_commit": "62c12bc",
   "network": "eip155:5042",
   "recipient": "0xefc70a0dedefee6a010bac44de489bafb2fd8422",
   "access": "anonymous; no cookies or protection bypass",
@@ -36,7 +36,7 @@
       "payment_acceptance": "enabled",
       "store_status": "available",
       "feed_status": "live",
-      "feed_timestamp": "2026-10-12T07:51:00.000Z"
+      "feed_timestamp": "2026-10-12T08:37:00.000Z"
     },
     {
       "check": "unpaid_quote",
@@ -102,5 +102,13 @@
   "owner_signature_used": false,
   "wallet_transaction_created": false,
   "paid_mainnet_delivery_verified": false,
-  "application_submitted": false
+  "application_submitted": false,
+  "browser_verification": {
+    "disconnect_and_account_selection_buttons_visible": true,
+    "okx_connection_permissions_revoked": true,
+    "dedicated_okx_provider_detected": true,
+    "fresh_okx_connection_prompt_opened": true,
+    "approved_pilot_account_connected": false,
+    "financial_wallet_action_attempted": false
+  }
 }
