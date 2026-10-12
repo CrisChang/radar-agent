@@ -9,8 +9,9 @@ import { discoverSignal, paySignal, signalEndpoint } from "@/lib/agent-http";
 import { billingMessage } from "@/lib/billing-auth";
 
 function provider(): EIP1193Provider {
-  const ethereum = (window as Window & { ethereum?: EIP1193Provider }).ethereum;
-  if (!ethereum) throw new Error("Open this page in a browser with your EVM wallet installed.");
+  const injected = window as Window & { ethereum?: EIP1193Provider; okxwallet?: EIP1193Provider };
+  const ethereum = injected.okxwallet ?? injected.ethereum;
+  if (!ethereum) throw new Error("未检测到钱包。请启用 OKX/EVM 钱包对此网站的访问权限，刷新后重连。No wallet detected; enable extension access for this site, refresh and connect again.");
   return ethereum;
 }
 function walletClient(arc: ArcConfig, address: `0x${string}`) {
@@ -55,7 +56,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     };
     ethereum.on?.("accountsChanged", accountsChanged); ethereum.on?.("chainChanged", chainChanged);
     return () => { ethereum.removeListener?.("accountsChanged", accountsChanged); ethereum.removeListener?.("chainChanged", chainChanged); };
-  }, []);
+  }, [wallet]);
   async function run(action: () => Promise<void>) {
     if (busy) return; setBusy(true); setMessage("处理中，请查看钱包弹窗 / Processing — check your wallet popup.");
     try { await action(); } catch (error) { setMessage(safeError(error)); } finally { setBusy(false); }
