@@ -100,8 +100,9 @@ Retain buyer audit logs locally because Vercel function filesystems are ephemera
   Gateway-acceptance classification. See the separate pilot evidence.
 - Both wallets belong to the owner; no independent customer revenue is claimed.
   The one-query budget is spent. No additional purchase is needed.
-- Application is on the final DoraHacks step with owner contacts, deployment
-  history and mainnet evidence prepared; terms and final submission remain.
+- Owner completed the final DoraHacks submission on October 12. The page
+  displays Build Submitted and confirms Radar Agent is under review for
+  Arc Microgrants. This is not an award decision.
 
 [Public deployment evidence](deployment-public-vercel-2026-10-12.json).
 Earlier October 9 records retain their historical statuses and recipients.

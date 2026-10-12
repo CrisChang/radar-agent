@@ -30,7 +30,7 @@
   "request_status_observation": "Owner received a live paid response at 10:09 UTC. Vercel reports /api/signals/latest 402 then 200; two subsequent /api/billing requests returned 200 at 10:16 UTC. The owner confirmed CSV export succeeded.",
   "no_new_payment_authorized": true,
   "application_funding_hash_entered": true,
-  "application_submitted": false,
+  "application_submitted": true,
   "interpretation": "Owner-controlled two-wallet functional test: exact 0.001 USDC paid delivery and digest match, wallet-scoped billing/CSV observed, Circle transfer completed, batch receipt successful, seller Gateway credit verified. No independent customer revenue or production readiness is claimed.",
   "revoke_checked_at": "2026-10-12T09:23:32.063Z",
   "remaining_gateway_allowance_zero": true,
@@ -98,5 +98,18 @@
     "seller_gateway_credit_usdc": "0.001000",
     "seller_pending_batch_usdc": "0",
     "attribution": "Circle links the accepted transfer to this batch; Arc RPC independently confirms batch execution. This is a shared batch transaction, not a dedicated per-query transaction."
+  },
+  "application_submission": {
+    "project": "Radar Agent",
+    "program": "Arc Microgrants | Circle",
+    "status": "under_review",
+    "owner_reported_submitted": true,
+    "success_page_independently_observed": true,
+    "success_heading": "Build Submitted!",
+    "observed_at_utc": "2026-10-12T10:34:35Z",
+    "observed_date_asia_shanghai": "2026-10-12",
+    "status_url": "https://dorahacks.io/hackathon/arc-microgrants/build",
+    "award_or_selection_verified": false,
+    "private_contact_details_excluded": true
   }
 }

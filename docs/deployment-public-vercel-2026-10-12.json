@@ -131,11 +131,24 @@
   "owner_signature_used": false,
   "wallet_transaction_created": false,
   "paid_mainnet_delivery_verified": true,
-  "application_submitted": false,
+  "application_submitted": true,
   "separate_owner_funding_evidence": "mainnet-pilot-2026-10-12.json",
   "pilot_one_query_cap_verified": true,
   "parties_distinct_verified": true,
   "separate_owner_pilot_evidence": "mainnet-pilot-2026-10-12.json",
   "owner_pilot_checked_at": "2026-10-12T10:23:49.319216+00:00",
-  "anonymous_probe_scope_note": "owner_signature_used and wallet_transaction_created describe only the sixteen anonymous probes. The separately confirmed owner-operated paid pilot is recorded in mainnet-pilot-2026-10-12.json."
+  "anonymous_probe_scope_note": "owner_signature_used and wallet_transaction_created describe only the sixteen anonymous probes. The separately confirmed owner-operated paid pilot is recorded in mainnet-pilot-2026-10-12.json.",
+  "application_submission": {
+    "project": "Radar Agent",
+    "program": "Arc Microgrants | Circle",
+    "status": "under_review",
+    "owner_reported_submitted": true,
+    "success_page_independently_observed": true,
+    "success_heading": "Build Submitted!",
+    "observed_at_utc": "2026-10-12T10:34:35Z",
+    "observed_date_asia_shanghai": "2026-10-12",
+    "status_url": "https://dorahacks.io/hackathon/arc-microgrants/build",
+    "award_or_selection_verified": false,
+    "private_contact_details_excluded": true
+  }
 }

@@ -167,12 +167,12 @@ Both wallets belong to the owner. This proves functionality; independent users,
 customer revenue and production readiness are not claimed. The one-query pilot
 budget is spent: do not repeat a purchase or clear its reservation.
 
-The application is prepared on the final DoraHacks step with owner-supplied
-contacts and prior Testnet deployment. Final terms acceptance and submission
-remain outstanding. A new mainnet recording has not been made; video is optional
-in the application form.
+The owner completed DoraHacks submission on October 12. The page displays
+Build Submitted and confirms Radar Agent is under review for Arc Microgrants.
+Submission is not an award decision. A new mainnet recording has not been made;
+video is optional in the application form.
 
-Application prose, recording script and open gates are in the
+Application prose, recording script and submission status are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
 The old testnet video and transactions are historical evidence only. The
 checkpoints above record the original hackathon, not current deadlines.

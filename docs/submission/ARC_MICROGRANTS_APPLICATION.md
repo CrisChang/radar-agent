@@ -1,7 +1,8 @@
-# Radar Agent Arc Microgrants application draft
+# Radar Agent Arc Microgrants application record
 
 Updated October 12, 2026. Public deployment and an owner-operated Arc Mainnet
-paid-query test have passed. This application is not yet submitted.
+paid-query test have passed. The owner completed submission; DoraHacks confirms
+Radar Agent is under review for Arc Microgrants.
 
 ## Project fields
 
@@ -92,9 +93,12 @@ reservations remain intact. Do not repeat the spent one-query experiment.
 
 The owner supplied contact details privately in DoraHacks; they are excluded
 from source and this pack. Profile, logo, project links, descriptions, team,
-contacts, prior Testnet deployment and no prior funding are filled. Final terms
-acceptance and Submit for Review remain owner actions. No application submission
-or optional mainnet video is claimed.
+contacts, prior Testnet deployment and no prior funding are filled. The owner
+completed final submission on October 12. The success page displays Build
+Submitted and confirms Radar Agent is under review for Arc Microgrants.
+[View submission status](https://dorahacks.io/hackathon/arc-microgrants/build).
+Submission does not establish selection or an award. No optional mainnet video
+was submitted.
 
 The official program asks for a working mainnet deployment, public repository,
 short explanation and public builder profile. Previously Circle/Arc-funded

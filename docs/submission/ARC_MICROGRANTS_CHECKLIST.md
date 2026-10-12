@@ -1,6 +1,7 @@
 # Radar Agent Arc Microgrants submission checklist
 
-Updated October 12, 2026. Technical pilot passed; final submission is outstanding.
+Updated October 12, 2026. Technical pilot passed and owner submission succeeded;
+DoraHacks confirms the application is under review.
 
 ## Verified
 
@@ -28,12 +29,13 @@ Updated October 12, 2026. Technical pilot passed; final submission is outstandin
 - Pro Trial ends October 23; existing cancellation-review reminder is October
   18 at 10:00 Asia/Shanghai. No cancellation or extra server purchase performed.
 
-## Remaining
+## Submission and remaining limits
 
 | Item | State |
 | --- | --- |
-| Final application review | Prepared on DoraHacks final step; verify the updated paid-test disclosure and batch hash |
-| Terms and Submit for Review | Owner must complete; not submitted |
+| Final application | Owner submitted October 12; DoraHacks success page confirms Radar Agent is under review |
+| Terms and Submit for Review | Owner completed; agent independently observed Build Submitted |
+| Award decision | Not issued; submission is not selection or grant payment |
 | Optional mainnet video | Not recorded; not required by the form |
 | Independent customers/revenue | Not established; two wallets belong to the owner |
 

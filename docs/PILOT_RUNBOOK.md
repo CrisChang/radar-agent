@@ -54,7 +54,7 @@ instructions, not authorization to repeat it with the spent pilot budget.
    verify a later batch transaction if one is supplied.
 10. Finish the mainnet demo and application once actual paid delivery and
     receipt checks pass. Inspect the final application and any terms before
-    submission. The application has not been submitted.
+    submission. The October 12 application is already submitted and under review.
 
 ## Hosting and submission
 
@@ -102,10 +102,11 @@ recovery permits only one explicit, consented missing-receipt retry and never
 automatically retries a signed payment. Real Redis tests cover concurrency,
 restart durability, lost acknowledgements, unknown outcomes and migration.
 
-## Application handoff
+## Application submitted
 
 Owner-supplied contacts and prior Testnet deployment are filled privately in
 DoraHacks. The confirmed batch hash and accurate functional-test disclosure are
-prepared for final review. Terms acceptance and final submission are outstanding.
-An optional mainnet video is not required to submit; never generate another
-payment merely for recording.
+included in the application. The owner completed final submission on October 12;
+DoraHacks displays Build Submitted and confirms the application is under review.
+No selection or grant payment has been reported. An optional mainnet video was
+not submitted; never generate another payment merely for recording.

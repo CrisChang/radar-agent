@@ -45,9 +45,12 @@ DoraHacks profile, logo, public links, project/team details and owner-supplied
 contacts are filled. Prior Arc deployment is Testnet; the owner confirmed no
 Circle/Arc grant, bounty or prize for this project. Contacts remain private.
 
-Final terms acceptance and Submit for Review remain owner actions. A mainnet
-video has not been recorded; the form makes it optional. Historical testnet
-media remains clearly labelled and does not substitute for current evidence.
+The owner completed the final submission on October 12. DoraHacks displays
+Build Submitted and confirms Radar Agent is under review for Arc Microgrants.
+This confirms receipt, not selection or an award.
+[Submission status](https://dorahacks.io/hackathon/arc-microgrants/build).
+A mainnet video has not been recorded; the form makes it optional. Historical
+testnet media remains clearly labelled and does not substitute for current evidence.
 
 ## Hosting and configuration
 
