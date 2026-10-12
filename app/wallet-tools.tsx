@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
 import { BatchEvmScheme } from "@circle-fin/x402-batching/client";
-import { createWalletClient, custom, defineChain, type EIP1193Provider } from "viem";
+import { createPublicClient, createWalletClient, custom, defineChain, erc20Abi, type EIP1193Provider } from "viem";
 import type { ArcConfig } from "@/lib/arc";
 import type { Bill } from "@/lib/billing";
+import { assertFundingQuote, gatewayDepositAbi, PILOT_DEPOSIT_ATOMIC, type FundingQuote } from "@/lib/gateway-funding";
 import { discoverSignal, paySignal, signalEndpoint } from "@/lib/agent-http";
 import { billingMessage } from "@/lib/billing-auth";
 
@@ -30,6 +31,9 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
   const [bills, setBills] = useState<Bill[]>([]);
   const [result, setResult] = useState<unknown>();
   const [balance, setBalance] = useState<string>();
+  const [funding, setFunding] = useState<FundingQuote>();
+  const [consent, setConsent] = useState(false);
+  const [fundingHash, setFundingHash] = useState<string>();
   async function run(action: () => Promise<void>) {
     if (busy) return; setBusy(true); setMessage("");
     try { await action(); } catch (error) { setMessage(safeError(error)); } finally { setBusy(false); }
@@ -38,7 +42,7 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     const accounts = await provider().request({ method: "eth_requestAccounts" });
     const address = accounts[0];
     if (!address || !/^0x[\da-fA-F]{40}$/.test(address)) throw new Error("No wallet account was connected.");
-    setWallet(address); setBalance(undefined); setBills([]); setResult(undefined);
+    setWallet(address); setBalance(undefined); setBills([]); setResult(undefined); setFunding(undefined); setConsent(false); setFundingHash(undefined);
     setMessage("Wallet connected. No payment has been authorized.");
   }
   async function assertAccount() {
@@ -54,9 +58,75 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
     if (!response.ok) throw new Error("Unable to verify Gateway balance. No payment attempted.");
     setBalance(body.gateway_available_usdc);
   }
+  async function assertPilot() {
+    const address = await assertAccount();
+    if (address.toLowerCase() !== seller.toLowerCase()) throw new Error("Connect the owner-confirmed pilot wallet shown on this page.");
+    if (Number(await provider().request({ method: "eth_chainId" })) !== arc.chainId) throw new Error(`Switch your wallet to ${arc.name}, chain ${arc.chainId}.`);
+    return address;
+  }
+  const fundingKey = (address: string, kind: string) => `radar:funding:v1:${arc.chainId}:${address.toLowerCase()}:${kind}`;
+  async function reviewFunding() {
+    const address = await assertPilot();
+    const balances = await fetch(`/api/gateway-balance?wallet=${address}`, { cache: "no-store" });
+    const b = await balances.json();
+    if (!balances.ok) throw new Error("Gateway balance cannot be verified. No funding attempted.");
+    setBalance(b.gateway_available_usdc);
+    if (Number(b.gateway_available_usdc) >= Number(price)) {
+      setFunding(undefined); setMessage("Gateway already covers one query. No deposit is needed."); return;
+    }
+    const response = await fetch(`/api/gateway-funding?wallet=${address}`, { cache: "no-store" });
+    const q = await response.json();
+    if (!response.ok) throw new Error(q.error ?? "Gateway quote is unavailable.");
+    assertFundingQuote(q, arc, address); setFunding(q);
+    setMessage("Read-only quote ready. Review the amount and gas ceiling before a wallet transaction.");
+  }
+  async function reconcileFunding(kind: "approve" | "deposit") {
+    const address = await assertPilot();
+    const key = fundingKey(address, kind);
+    const raw = localStorage.getItem(key);
+    if (!raw) { setMessage("No saved funding transaction for this step."); return; }
+    const saved = JSON.parse(raw) as { hash?: `0x${string}`; status: string };
+    if (!saved.hash) throw new Error("Gateway transaction outcome is unknown. Inspect your wallet history before any retry.");
+    setFundingHash(saved.hash);
+    const publicClient = createPublicClient({ transport: custom(provider()) });
+    const receipt = await publicClient.getTransactionReceipt({ hash: saved.hash });
+    if (receipt.status !== "success") throw new Error("Gateway transaction reverted. Inspect its receipt before another attempt.");
+    if (kind === "approve") localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify({ ...saved, status: "confirmed" }));
+    setFunding(undefined);
+    setMessage(kind === "approve" ? "Exact approval confirmed. Review a fresh quote to simulate the deposit." : "Deposit confirmed on Arc. Check Gateway balance before buying the signal.");
+  }
+  async function fund(kind: "approve" | "deposit") {
+    const address = await assertPilot();
+    if (!consent || !funding) throw new Error("Review the Gateway quote and approve the bounded pilot budget first.");
+    assertFundingQuote(funding, arc, address);
+    if ((kind === "approve") !== funding.approval_needed || (kind === "deposit" && !funding.deposit_simulated)) throw new Error("Gateway funding step changed. Review a fresh quote.");
+    if (!navigator.locks) throw new Error("This browser cannot lock the Gateway funding budget. Use current Chrome.");
+    const key = fundingKey(address, kind);
+    await navigator.locks.request(key, { ifAvailable: true }, async lock => {
+      if (!lock || localStorage.getItem(key)) throw new Error("Gateway funding is reserved or complete. Reconcile its transaction before any retry.");
+      localStorage.setItem(key, JSON.stringify({ status: "pending", created_at: new Date().toISOString() }));
+      let hash: `0x${string}` | undefined;
+      try {
+        await assertPilot(); assertFundingQuote(funding, arc, address);
+        const client = walletClient(arc, address);
+        hash = kind === "approve"
+          ? await client.writeContract({ address: arc.usdc, abi: erc20Abi, functionName: "approve", args: [arc.gatewayWallet, PILOT_DEPOSIT_ATOMIC], gas: BigInt(funding.approval_gas_limit), gasPrice: BigInt(funding.gas_price_wei) })
+          : await client.writeContract({ address: arc.gatewayWallet, abi: gatewayDepositAbi, functionName: "deposit", args: [arc.usdc, PILOT_DEPOSIT_ATOMIC], gas: BigInt(funding.deposit_gas_limit), gasPrice: BigInt(funding.gas_price_wei) });
+        localStorage.setItem(key, JSON.stringify({ status: "submitted", hash })); setFundingHash(hash);
+        const publicClient = createPublicClient({ transport: custom(provider()) });
+        await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+        await reconcileFunding(kind);
+      } catch (error) {
+        if (!hash && (error as { code?: number })?.code === 4001) localStorage.removeItem(key);
+        throw error;
+      }
+    });
+  }
   async function buy() {
     const address = await assertAccount();
     if (address.toLowerCase() !== seller.toLowerCase()) throw new Error("This pilot is pinned to the owner-confirmed test wallet shown below.");
+    if (!consent) throw new Error("Approve the displayed one-query pilot budget before signing.");
     if (!paymentsEnabled) throw new Error("Payments are paused until hosting, storage and the spending budget are approved.");
     const chainId = await provider().request({ method: "eth_chainId" });
     if (Number(chainId) !== arc.chainId) throw new Error(`Switch your wallet to ${arc.name}, chain ${arc.chainId}, before paying.`);
@@ -131,8 +201,17 @@ export default function WalletTools({ arc, seller, price, mode, paymentsEnabled 
           <p>Same-wallet functional test · one query maximum · no automatic deposits or treasury transfers.</p>
           <p>The payment signature authorizes exactly 0.001 USDC and remains valid for approximately seven days for Gateway batching.</p>
           {!paymentsEnabled && <p className="tool-notice">Payment pilot is paused. Discovery and wallet receipt reads remain available when storage is configured.</p>}
+          <p>Optional funding: exactly 0.01 USDC into your own Gateway balance. Approval is limited to 0.01 USDC. Each of the two funding transactions is capped at 0.005 USDC gas; the combined gas cap is 0.01 USDC. The signal fee comes from the deposit. No recurring payments.</p>
+          <label><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} /> I approve this optional funding budget and one 0.001 USDC signal purchase.</label>
+          <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(reviewFunding)}>Review Gateway funding quote</button></div>
+          {funding && <div className="tool-notice"><p>Deposit: <b>{funding.amount_usdc} USDC</b> · maximum gas for the remaining steps: <b>{funding.maximum_gas_usdc} USDC</b>. Quote expires in 60 seconds.</p>
+            <p>{funding.approval_needed ? "Approval simulated. Deposit gas is a ceiling until approval confirms; review again to simulate the deposit." : "Deposit simulation passed."}</p>
+            <button disabled={busy || !consent} onClick={() => run(() => fund(funding.approval_needed ? "approve" : "deposit"))}>{funding.approval_needed ? "Approve exactly 0.01 USDC in wallet" : "Deposit exactly 0.01 USDC in wallet"}</button></div>}
+          <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(() => reconcileFunding("approve"))}>Reconcile approval</button>
+            <button disabled={busy || !wallet} onClick={() => run(() => reconcileFunding("deposit"))}>Reconcile deposit</button></div>
+          {fundingHash && <p>Funding transaction: <a href={`${arc.explorerUrl}/tx/${fundingHash}`} target="_blank" rel="noreferrer">{fundingHash}</a> (funding, not API fee settlement)</p>}
           <div className="tool-actions"><button disabled={busy || !wallet} onClick={() => run(checkBalance)}>Check Gateway balance</button>
-          <button disabled={busy || !wallet || !paymentsEnabled} onClick={() => run(buy)}>Authorize one 0.001 USDC purchase</button></div>
+          <button disabled={busy || !wallet || !paymentsEnabled || !consent} onClick={() => run(buy)}>Authorize one 0.001 USDC purchase</button></div>
           {balance !== undefined && <p>Available in Gateway: <b>{balance} USDC</b>. Wallet funds and Gateway funds are separate.</p>}
         </>}
       </div>

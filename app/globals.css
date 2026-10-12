@@ -299,3 +299,5 @@ footer {
 .tool-shell table { border-collapse: collapse; width: 100%; font-size: 13px; text-align: left; }
 .tool-shell th, .tool-shell td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 @media (max-width: 700px) { .tool-shell { padding: 34px 18px; } .tool-card { padding: 18px; } nav { flex-wrap: wrap; gap: 18px; } }
+
+.tool-shell input[type="checkbox"] { display: inline-block; width: auto; margin: 0 9px 0 0; accent-color: var(--arc); }
