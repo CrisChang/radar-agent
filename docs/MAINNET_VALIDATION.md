@@ -118,3 +118,12 @@ Money tolerance is **zero atomic units**; rounding is prohibited. A final pass r
 - Read-only decoder check against the **earlier** real 0.001 USDC batch; separately published as a baseline and excluded from the campaign count.
 
 Primary specifications: [Circle batching](https://developers.circle.com/gateway-nanopayments/concepts/batched-settlement), [seller reconciliation](https://developers.circle.com/gateway-nanopayments/howtos/x402-seller-reconciliation), [SDK](https://developers.circle.com/sdks/gateway-nanopayments-sdk), [Batches.sol](https://github.com/circlefin/evm-gateway-contracts/blob/master/src/modules/wallet/Batches.sol), [BatchedDelta.sol](https://github.com/circlefin/evm-gateway-contracts/blob/master/src/lib/BatchedDelta.sol).
+
+
+## Funding reconciliation and edited-allowance recovery
+
+Funding reconciliation now reads receipts through the seller API, with a bounded request timeout and visible progress next to the funding controls. It verifies the pinned buyer, USDC/Gateway destinations, actual calldata, successful canonical receipts, three confirmations, gas cap, and current allowance. It never broadcasts a transaction. Missing or uncertain evidence keeps the original browser journal reserved.
+
+If the wallet broadcasts an approval amount different from the reviewed quote, that approval cannot unlock a deposit. The owner must first clear the allowance. To recover, supply the original approval hash (or use the saved hash) and the separate, later approve-zero hash in the funding recovery panel. Both transactions must verify and the current allowance must be zero. Only then does the journal enter approval_revoked and permit a fresh exact quote. A deposit can never be reset with an approval revocation. Original approval and revocation evidence remain in the browser history when the owner starts a new approval.
+
+The recovery check does not sign an approval, fund Gateway, advance a campaign stage, or submit a payment. Each money-moving step still requires the owner's explicit wallet confirmation. Wallet approval amounts must exactly match the fresh displayed quote; never choose a maximum or unlimited amount.
