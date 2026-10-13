@@ -8,20 +8,40 @@ import { billingMessage } from "@/lib/billing-auth";
 import { runPlannedPayment, type PrivateJournal } from "@/lib/validation-runner";
 import CampaignFunding from "./funding";
 import baseline from "@/data/mainnet-batch-baseline.json";
+import { connectedAddress, connectionError, connectionRequest, injectedWallet, type WalletChoice } from "@/lib/wallet-connection";
 
 interface State { stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
 interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number }
 interface Report { status: string; completed_payments: number; attempted_payments: number; http_attempts: number; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
-function injected(): EIP1193Provider {
-  const w = window as Window & { ethereum?: EIP1193Provider; okxwallet?: EIP1193Provider };
-  const p = w.okxwallet ?? w.ethereum; if (!p) throw new Error("未检测到钱包，请使用装有 EVM 钱包的浏览器。"); return p;
-}
 export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig; payer: string; seller: string }) {
   const [wallet, setWallet] = useState<string>(), [state, setState] = useState<State | null>(null), [report, setReport] = useState<Report>(),
-    [message, setMessage] = useState("尚未开始主网测试。连接钱包本身不会付款。"), [busy, setBusy] = useState(false),
+    [message, setMessage] = useState("钱包连接功能加载中…若一直停在这里，请强制刷新页面，并允许本站运行 JavaScript。"), [busy, setBusy] = useState(false),
     [consent, setConsent] = useState(false), [page, setPage] = useState(0);
+  const [walletChoice, setWalletChoice] = useState<WalletChoice>("auto"), [connectedChain, setConnectedChain] = useState<number>();
+  const [clientReady, setClientReady] = useState(false);
+  const selectedProvider = useRef<EIP1193Provider | undefined>(undefined);
+  const walletReady = wallet?.toLowerCase() === payer.toLowerCase() && connectedChain === 5042;
   const stop = useRef(false), bootId = useRef("");
-  useEffect(() => { bootId.current = crypto.randomUUID(); void refresh(); }, []);
+  useEffect(() => {
+    if (typeof globalThis.crypto?.randomUUID === "function") {
+      bootId.current = crypto.randomUUID(); setClientReady(true);
+      setMessage("连接功能已就绪。请选择钱包并点击连接；连接本身不会付款。");
+    } else setMessage("当前浏览器缺少安全运行支持。请使用更新后的 Chrome 打开本站；尚未连接或付款。");
+    void refresh();
+  }, []);
+  useEffect(() => {
+    const provider = selectedProvider.current; if (!provider || !wallet) return;
+    const accountsChanged = (accounts: unknown) => {
+      setWallet(connectedAddress(accounts)); setConsent(false);
+      setMessage("钱包账户已改变。请核对指定付款地址，重新连接后再确认预算。");
+    };
+    const chainChanged = (chain: unknown) => {
+      setConnectedChain(typeof chain === "string" ? Number(chain) : undefined); setConsent(false);
+      setMessage(Number(chain) === 5042 ? "已切到 Arc 主网，请重新核对并勾选预算。" : "请在钱包中切换到 Arc Mainnet，链 ID 5042。");
+    };
+    provider.on?.("accountsChanged", accountsChanged); provider.on?.("chainChanged", chainChanged);
+    return () => { provider.removeListener?.("accountsChanged", accountsChanged); provider.removeListener?.("chainChanged", chainChanged); };
+  }, [wallet, walletChoice]);
   async function refresh() {
     try {
       const response = await fetch("/api/validation/status", { cache: "no-store" });
@@ -35,15 +55,43 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     finally { setBusy(false); await refresh(); }
   }
   async function account() {
-    const provider = injected(), accounts = await provider.request({ method: "eth_accounts" });
-    if (accounts[0]?.toLowerCase() !== payer.toLowerCase()) throw new Error("请在钱包中选择指定付款账户，再连接。");
-    if (Number(await provider.request({ method: "eth_chainId" })) !== 5042) throw new Error("请切换到 Arc Mainnet，链 ID 5042。");
+    const provider = selectedProvider.current ?? injectedWallet(window, walletChoice), accounts = await connectionRequest(provider, "eth_accounts", undefined, 10_000);
+    if (connectedAddress(accounts)?.toLowerCase() !== payer.toLowerCase()) throw new Error("请在钱包中选择指定付款账户，再连接。");
+    if (Number(await connectionRequest(provider, "eth_chainId", undefined, 10_000)) !== 5042) throw new Error("请切换到 Arc Mainnet，链 ID 5042。");
     const chain = defineChain({ id: 5042, name: "Arc Mainnet", nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [arc.rpcUrl] } } });
     return createWalletClient({ account: payer as `0x${string}`, chain, transport: custom(provider) });
   }
   async function connect() {
-    const accounts = await injected().request({ method: "eth_requestAccounts" }); setWallet(accounts[0]); setConsent(false);
-    await account(); setMessage("付款账户和 Arc 网络已核对，尚未批准测试预算。");
+    setWallet(undefined); setConnectedChain(undefined); setConsent(false);
+    setMessage("正在请求钱包连接，请查看 Chrome 右上角的 OKX／MetaMask 扩展弹窗。连接只读取账户，不会付款。");
+    try {
+      const provider = injectedWallet(window, walletChoice); selectedProvider.current = provider;
+      const address = connectedAddress(await connectionRequest(provider, "eth_requestAccounts"));
+      if (!address) throw new Error("钱包未返回有效账户。请解锁钱包并选择指定付款地址后重连。");
+      setWallet(address); setConsent(false);
+      const chain = Number(await connectionRequest(provider, "eth_chainId", undefined, 10_000)); setConnectedChain(chain);
+      if (address.toLowerCase() !== payer.toLowerCase()) throw new Error("已连接的账户与付款钱包不符。请点击“选择账户”，切换到页面指定的 0xefc7…8422 后连接。");
+      if (chain !== 5042) throw new Error(`已连接钱包，当前网络 ${chain}。请在扩展中切换到 Arc Mainnet（5042）。`);
+      setMessage("付款账户和 Arc 网络已核对，尚未批准测试预算。");
+    } catch (e) { throw new Error(connectionError(e)); }
+  }
+  async function chooseAccount() {
+    setWallet(undefined); setConnectedChain(undefined); setConsent(false); setMessage("正在打开钱包账户选择，请查看 Chrome 右上角的钱包扩展。");
+    try {
+      const provider = injectedWallet(window, walletChoice); selectedProvider.current = provider;
+      await connectionRequest(provider, "wallet_requestPermissions", [{ eth_accounts: {} }]);
+      await connect();
+    } catch (e) { throw new Error(connectionError(e)); }
+  }
+  async function disconnect() {
+    const provider = selectedProvider.current;
+    setWallet(undefined); setConnectedChain(undefined); setConsent(false); selectedProvider.current = undefined;
+    if (!provider) { setMessage("页面已断开。历史付款授权与账单仍保留。"); return; }
+    setMessage("正在断开钱包连接；历史付款授权、预算和账单不会清除。");
+    try {
+      await connectionRequest(provider, "wallet_revokePermissions", [{ eth_accounts: {} }], 10_000);
+      setMessage("已断开本站连接。重新选择账户后连接即可；历史付款记录仍保留。");
+    } catch { setMessage("页面已断开，钱包未确认撤销连接。请在扩展的已连接网站中断开本站，再重新连接；历史付款记录仍保留。"); }
   }
   async function control(action: "approve" | "reconcile" | "pause" | "resume", stage?: number) {
     const client = await account(), timestamp = Math.floor(Date.now() / 1000).toString();
@@ -119,20 +167,22 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     <div className="tool-card"><h2>付款计划与操作</h2><p>付款钱包：<code>{payer}</code><br/>收款钱包：<code>{seller}</code><br/>网络：Arc Mainnet（5042）</p>
       <p>每档 100 笔：{AMOUNT_TIERS.map(n => formatAtomic(BigInt(n))).join(" / ")} USDC。总额 <b>0.232600 USDC</b>，充值和 gas 单独确认。</p>
       <p>阶段：10 笔 / 0.002326 USDC → 90 笔 / 0.020934 USDC → 900 笔 / 0.209340 USDC。第三阶段按固定时间分散到 24 小时，不会一次全部提交。</p>
-      <p>当前连接：<code>{wallet ?? "尚未连接"}</code>。阶段 {state?.stage ?? 0}，累计已保留 {formatAtomic(state?.reservedAtomic ?? "0")} USDC，{state?.halted ? "已暂停" : "未暂停"}。</p>
+      <p>当前连接：<code>{wallet ?? "尚未连接"}</code> · 钱包网络：{connectedChain ?? "未读取"}。阶段 {state?.stage ?? 0}，累计已保留 {formatAtomic(state?.reservedAtomic ?? "0")} USDC，{state?.halted ? "已暂停" : "未暂停"}。</p>
       <p>浏览器逐笔弹窗签名；本机保存原付款授权用于原样重试，最长约七天有效。请使用可信电脑，不要清理本站记录或在另一台电脑重新签同一笔。暂停新请求不会撤销已经签过的付款授权。</p>
-      <div className="tool-actions"><button disabled={busy} onClick={() => void perform(connect)}>连接指定钱包</button><button disabled={!wallet || busy} onClick={() => void perform(() => control("reconcile"))}>只读核查全部付款与链上批次</button><button disabled={!wallet || busy || !state} onClick={() => void perform(() => control("pause"))}>暂停服务端新付款</button><button disabled={!wallet || busy || !state?.halted} onClick={() => void perform(() => control("resume"))}>核查完成后恢复原阶段</button></div>
+      <p><label>连接的钱包： <select aria-label="连接的钱包" value={walletChoice} disabled={!clientReady || busy} onChange={e => { setWalletChoice(e.target.value as WalletChoice); setWallet(undefined); setConnectedChain(undefined); setConsent(false); selectedProvider.current = undefined; setMessage("已更换钱包类型，请点击连接。历史付款记录仍保留。"); }}><option value="auto">自动选择（优先 OKX）</option><option value="okx">OKX Wallet</option><option value="ethereum">MetaMask／浏览器 EVM 钱包</option></select></label></p>
+      <p className="tool-notice" role="status" aria-live="polite" aria-atomic="true">{message}</p>
+      <noscript><p className="tool-notice">页面脚本未启用，钱包按钮无法工作。请在 Chrome 允许本站使用 JavaScript 后刷新。</p></noscript>
+      <div className="tool-actions"><button disabled={!clientReady || busy} onClick={() => void perform(connect)}>{!clientReady ? "连接功能加载中…" : busy ? "处理中，请查看钱包…" : "连接指定钱包"}</button><button disabled={!clientReady || busy} onClick={() => void perform(chooseAccount)}>选择账户</button><button disabled={busy || !wallet} onClick={() => void perform(disconnect)}>断开连接</button><button disabled={!walletReady || busy} onClick={() => void perform(() => control("reconcile"))}>只读核查全部付款与链上批次</button><button disabled={!walletReady || busy || !state} onClick={() => void perform(() => control("pause"))}>暂停服务端新付款</button><button disabled={!walletReady || busy || !state?.halted} onClick={() => void perform(() => control("resume"))}>核查完成后恢复原阶段</button></div>
       <p><label><input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)}/>我已核对本阶段金额、付款和收款地址，并同意固定计划内的付款及原授权重试。</label></p>
-      <div className="tool-actions">{next && <button disabled={!wallet || busy || !consent || !!state?.halted || !!state && state.verifiedCount !== (current?.cumulativeCount ?? 0)} onClick={() => void perform(() => control("approve", next.stage))}>批准阶段 {next.stage}：{next.count} 笔 / {formatAtomic(next.amountAtomic)} USDC</button>}
-      <button disabled={!wallet || busy || !consent || !state || state.halted} onClick={() => void perform(runStage)}>运行 / 继续当前阶段</button><button disabled={!busy} onClick={() => { stop.current = true; }}>停止本机后续请求</button></div>
-      <p className="tool-notice" role="status">{message}</p>
-      <CampaignFunding arc={arc} payer={payer} account={account} disabled={!wallet || busy} onMessage={setMessage}/>
+      <div className="tool-actions">{next && <button disabled={!walletReady || busy || !consent || !!state?.halted || !!state && state.verifiedCount !== (current?.cumulativeCount ?? 0)} onClick={() => void perform(() => control("approve", next.stage))}>批准阶段 {next.stage}：{next.count} 笔 / {formatAtomic(next.amountAtomic)} USDC</button>}
+      <button disabled={!walletReady || busy || !consent || !state || state.halted} onClick={() => void perform(runStage)}>运行 / 继续当前阶段</button><button disabled={!busy} onClick={() => { stop.current = true; }}>停止本机后续请求</button></div>
+      <CampaignFunding arc={arc} payer={payer} account={account} disabled={!walletReady || busy} onMessage={setMessage}/>
     </div>
     <div className="tool-card"><h2>逐笔记录 / Results</h2><p>顺序请求、跨会话、串行重放、并发重放、受控丢弃响应及真实客户端重启。失败和重试都保留；未完成项不算成功。</p>
       <div className="tool-actions"><button disabled={!report} onClick={() => download(`${CAMPAIGN_ID}-public.json`, JSON.stringify(report, null, 2), "application/json")}>下载公开结果 JSON</button>
       <button disabled={!report} onClick={() => { const cols = ["intent", "stage", "scenario", "amount_usdc", "amount_atomic", "money_difference_atomic", "scenario_passed", "local_state", "transfer_status", "batch_hash", "proof", "http_attempts"] as const;
         const csv = [cols.join(","), ...rows.map(row => cols.map(k => `"${String(row[k] ?? "").replaceAll('"', '""')}"`).join(","))].join("\r\n"); download(`${CAMPAIGN_ID}-public.csv`, csv, "text/csv"); }}>下载全部结果 CSV</button>
-      <button disabled={!wallet || busy} onClick={() => void perform(() => privateExport("receipts"))}>签名导出全部私有账单</button><button disabled={!wallet || busy} onClick={() => void perform(() => privateExport("events"))}>签名导出全部尝试和状态事件</button></div>
+      <button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("receipts"))}>签名导出全部私有账单</button><button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("events"))}>签名导出全部尝试和状态事件</button></div>
       <div className="table-scroll"><table><thead><tr><th>意图 / 金额</th><th>场景 / 请求次数</th><th>服务端 / Gateway</th><th>批次 / 核查</th></tr></thead><tbody>{visible.map(row => <tr key={row.intent}><td>{row.intent}<br/>{row.amount_usdc} USDC</td><td>{row.scenario}<br/>{row.http_attempts}</td><td>{row.local_state}<br/>{row.transfer_status ?? "待核查"}</td><td>{row.batch_hash ? <a href={`${arc.explorerUrl}/tx/${row.batch_hash}`} target="_blank" rel="noreferrer">{row.batch_hash.slice(0, 12)}…</a> : "尚无批次哈希"}<br/>{row.proof}</td></tr>)}</tbody></table></div>
       {!rows.length && <p>本轮尚无已核查结果。没有用示例数据填充成功记录。</p>}
       <div className="tool-actions"><button disabled={page === 0} onClick={() => setPage(p => p - 1)}>上一页</button><span>{page + 1} / {Math.max(1, Math.ceil(rows.length / 50))}</span><button disabled={(page + 1) * 50 >= rows.length} onClick={() => setPage(p => p + 1)}>下一页</button></div>

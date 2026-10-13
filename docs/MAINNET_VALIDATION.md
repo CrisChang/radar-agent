@@ -50,6 +50,8 @@ Every amount appears in every scenario (60 amount/scenario combinations). Retrie
 
 ## Browser operation
 
+On `/validation`, select OKX Wallet or the browser EVM wallet before connecting. Connection status is beside the buttons; open the extension icon if a connection request is pending. A connection timeout never retries automatically and never signs a payment. Account/network changes clear the budget checkbox. “Choose account” and “Disconnect” affect the connection only; they do not erase payment journals, server reservations or existing signed authorizations. If the page remains at “loading connection”, allow site scripts and hard-refresh Chrome.
+
 1. Open `/validation` on the same trusted computer/browser that controls the funded buyer wallet. Select Arc Mainnet (5042), check the displayed buyer and seller, connect, and check the stage budget box.
 2. Approve **stage 1: 10 payments / 0.002326 USDC**, then check the box again and run the stage. This uses the existing Gateway balance and needs no deposit if that balance is sufficient. The extension will ask for each payment signature; check the exact amount each time.
 3. Run **read-only reconciliation**. It needs a free owner control signature. Wait for Gateway `completed`, a canonical successful batch with three confirmations, decoded net deltas and complete attribution. Do not advance on HTTP 200 alone.
