@@ -19,5 +19,10 @@
   "public_report_money_difference_atomic": null,
   "public_report_overall_passed": null,
   "website": "https://radar-agent-ivory.vercel.app/validation",
-  "note": "Readiness snapshot only. Local synthetic fixtures are not mainnet payments. Live durable state determines future results."
+  "note": "Readiness snapshot only. Local synthetic fixtures are not mainnet payments. Live durable state determines future results.",
+  "deployed_at_check": "2026-10-13T03:23:17.574834+00:00",
+  "deployed_source_commit": "086bfe6",
+  "deployment_id": "dpl_9enbrfFJrFwBc7PRfbjWomXHp2Ci",
+  "online_checks_passed": 9,
+  "production_deployment_verified": true
 }

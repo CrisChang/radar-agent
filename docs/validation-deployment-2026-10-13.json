@@ -1,0 +1,128 @@
+{
+  "checked_at": "2026-10-13T03:23:17.574834+00:00",
+  "canonical_origin": "https://radar-agent-ivory.vercel.app",
+  "source_commit": "086bfe6",
+  "deployment_id": "dpl_9enbrfFJrFwBc7PRfbjWomXHp2Ci",
+  "new_mainnet_payments_executed": 0,
+  "checks": [
+    {
+      "check": "public_page",
+      "path": "/validation",
+      "status": 200,
+      "expected": 200,
+      "passed": true,
+      "body_sha256": "6c58afd063dbac4cebd87a7b929d735a96a8bf7b0a6259ae04be6cf45ff220ec",
+      "html_bytes": 13284
+    },
+    {
+      "check": "home",
+      "path": "/",
+      "status": 200,
+      "expected": 200,
+      "passed": true,
+      "body_sha256": "51e65dbe21e0859522797b4a04bf911eb31f570b5557c29f32c1b705dfdf66fa",
+      "html_bytes": 11707
+    },
+    {
+      "check": "status",
+      "path": "/api/validation/status",
+      "status": 200,
+      "expected": 200,
+      "passed": true,
+      "body_sha256": "fb35473792f86ac6a3577129ca7d99d1606bbcae312d17d2533042c76c9233f8",
+      "observed": {
+        "report": {
+          "campaign_id": "arc-mainnet-reliability-1000-v1",
+          "schedule_sha256": "1adde180d066de78188bdad2066463e0a56b00f17e55ffb752d03880c00ec779",
+          "status": "not_run",
+          "completed_payments": 0,
+          "attempted_payments": 0,
+          "http_attempts": 0,
+          "batch_transactions": 0,
+          "money_difference_atomic": null,
+          "overall_passed": null,
+          "generated_at": null,
+          "independent_customer_revenue": false,
+          "rows": [],
+          "batches": [],
+          "conclusion": "Mainnet campaign has not started. The earlier single-payment pilot is excluded."
+        },
+        "state": null,
+        "storage_status": "available"
+      }
+    },
+    {
+      "check": "original_service_health",
+      "path": "/api/health?store=1&feed=1",
+      "status": 200,
+      "expected": 200,
+      "passed": true,
+      "body_sha256": "606fd3cacd4f0d5dcaa54b84aa7ef38e0ae124b4022ed9dc7ba0aacbe9a451dc",
+      "observed": {
+        "status": "configured",
+        "chain_id": 5042,
+        "pilot_recipient_distinct": true,
+        "payment_store": {
+          "configured": true,
+          "status": "available"
+        },
+        "feed": {
+          "status": "live",
+          "source": "coinbase-exchange-candles",
+          "ts": "2026-10-13T03:23:00.000Z"
+        },
+        "pilot_one_query_cap": true
+      }
+    },
+    {
+      "check": "unapproved_payment_blocked",
+      "path": "/api/validation/payment?intent=planned-0001",
+      "status": 409,
+      "expected": 409,
+      "passed": true,
+      "body_sha256": "6e5603680d8d1840d07b87d776a06d9e8aad74cb9987d03cae10f239ee0d1ddd",
+      "error": "Campaign intent not approved, paused, expired or not yet due; do not sign a payment"
+    },
+    {
+      "check": "arbitrary_intent_blocked",
+      "path": "/api/validation/payment?intent=arbitrary",
+      "status": 400,
+      "expected": 400,
+      "passed": true,
+      "body_sha256": "91520c8dbbb4b3cf51439e7e58164f10d993cf7ec93ee19be90c530c8e64e1a6",
+      "error": "Use a frozen intent and its stable request ID; arbitrary prices are not accepted"
+    },
+    {
+      "check": "unsigned_stage_approval_blocked",
+      "path": "/api/validation/control",
+      "status": 400,
+      "expected": 400,
+      "passed": true,
+      "body_sha256": "63c7f1788433aace5caeaa0de58470e2906daff6ed95f18b41de3b9278e384b2",
+      "error": "Invalid stage approval"
+    },
+    {
+      "check": "private_export_auth_required",
+      "path": "/api/validation/export?kind=receipts&offset=0",
+      "status": 401,
+      "expected": 401,
+      "passed": true,
+      "body_sha256": "688c8648d579fd6ebb79c10be9678e5c01d8ee3aea0eaf4cece0ec51d3aa709a",
+      "error": "A valid wallet read signature and export page are required"
+    },
+    {
+      "check": "early_funding_blocked",
+      "path": "/api/validation/funding",
+      "status": 409,
+      "expected": 409,
+      "passed": true,
+      "body_sha256": "55f05ac5e7f46a7657738790ce7293bbf3a31fe43a14a8e1d52db4a1338572a9",
+      "error": "Reconcile the first ten payments before funding the remaining stages"
+    }
+  ],
+  "passed": true,
+  "browser_visual_check": {
+    "verified": false,
+    "reason": "Mac locked; browser observation timed out. HTTP page content and endpoint checks passed."
+  }
+}

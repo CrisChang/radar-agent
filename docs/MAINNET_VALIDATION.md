@@ -1,6 +1,6 @@
 # Mainnet payment reliability campaign
 
-Status: implementation prepared; **no new mainnet payment has been executed by this work**. The live page and durable campaign state, not this document, determine actual progress. The earlier 0.001 USDC pilot is a separate baseline and is excluded from the 1,000-payment target.
+Status: implemented, pushed and deployed to [the public validation page](https://radar-agent-ivory.vercel.app/validation); **no new mainnet payment has been executed by this work**. Production source commit `086bfe6`, deployment `dpl_9enbrfFJrFwBc7PRfbjWomXHp2Ci`. All nine unsigned online checks passed on 2026-10-13; durable state was unapproved and the new campaign count was zero. See `validation-deployment-2026-10-13.json` for the timestamped deployment evidence. The live page and durable campaign state, not this document, determine actual progress. The earlier 0.001 USDC pilot is a separate baseline and is excluded from the 1,000-payment target.
 
 ## Frozen scope
 
