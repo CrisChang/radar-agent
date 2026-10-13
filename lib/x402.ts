@@ -103,7 +103,7 @@ export function withGateway(
   handler: (request: NextRequest) => Promise<NextResponse>,
   priceUsdc: string,
   endpoint: string,
-  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore } = {},
+  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore; campaign?: { id: string; intent: string } } = {},
 ) {
   return async (request: NextRequest) => {
     const callerId = request.headers.get("x-radar-request-id");
@@ -204,6 +204,7 @@ export function withGateway(
       }
 
       claimed = await store.claim({ ...identity, requestId, state: "preparing",
+        ...(dependencies.campaign ? { campaign: dependencies.campaign } : {}),
         terms: { amountAtomic: requirements.amount, asset: requirements.asset, payTo: requirements.payTo } });
       if (!claimed) {
         const concurrent = await store.find(identity.paymentKey, identity.requestKey);

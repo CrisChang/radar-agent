@@ -59,9 +59,9 @@ export class RedisPaymentStore implements BillingStore {
     }
     this.prefix = `{${options.namespace}}:`;
   }
-  private key(kind: string, value: string): string { return `${this.prefix}${kind}:${value}`; }
+  protected key(kind: string, value: string): string { return `${this.prefix}${kind}:${value}`; }
   private pilotKey(): string { return this.key("pilot-cap", this.options.pilotPayer?.toLowerCase() ?? "unused"); }
-  private async command(args: (string | number)[]): Promise<unknown> {
+  protected async command(args: (string | number)[]): Promise<unknown> {
     const result = await (this.options.fetcher ?? fetch)(this.base, {
       method: "POST", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(10_000),
       headers: { authorization: `Bearer ${this.options.token}`, "content-type": "application/json" },
@@ -74,7 +74,7 @@ export class RedisPaymentStore implements BillingStore {
     if (data.error || !("result" in data)) throw new Error("Durable payment store command failed");
     return data.result;
   }
-  private record(raw: unknown): PaymentRecord | null {
+  protected record(raw: unknown): PaymentRecord | null {
     if (raw === null) return null;
     if (typeof raw !== "string") throw new Error("Invalid durable receipt");
     const record = JSON.parse(raw) as PaymentRecord;

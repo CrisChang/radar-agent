@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-10-13T03:09:47.952712+00:00",
+  "campaign_id": "arc-mainnet-reliability-1000-v1",
+  "state": "implementation_ready_not_started",
+  "actual_new_mainnet_payments": 0,
+  "execution_started": false,
+  "owner_stage_approval_present": false,
+  "approved_payment_budget_atomic": "0",
+  "proposed_payment_budget_atomic": "232600",
+  "schedule_sha256": "1adde180d066de78188bdad2066463e0a56b00f17e55ffb752d03880c00ec779",
+  "local_tests_passed": 88,
+  "real_local_redis_synthetic_payments": 1000,
+  "typecheck_passed": true,
+  "production_build_passed": true,
+  "local_runner_default_dry_run_verified": true,
+  "local_signer_opt_in_gate_verified": true,
+  "baseline_batch_decoded_and_matched": true,
+  "baseline_counts_toward_campaign": false,
+  "public_report_money_difference_atomic": null,
+  "public_report_overall_passed": null,
+  "website": "https://radar-agent-ivory.vercel.app/validation",
+  "note": "Readiness snapshot only. Local synthetic fixtures are not mainnet payments. Live durable state determines future results."
+}

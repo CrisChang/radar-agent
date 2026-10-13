@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-10-13T02:32:36.137Z",
+  "kind": "existing_single_payment_baseline",
+  "excluded_from_1000_payment_campaign": true,
+  "payment_atomic": "1000",
+  "payment_usdc": "0.001000",
+  "hash": "0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41",
+  "block_number": "25566423",
+  "block_hash": "0x40a7149ab544f33aa09d73ab0eddabd2ae05cc9c52175672025f2812ece90181",
+  "buyer": {
+    "chain": "-1000",
+    "provider": "-1000",
+    "difference": "0"
+  },
+  "seller": {
+    "chain": "1000",
+    "provider": "1000",
+    "difference": "0"
+  },
+  "passed": true,
+  "attribution": "Gateway nonce-to-transfer-to-batch; independently decoded aggregate wallet deltas",
+  "note": "Read-only verification. No new payment or wallet signature was created."
+}

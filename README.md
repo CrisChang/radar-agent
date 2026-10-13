@@ -221,3 +221,7 @@ self-transfers before signing. Buyer funding/allowance routes remain pinned to
 the funded buyer, and the durable cap allows one exact 0.001 USDC payment to the
 approved distinct recipient. Browser reservations bind buyer, recipient and
 chain; older failed self-transfer reservations are retained, not cleared.
+
+## Mainnet reliability validation
+
+The [validation page](https://radar-agent-ivory.vercel.app/validation) publishes honest campaign progress, per-payment batch attribution and aggregate chain reconciliation. The new 1,000-payment campaign has ten fixed amount tiers and a 0.232600 USDC payment budget; it starts only after owner wallet approvals. The earlier successful pilot is a separate baseline and is excluded. See [the runbook](docs/MAINNET_VALIDATION.md) for staged execution, bounded funding, local signer options, replay/restart tests and full exports.
