@@ -167,14 +167,18 @@ export async function reconcileCampaign(store: ValidationStore, state: CampaignS
     const batch = item?.transfer?.txHash ? batchMap.get(item.transfer.txHash.toLowerCase()) : undefined;
     const verified = item?.record.state === "accepted" && item.transfer?.status === "completed" && batch?.passed === true;
     const scenarioPassed = item ? scenarioEvidence(plan.scenario, item.record, allEvents) : null;
+    const rejected = allEvents.filter(e => e.type === "attempt_finished" && e.intent === plan.planned_intent_id && e.status === 402);
+    const hadAttempt = (attemptCounts.get(plan.planned_intent_id) ?? 0) > 0;
     if (verified) completed++;
     if (verified && scenarioPassed) scenarioCompleted++;
     if (item && (item.transfer?.status === "failed" || ["unknown", "rejected"].includes(item.record.state))) issues = true;
     return { intent: plan.planned_intent_id, stage: plan.stage, scenario: plan.scenario, amount_atomic: plan.amount_atomic,
-      amount_usdc: plan.amount_usdc, local_state: item?.record.state ?? "not_run", http_attempts: attemptCounts.get(plan.planned_intent_id) ?? 0,
+      amount_usdc: plan.amount_usdc, local_state: item?.record.state ?? (rejected.length ? "verification_rejected_before_reservation" : hadAttempt ? "unreserved_attempt_requires_review" : "not_run"), http_attempts: attemptCounts.get(plan.planned_intent_id) ?? 0,
+      verification_rejections: rejected.length, verification_rejection_reasons: [...new Set(rejected.map(e => e.reason ?? "reason_not_recorded_by_previous_version"))],
+      same_nonce_renewal_checks: allEvents.filter(e => e.type === "validity_renewal_prepared" && e.intent === plan.planned_intent_id).length,
       transfer_status: item?.transfer?.status ?? null, batch_hash: item?.transfer?.txHash ?? null,
       scenario_passed: scenarioPassed,
-      proof: verified ? "provider_attribution_and_chain_aggregate_verified" : item ? "pending_or_unverified" : "not_run",
+      proof: verified ? "provider_attribution_and_chain_aggregate_verified" : item ? "pending_or_unverified" : hadAttempt ? "no_settlement_receipt_reserved" : "not_run",
       money_difference_atomic: verified ? "0" : null, response_sha256: item?.record.state === "accepted" ? item.record.response?.headers["x-radar-response-sha256"] ?? null : null };
   });
   const elapsed = Date.now() - state.startedAt;

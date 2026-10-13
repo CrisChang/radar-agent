@@ -9,6 +9,7 @@ import { authenticateBilling } from "./billing-auth";
 import { withGateway, getResourceUrl } from "./x402";
 import { billFromRecord } from "./billing";
 import { paymentIdentity } from "./payment-store";
+import { CAMPAIGN_AUTH_WINDOW_SECONDS } from "./validation-authorization";
 
 import { controlMessage } from "./validation-messages";
 const noStore = { "cache-control": "no-store" };
@@ -21,7 +22,11 @@ export async function validationStatus() {
   try {
     const store = validationStore();
     if (!store) return NextResponse.json({ ...emptyReport(), storage_status: "unavailable" }, { status: 503, headers: noStore });
-    return NextResponse.json({ report: await store.report() ?? emptyReport(), state: await store.state(), storage_status: "available" }, { headers: noStore });
+    const state = await store.state(), savedReport = await store.report();
+    const report = savedReport ?? (state ? { ...emptyReport(), status: state.reservedCount ? "awaiting_reconciliation" : "stage_approved",
+      attempted_payments: state.reservedCount, http_attempts: null,
+      conclusion: "Stage approved. Live reservations are shown; no chain settlement is inferred before reconciliation." } : emptyReport());
+    return NextResponse.json({ report, state, storage_status: "available" }, { headers: noStore });
   } catch { return NextResponse.json({ error: "Validation evidence temporarily unavailable; no success is inferred" }, { status: 503, headers: noStore }); }
 }
 export async function validationControl(request: NextRequest) {
@@ -95,7 +100,8 @@ export async function validationPayment(request: NextRequest) {
       const p = JSON.parse(Buffer.from(paid, "base64").toString("utf8"));
       const a = p.payload?.authorization;
       if (!a || a.from?.toLowerCase() !== getPilotBuyerAddress().toLowerCase() || a.to?.toLowerCase() !== getSellerAddress().toLowerCase() ||
-          a.value !== row.amount_atomic || !/^\d+$/.test(a.validAfter) || !/^\d+$/.test(a.validBefore) || !/^0x[\da-f]{64}$/i.test(a.nonce)) throw new Error("Invalid campaign authorization");
+          a.value !== row.amount_atomic || !/^\d+$/.test(a.validAfter) || !/^\d+$/.test(a.validBefore) || !/^0x[\da-f]{64}$/i.test(a.nonce) ||
+          BigInt(a.validBefore) > BigInt(Math.floor(Date.now() / 1000) + CAMPAIGN_AUTH_WINDOW_SECONDS + 30)) throw new Error("Invalid campaign authorization");
       const arc = getArcConfig();
       if (!await verifyTypedData({ address: getPilotBuyerAddress(), domain: { name: "GatewayWalletBatched", version: "1", chainId: 5042, verifyingContract: arc.gatewayWallet },
         primaryType: "TransferWithAuthorization", types: { TransferWithAuthorization: [
@@ -111,12 +117,18 @@ export async function validationPayment(request: NextRequest) {
   }
   const handler = withGateway(async () => NextResponse.json({ campaign_id: CAMPAIGN_ID, intent: row.planned_intent_id,
     purpose: "owner_controlled_payment_reliability_test", amount_atomic: row.amount_atomic, scenario: row.scenario }, { headers: noStore }),
-    row.amount_usdc, "/api/validation/payment", { store, campaign: { id: CAMPAIGN_ID, intent: row.planned_intent_id } });
+    row.amount_usdc, "/api/validation/payment", { store, campaign: { id: CAMPAIGN_ID, intent: row.planned_intent_id }, authorizationTimeoutSeconds: CAMPAIGN_AUTH_WINDOW_SECONDS });
   const response = await handler(request);
   if (paid) {
-    try { await store.appendEvent({ type: "attempt_finished", at: new Date().toISOString(), intent: row.planned_intent_id,
+    try {
+      let reason: string | undefined;
+      if (response.status === 402) {
+        const body = await response.clone().json() as { reason?: unknown };
+        if (typeof body.reason === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(body.reason)) reason = body.reason;
+      }
+      await store.appendEvent({ type: "attempt_finished", at: new Date().toISOString(), intent: row.planned_intent_id,
       requestId: intentRequestId(row), attemptId: attempt, status: response.status,
-      state: response.headers.get("x-radar-replayed") === "true" ? "replayed" : "observed_http_result" }); }
+      state: response.headers.get("x-radar-replayed") === "true" ? "replayed" : "observed_http_result", reason }); }
     catch { return NextResponse.json({ error: "Audit acknowledgement unknown; reconcile this intent without creating another authorization" }, { status: 503, headers: noStore }); }
   }
   response.headers.set("x-radar-attempt-id", attempt);

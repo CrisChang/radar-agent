@@ -6,7 +6,7 @@ function object(value: unknown): JsonObject {
   return value as JsonObject;
 }
 
-export function validateOffer(raw: unknown, network: ArcConfig, maximumAtomic = "1000") {
+export function validateOffer(raw: unknown, network: ArcConfig, maximumAtomic = "1000", maximumAuthorizationSeconds = 604_900) {
   const challenge = object(raw);
   if (challenge.x402Version !== 2 || !Array.isArray(challenge.accepts)) throw new Error("Unsupported x402 challenge");
   const maximum = BigInt(maximumAtomic);
@@ -15,7 +15,7 @@ export function validateOffer(raw: unknown, network: ArcConfig, maximumAtomic = 
     const offer = object(value);
     if (offer.network !== network.network || offer.scheme !== "exact") continue;
     const extra = object(offer.extra);
-    if (!Number.isInteger(offer.maxTimeoutSeconds) || Number(offer.maxTimeoutSeconds) < 604_800 || Number(offer.maxTimeoutSeconds) > 604_900) throw new Error("Unsupported authorization validity window");
+    if (!Number.isInteger(maximumAuthorizationSeconds) || maximumAuthorizationSeconds < 604_800 || maximumAuthorizationSeconds > 608_400 || !Number.isInteger(offer.maxTimeoutSeconds) || Number(offer.maxTimeoutSeconds) < 604_800 || Number(offer.maxTimeoutSeconds) > maximumAuthorizationSeconds) throw new Error("Unsupported authorization validity window");
     if (String(offer.asset).toLowerCase() !== network.usdc.toLowerCase()) throw new Error("Wrong payment asset");
     if (extra.name !== "GatewayWalletBatched" || extra.version !== "1" ||
         String(extra.verifyingContract).toLowerCase() !== network.gatewayWallet.toLowerCase()) {
@@ -39,8 +39,9 @@ export function assertUnchangedOffer(
   selected: unknown,
   approved: ReturnType<typeof validateOffer>,
   network: ArcConfig,
+  maximumAuthorizationSeconds = 604_900,
 ): void {
-  const actual = validateOffer({ x402Version: 2, accepts: [selected] }, network, approved.amountAtomic);
+  const actual = validateOffer({ x402Version: 2, accepts: [selected] }, network, approved.amountAtomic, maximumAuthorizationSeconds);
   if (actual.amountAtomic !== approved.amountAtomic ||
       actual.payTo.toLowerCase() !== approved.payTo.toLowerCase()) {
     throw new Error("Seller changed the approved quote");

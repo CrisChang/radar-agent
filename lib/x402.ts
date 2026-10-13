@@ -30,7 +30,8 @@ interface PaymentPayload {
   extensions?: Record<string, unknown>;
 }
 
-export function buildPaymentRequirements(priceUsdc: string) {
+export function buildPaymentRequirements(priceUsdc: string, authorizationTimeoutSeconds = GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS) {
+  if (!Number.isInteger(authorizationTimeoutSeconds) || authorizationTimeoutSeconds < 604_900 || authorizationTimeoutSeconds > 608_400) throw new Error("Invalid authorization timeout");
   const network = getArcConfig();
 
   return {
@@ -39,7 +40,7 @@ export function buildPaymentRequirements(priceUsdc: string) {
     asset: network.usdc,
     amount: parseUsdcAtomic(priceUsdc).toString(),
     payTo: getSellerAddress(),
-    maxTimeoutSeconds: GATEWAY_AUTHORIZATION_TIMEOUT_SECONDS,
+    maxTimeoutSeconds: authorizationTimeoutSeconds,
     extra: {
       name: "GatewayWalletBatched",
       version: "1",
@@ -103,7 +104,7 @@ export function withGateway(
   handler: (request: NextRequest) => Promise<NextResponse>,
   priceUsdc: string,
   endpoint: string,
-  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore; campaign?: { id: string; intent: string } } = {},
+  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore; campaign?: { id: string; intent: string }; authorizationTimeoutSeconds?: number } = {},
 ) {
   return async (request: NextRequest) => {
     const callerId = request.headers.get("x-radar-request-id");
@@ -111,7 +112,7 @@ export function withGateway(
     let requirements: ReturnType<typeof buildPaymentRequirements>;
     let resourceUrl: string;
     try {
-      requirements = buildPaymentRequirements(priceUsdc);
+      requirements = buildPaymentRequirements(priceUsdc, dependencies.authorizationTimeoutSeconds);
       resourceUrl = getResourceUrl(request);
     } catch (error) {
       return NextResponse.json(
@@ -167,7 +168,7 @@ export function withGateway(
         Buffer.from(signature, "base64").toString("utf8"),
       ) as PaymentPayload;
       if (!paymentPayload.payload || typeof paymentPayload.payload !== "object") throw new Error("invalid payload");
-      const offer = validateOffer({ x402Version: paymentPayload.x402Version, accepts: [paymentPayload.accepted] }, getArcConfig(), requirements.amount);
+      const offer = validateOffer({ x402Version: paymentPayload.x402Version, accepts: [paymentPayload.accepted] }, getArcConfig(), requirements.amount, requirements.maxTimeoutSeconds);
       if (offer.amountAtomic !== requirements.amount || offer.payTo.toLowerCase() !== requirements.payTo.toLowerCase()) throw new Error("payment terms changed");
       const query = new URLSearchParams(request.nextUrl.searchParams);
       query.sort();

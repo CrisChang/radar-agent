@@ -2,23 +2,25 @@
 import { useEffect, useRef, useState } from "react";
 import { createWalletClient, custom, defineChain, type EIP1193Provider } from "viem";
 import type { ArcConfig } from "@/lib/arc";
-import { CAMPAIGN_ID, SCHEDULE_SHA256, AMOUNT_TIERS, PAYMENT_SCHEDULE, STAGES, approvalMessage, dueTime, formatAtomic } from "@/lib/validation-plan";
+import { CAMPAIGN_ID, SCHEDULE_SHA256, AMOUNT_TIERS, PAYMENT_SCHEDULE, STAGES, approvalMessage, dueTime, formatAtomic, type PlannedPayment } from "@/lib/validation-plan";
 import { controlMessage } from "@/lib/validation-messages";
 import { billingMessage } from "@/lib/billing-auth";
 import { runPlannedPayment, type PrivateJournal } from "@/lib/validation-runner";
 import CampaignFunding from "./funding";
 import baseline from "@/data/mainnet-batch-baseline.json";
 import { connectedAddress, connectionError, connectionRequest, injectedWallet, type WalletChoice } from "@/lib/wallet-connection";
+import { renewRejectedAuthorization } from "@/lib/validation-renewal";
 
 interface State { stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
-interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number }
-interface Report { status: string; completed_payments: number; attempted_payments: number; http_attempts: number; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
+interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number; verification_rejections?: number; verification_rejection_reasons?: string[]; same_nonce_renewal_checks?: number }
+interface Report { status: string; completed_payments: number; attempted_payments: number; http_attempts: number | null; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
 export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig; payer: string; seller: string }) {
   const [wallet, setWallet] = useState<string>(), [state, setState] = useState<State | null>(null), [report, setReport] = useState<Report>(),
     [message, setMessage] = useState("钱包连接功能加载中…若一直停在这里，请强制刷新页面，并允许本站运行 JavaScript。"), [busy, setBusy] = useState(false),
     [consent, setConsent] = useState(false), [page, setPage] = useState(0);
   const [walletChoice, setWalletChoice] = useState<WalletChoice>("auto"), [connectedChain, setConnectedChain] = useState<number>();
   const [clientReady, setClientReady] = useState(false);
+  const [recoveryIntent, setRecoveryIntent] = useState<PlannedPayment>(), [renewalConsent, setRenewalConsent] = useState(false);
   const selectedProvider = useRef<EIP1193Provider | undefined>(undefined);
   const walletReady = wallet?.toLowerCase() === payer.toLowerCase() && connectedChain === 5042;
   const stop = useRef(false), bootId = useRef("");
@@ -42,6 +44,23 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     provider.on?.("accountsChanged", accountsChanged); provider.on?.("chainChanged", chainChanged);
     return () => { provider.removeListener?.("accountsChanged", accountsChanged); provider.removeListener?.("chainChanged", chainChanged); };
   }, [wallet, walletChoice]);
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setInterval(() => { void refresh(); }, 10_000);
+    return () => clearInterval(timer);
+  }, [busy]);
+  function journalKey(id: string) { return `radar:private-validation:${location.origin}:${payer.toLowerCase()}:${CAMPAIGN_ID}:${id}`; }
+  useEffect(() => {
+    setRecoveryIntent(undefined); setRenewalConsent(false);
+    if (!clientReady || busy || !walletReady || !state) return;
+    for (const row of PAYMENT_SCHEDULE.filter(r => r.stage === state.stage)) {
+      try {
+        const raw = localStorage.getItem(journalKey(row.planned_intent_id));
+        const saved = raw ? JSON.parse(raw) as PrivateJournal : null;
+        if (saved?.state === "unknown" && saved.paymentHeader && !saved.pendingRenewal) { setRecoveryIntent(row); break; }
+      } catch { setMessage("原付款记录无法读取，请保留本站数据并核查；不能创建替代付款。"); break; }
+    }
+  }, [clientReady, busy, walletReady, state?.stage]);
   async function refresh() {
     try {
       const response = await fetch("/api/validation/status", { cache: "no-store" });
@@ -113,7 +132,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     await navigator.locks.request(`${CAMPAIGN_ID}:${payer}`, { ifAvailable: true }, async lock => {
       if (!lock) throw new Error("另一个标签页正在运行，请不要重复启动。");
       let saveQueue = Promise.resolve();
-      const key = (id: string) => `radar:private-validation:${location.origin}:${payer.toLowerCase()}:${CAMPAIGN_ID}:${id}`;
+      const key = journalKey;
       for (const row of PAYMENT_SCHEDULE.filter(r => r.stage === current.stage)) {
         if (stop.current) { setMessage("已停止本机运行；未提交的付款不会继续。请对账。"); return; }
         const due = dueTime(row, current.stage3StartedAt);
@@ -132,6 +151,25 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       }
       setMessage("本阶段请求已完成。请点击只读对账，等待批次上链核实后再进入下一阶段。");
     });
+  }
+  async function renewOriginal() {
+    const row = recoveryIntent;
+    if (!row || !renewalConsent) throw new Error("请核对并勾选仅延长原 nonce 的授权。");
+    if (!navigator.locks) throw new Error("浏览器不支持安全运行锁，请使用更新后的 Chrome。");
+    const client = await account();
+    setMessage(`正在只读核查 ${row.planned_intent_id} 原授权。核查通过后才会要求续签，金额仍为 ${row.amount_usdc} USDC。`);
+    await navigator.locks.request(`${CAMPAIGN_ID}:${payer}`, { ifAvailable: true }, async lock => {
+      if (!lock) throw new Error("另一个标签页正在运行或续签，请勿同时操作。");
+      await renewRejectedAuthorization(row, { origin: location.origin, payer, seller, bootId: bootId.current,
+      signer: { address: payer as `0x${string}`, async signTypedData(params) {
+        await account(); setMessage(`原授权核查通过。请在钱包核对 ${row.amount_usdc} USDC，同一 nonce，仅延长有效期至约七天加一小时。此步骤不提交付款。`);
+        return client.signTypedData(params);
+      } },
+      async load(id) { const raw = localStorage.getItem(journalKey(id)); return raw ? JSON.parse(raw) as PrivateJournal : null; },
+      async save(saved) { localStorage.setItem(journalKey(saved.intent), JSON.stringify(saved)); } });
+    });
+    setRenewalConsent(false); setConsent(false); setRecoveryIntent(undefined);
+    setMessage("原 nonce 的续签已保存，尚未提交付款。重新勾选阶段预算，再点运行／继续当前阶段；已成功的付款会跳过。");
   }
   function download(name: string, value: string, mime: string) {
     const url = URL.createObjectURL(new Blob([value], { type: mime })), a = document.createElement("a");
@@ -168,7 +206,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       <p>每档 100 笔：{AMOUNT_TIERS.map(n => formatAtomic(BigInt(n))).join(" / ")} USDC。总额 <b>0.232600 USDC</b>，充值和 gas 单独确认。</p>
       <p>阶段：10 笔 / 0.002326 USDC → 90 笔 / 0.020934 USDC → 900 笔 / 0.209340 USDC。第三阶段按固定时间分散到 24 小时，不会一次全部提交。</p>
       <p>当前连接：<code>{wallet ?? "尚未连接"}</code> · 钱包网络：{connectedChain ?? "未读取"}。阶段 {state?.stage ?? 0}，累计已保留 {formatAtomic(state?.reservedAtomic ?? "0")} USDC，{state?.halted ? "已暂停" : "未暂停"}。</p>
-      <p>浏览器逐笔弹窗签名；本机保存原付款授权用于原样重试，最长约七天有效。请使用可信电脑，不要清理本站记录或在另一台电脑重新签同一笔。暂停新请求不会撤销已经签过的付款授权。</p>
+      <p>浏览器逐笔弹窗签名；新授权有效期为七天加一小时，其中一小时用于人工核对签名。付款时保留至少七天供 Gateway 批量结算。本机保存原授权用于原样重试。请使用可信电脑，不要清理本站记录或在另一台电脑重新签同一笔。暂停新请求不会撤销已经签过的授权。</p>
       <p><label>连接的钱包： <select aria-label="连接的钱包" value={walletChoice} disabled={!clientReady || busy} onChange={e => { setWalletChoice(e.target.value as WalletChoice); setWallet(undefined); setConnectedChain(undefined); setConsent(false); selectedProvider.current = undefined; setMessage("已更换钱包类型，请点击连接。历史付款记录仍保留。"); }}><option value="auto">自动选择（优先 OKX）</option><option value="okx">OKX Wallet</option><option value="ethereum">MetaMask／浏览器 EVM 钱包</option></select></label></p>
       <p className="tool-notice" role="status" aria-live="polite" aria-atomic="true">{message}</p>
       <noscript><p className="tool-notice">页面脚本未启用，钱包按钮无法工作。请在 Chrome 允许本站使用 JavaScript 后刷新。</p></noscript>
@@ -176,11 +214,16 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       <p><label><input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)}/>我已核对本阶段金额、付款和收款地址，并同意固定计划内的付款及原授权重试。</label></p>
       <div className="tool-actions">{next && <button disabled={!walletReady || busy || !consent || !!state?.halted || !!state && state.verifiedCount !== (current?.cumulativeCount ?? 0)} onClick={() => void perform(() => control("approve", next.stage))}>批准阶段 {next.stage}：{next.count} 笔 / {formatAtomic(next.amountAtomic)} USDC</button>}
       <button disabled={!walletReady || busy || !consent || !state || state.halted} onClick={() => void perform(runStage)}>运行 / 继续当前阶段</button><button disabled={!busy} onClick={() => { stop.current = true; }}>停止本机后续请求</button></div>
+      {recoveryIntent && <section className="validation-funding"><h3>恢复原授权：{recoveryIntent.planned_intent_id}</h3>
+        <p>先只读核实原授权被 Gateway 明确以有效期不足拒绝，且原 nonce 没有转账或服务端预留。通过后才能亲自续签；金额、付款编号、双方地址和 nonce 均保留，历史授权与失败记录也保留。其他失败不允许使用此入口。</p>
+        <p><label><input type="checkbox" checked={renewalConsent} disabled={busy} onChange={e => setRenewalConsent(e.target.checked)}/>我同意仅延长这笔原 nonce 授权，金额仍为 {recoveryIntent.amount_usdc} USDC，有效期约七天加一小时，不增加付款预算。</label></p>
+        <button disabled={!walletReady || busy || !renewalConsent} onClick={() => void perform(renewOriginal)}>核查并延长原授权（不提交付款）</button>
+      </section>}
       <CampaignFunding arc={arc} payer={payer} account={account} disabled={!walletReady || busy} onMessage={setMessage}/>
     </div>
     <div className="tool-card"><h2>逐笔记录 / Results</h2><p>顺序请求、跨会话、串行重放、并发重放、受控丢弃响应及真实客户端重启。失败和重试都保留；未完成项不算成功。</p>
       <div className="tool-actions"><button disabled={!report} onClick={() => download(`${CAMPAIGN_ID}-public.json`, JSON.stringify(report, null, 2), "application/json")}>下载公开结果 JSON</button>
-      <button disabled={!report} onClick={() => { const cols = ["intent", "stage", "scenario", "amount_usdc", "amount_atomic", "money_difference_atomic", "scenario_passed", "local_state", "transfer_status", "batch_hash", "proof", "http_attempts"] as const;
+      <button disabled={!report} onClick={() => { const cols = ["intent", "stage", "scenario", "amount_usdc", "amount_atomic", "money_difference_atomic", "scenario_passed", "local_state", "transfer_status", "batch_hash", "proof", "http_attempts", "verification_rejections", "verification_rejection_reasons", "same_nonce_renewal_checks"] as const;
         const csv = [cols.join(","), ...rows.map(row => cols.map(k => `"${String(row[k] ?? "").replaceAll('"', '""')}"`).join(","))].join("\r\n"); download(`${CAMPAIGN_ID}-public.csv`, csv, "text/csv"); }}>下载全部结果 CSV</button>
       <button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("receipts"))}>签名导出全部私有账单</button><button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("events"))}>签名导出全部尝试和状态事件</button></div>
       <div className="table-scroll"><table><thead><tr><th>意图 / 金额</th><th>场景 / 请求次数</th><th>服务端 / Gateway</th><th>批次 / 核查</th></tr></thead><tbody>{visible.map(row => <tr key={row.intent}><td>{row.intent}<br/>{row.amount_usdc} USDC</td><td>{row.scenario}<br/>{row.http_attempts}</td><td>{row.local_state}<br/>{row.transfer_status ?? "待核查"}</td><td>{row.batch_hash ? <a href={`${arc.explorerUrl}/tx/${row.batch_hash}`} target="_blank" rel="noreferrer">{row.batch_hash.slice(0, 12)}…</a> : "尚无批次哈希"}<br/>{row.proof}</td></tr>)}</tbody></table></div>

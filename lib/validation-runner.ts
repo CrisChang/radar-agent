@@ -3,11 +3,15 @@ import { BatchEvmScheme } from "@circle-fin/x402-batching/client";
 import { getArcConfig } from "./arc";
 import { validateOffer, assertUnchangedOffer } from "./agent-contract";
 import { CAMPAIGN_ID, PAYMENT_SCHEDULE, intentRequestId, type PlannedPayment } from "./validation-plan";
+import { CAMPAIGN_AUTH_WINDOW_SECONDS, type CampaignAuthorization } from "./validation-authorization";
 
 export interface PrivateJournal {
   campaign: string; intent: string; requestId: string; amountAtomic: string; origin: string; payer: string; seller: string;
-  state: "signature_rejected" | "signing" | "signed" | "submitted" | "restart_required" | "accepted" | "unknown";
+  state: "signature_rejected" | "signing" | "signed" | "submitted" | "restart_required" | "accepted" | "unknown" | "renewing";
   paymentHeader?: string; nonce?: string; bootId: string; responseHash?: string;
+  pendingRenewal?: CampaignAuthorization;
+  renewals?: { at: string; reason: string; originalPaymentHeader: string; renewedValidBefore: string }[];
+  lastFailure?: { status: number; reason?: string };
   attempts: { at: string; status?: number; attemptId?: string; outcome: string }[];
 }
 type Signer = ConstructorParameters<typeof BatchEvmScheme>[0];
@@ -42,19 +46,20 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
   const rejectedAttempts = journal?.state === "signature_rejected" ? journal.attempts : [];
   if (journal?.state === "signature_rejected") journal = null;
   if (journal?.state === "accepted") return { state: "accepted" as const, journal };
+  if (journal?.state === "renewing" || journal?.pendingRenewal) throw new Error("续签结果未确认；禁止提交旧授权或创建新付款，请保留记录并核查。");
   if (journal?.state === "restart_required" && journal.bootId === deps.bootId) return { state: "restart_required" as const, journal };
   if (journal && !journal.paymentHeader) throw new Error("Signing outcome unresolved. Do not create a replacement authorization");
   if (!journal) {
     const response = await fetcher(url, { headers: { "x-radar-request-id": requestId }, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(30_000) });
     if (response.status !== 402) throw new Error("Intent unavailable or already reserved; reconcile before signing");
     const raw = decode(response.headers.get("payment-required"));
-    const offer = validateOffer(raw, arc, row.amount_atomic);
+    const offer = validateOffer(raw, arc, row.amount_atomic, CAMPAIGN_AUTH_WINDOW_SECONDS);
     if (offer.amountAtomic !== row.amount_atomic || offer.payTo.toLowerCase() !== deps.seller.toLowerCase() || raw.resource?.url !== url) throw new Error("Frozen quote changed");
     journal = { campaign: CAMPAIGN_ID, intent: row.planned_intent_id, requestId, amountAtomic: row.amount_atomic,
       origin, payer: deps.payer.toLowerCase(), seller: deps.seller.toLowerCase(), state: "signing", bootId: deps.bootId, attempts: rejectedAttempts };
     await deps.save(journal);
     const scheme = new BatchEvmScheme({ address: deps.signer.address, async signTypedData(params) {
-      assertUnchangedOffer(raw.accepts[0], offer, arc);
+      assertUnchangedOffer(raw.accepts[0], offer, arc, CAMPAIGN_AUTH_WINDOW_SECONDS);
       if (params.domain.chainId !== 5042 || params.domain.name !== "GatewayWalletBatched" || params.domain.version !== "1" ||
           params.domain.verifyingContract.toLowerCase() !== arc.gatewayWallet.toLowerCase() ||
           String(params.message.from).toLowerCase() !== deps.payer.toLowerCase() || String(params.message.to).toLowerCase() !== deps.seller.toLowerCase() ||
@@ -86,7 +91,11 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
         attemptId: response.headers.get("x-radar-attempt-id") ?? undefined, outcome: discard ? "controlled_response_discard" : "http_response" });
       await deps.save(active);
       if (discard) { await response.body?.cancel(); return null; }
-      if (!response.ok) { await response.body?.cancel(); return null; }
+      if (!response.ok) {
+        let reason: string | undefined;
+        try { const text = await response.text(); if (text.length <= 4096) { const body = JSON.parse(text); if (typeof body.reason === "string" && /^[a-z][a-z0-9_]{0,99}$/.test(body.reason)) reason = body.reason; } } catch { /* HTTP status still does not imply a settlement outcome. */ }
+        active.lastFailure = { status: response.status, reason }; await deps.save(active); return null;
+      }
       const body = await response.text(), hash = await digest(body), parsed = JSON.parse(body);
       const receipt = decode(response.headers.get("payment-response"));
       if (hash !== response.headers.get("x-radar-response-sha256") || parsed.campaign_id !== CAMPAIGN_ID ||
@@ -115,7 +124,9 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
   }
   if (integrityFailure) result = null;
   active.state = result ? "accepted" : "unknown"; await deps.save(active);
-  if (!result) throw new Error("Payment outcome unresolved. Stop new payments; reconcile or replay only this saved authorization");
+  if (!result) throw new Error(active.lastFailure?.reason === "authorization_validity_too_short"
+    ? "原授权剩余有效期不足，验证阶段已拒绝。请使用下方“核查并延长原授权”，保持同一 nonce；不要清空记录或签新付款。"
+    : "Payment outcome unresolved. Stop new payments; reconcile or replay only this saved authorization");
   const spread = PAYMENT_SCHEDULE.filter(r => r.scenario === "spread_sessions");
   if (firstAttempt && row.scenario === "spread_sessions" && (spread.findIndex(r => r.planned_intent_id === row.planned_intent_id) + 1) % 20 === 0) {
     return { state: "session_checkpoint" as const, journal: active };
