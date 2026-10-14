@@ -36,9 +36,9 @@ The local buyer uses deterministic policy checks. These prototype controls do no
 
 Buyer and seller select the same network via `ARC_NETWORK=testnet|mainnet`.
 The default remains testnet. Mainnet signing requires a key matching the approved `BUYER_ADDRESS` and
-`--allow-mainnet`. Gateway
-deposits need a separate `--allow-deposit`, and live testnet treasury transfers
-need `--allow-treasury`. Mainnet treasury execution is disabled.
+`--allow-mainnet`. Gateway funding is a separately reviewed owner operation;
+the buyer never deposits automatically. Live testnet treasury transfers need
+`--allow-treasury`. Mainnet treasury execution is disabled.
 Every final payment quote is checked before signing; signed authorizations
 reserve budget even if the HTTP response is lost.
 The live feed retries once and rejects old or future-dated candles.
@@ -85,7 +85,7 @@ are ignored by git. `RADAR_STATE_DIR` can point to a dedicated durable volume.
 1. Run `npm run generate-wallet`, then put the buyer private key in
    `.env.local`. This is testnet-only.
 2. Fund the address through the Circle faucet.
-3. Deposit USDC into Gateway, or set `GATEWAY_AUTO_DEPOSIT_USDC`.
+3. Separately review and fund the wallet's Gateway balance. The buyer does not deposit automatically.
 4. Configure `SELLER_ADDRESS`.
 5. For real treasury execution, configure the Circle API key, entity secret,
    active developer-controlled wallet address and reserve address.
@@ -109,13 +109,10 @@ Executing that suggestion requires the separately enabled testnet treasury modul
 - magnitude is at least 150 basis points;
 - confidence is at least 0.90.
 
-Every money-touching action passes:
-
-- separate daily caps for data and treasury spending;
-- replay-safe action reservation before execution;
-- minimum-reserve position safety;
-- a three-failure circuit breaker;
-- an append-only JSONL audit trail.
+Data purchases check their daily budget, reserve spending before signing,
+and check available Gateway funds. Optional testnet treasury sends additionally
+use action reservations and minimum-reserve balance checks. The local agent
+also maintains a circuit breaker and an append-only JSONL audit trail.
 
 ## Verify
 
