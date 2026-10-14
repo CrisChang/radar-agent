@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Radar Agent — Autonomous signals on Arc",
+  title: "Radar Agent — Market data and payment receipts on Arc",
   description:
-    "An autonomous agent buying market signals through x402 USDC nanopayments on Arc.",
+    "USDC pay-per-query ETH/BTC data for agents, with spending checks, recoverable receipts and mainnet payment evidence on Arc.",
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 # Radar Agent Arc Microgrants demo script
 
-Record a 90 second walkthrough using the completed October 12 mainnet experiment and its saved receipt.
+Updated October 14, 2026. Record a 90-second walkthrough using the completed
+October 12 mainnet experiment, its saved receipt and the current validation report.
 Public access and real paid delivery have passed; do not purchase again for a video.
 Mainnet payment segments remain unrecorded. Do not replace them with testnet
 receipts, simulated acceptance or a Gateway reference labelled as a transaction.
@@ -11,9 +12,10 @@ receipts, simulated acceptance or a Gateway reference labelled as a transaction.
 | --- | --- | --- |
 | 0 to 15 seconds | Radar Agent homepage, Arc Mainnet badge and 0.001 USDC price | Public production domain; anonymous checks pass |
 | 15 to 30 seconds | Health metadata, fresh Coinbase timestamp and an unpaid 402 quote | Existing hosted check record; hide access cookies and credentials |
-| 30 to 55 seconds | `/pilot`: one approved wallet signature, received live signal and response digest | Use the saved real result; label an owner-controlled two-wallet test |
-| 55 to 75 seconds | `/billing`: signed receipt query and CSV export; show budget refusal | Real receipt for the approved wallet; label any budget fixture or dry run |
-| 75 to 90 seconds | Confirmed mainnet funding transaction, separately labelled Gateway acceptance, and public source | Show funding as funding; do not label acceptance as fee settlement |
+| 30 to 50 seconds | Saved `/pilot` result: live signal, amount and response digest | Explain the completed signature without initiating another purchase; label the owner-controlled two-wallet test |
+| 50 to 65 seconds | `/billing`: read-only receipt query and CSV export | Real receipt for the approved wallet; hide reusable authorization payloads |
+| 65 to 80 seconds | `/validation`: reconciliation timestamp, verified payments and scenario passes | Label the isolated payment-test campaign as in progress; no final pass claim |
+| 80 to 90 seconds | Confirmed API-fee settlement batch and public source | Show the fee batch independently from funding and Gateway acceptance |
 
 ## Chinese voiceover
 
@@ -28,8 +30,9 @@ Radar Agent 是一个给 Agent 使用的按次付费行情接口。它把公开�
 
 这个实验使用两个本人控制的钱包付款和收款，验证功能，不代表独立客户或收入。
 
-预算用完时，程序会在产生新付款前拒绝继续。这里展示的模拟或测试用例会
-明确标注，不能当成主网交易证据。
+另外在进行 1,000 笔不同金额的付款可靠性测试，总额 0.232600 USDC。
+它使用单独的付款测试回执接口，不是 1,000 次行情购买。页面分别展示链上核验
+和场景通过，多个付款可以共用一个结算批次。目前不宣称最终全部通过。
 
 〔展示已核验的批量结算回执〕最后展示确认的 Arc 主网交易和公开源码。
 本版本验证按次买信号的闭环，主网资金再平衡保持关闭。
@@ -51,8 +54,11 @@ a deterministic rule and records payment and decision events locally.
 This owner-controlled two-wallet experiment verifies functionality, not independent demand
 or revenue.
 
-When the budget is exhausted, the buyer refuses a new payment before signing.
-Any fixture or dry-run example is clearly labelled and is not chain evidence.
+A separate 1,000-payment reliability campaign is in progress across ten amounts,
+totaling 0.232600 USDC before funding gas. It uses payment-test receipts, not
+1,000 market-data purchases. The report separates chain verification from
+scenario passes. Several payments can share a settlement batch; no final pass
+is claimed while the campaign is running.
 
 [Show the independently verified batch receipt.] We finish with a confirmed Arc
 mainnet transaction and the public source. This branch demonstrates signal
@@ -63,6 +69,9 @@ purchases; mainnet treasury execution remains disabled.
 - Use https://radar-agent-ivory.vercel.app. Generated preview URLs still require login.
 - Open `/pilot` and `/billing` in the wallet browser. Inspect every signature
   yourself; never show full reusable authorization payloads in the video.
+- Show the validation report's reconciliation timestamp. Reservations or HTTP
+  acceptance are not confirmed settlement; completed-receipt concurrency
+  supplements do not prove initial-settlement races.
 - A confirmed Gateway funding transaction may be shown as funding only. Do not
   label a deposit transaction as settlement of the 0.001 USDC API fee.
 - Keep wallet screens, signing secrets, reusable payment authorizations and
@@ -71,7 +80,8 @@ purchases; mainnet treasury execution remains disabled.
 - Save the new clip as `arc-microgrants-mainnet-demo.mp4` only after the mainnet
   segments are real. An overview recorded before this completed test must retain its original
   pending label rather than pretending to show the later payment.
-- The prior demo on the main branch is historical testnet material:
+- The old checkpoint deck (`docs/deck.pdf`) and prior demo on the main branch
+  are historical testnet material, not current mainnet results:
   https://radar-agent-arc-2026.chrischang2026.workers.dev/demo.
   It may explain project history, but cannot substitute for this mainnet run.
 

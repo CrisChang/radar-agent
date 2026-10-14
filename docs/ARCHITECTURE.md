@@ -1,88 +1,128 @@
-# Architecture
+# Radar Agent architecture
 
-## Design goals
+Updated October 14, 2026. The current mainnet product is a pay-per-query market
+data service for agents and developers, with spending checks and recoverable
+payment records. It does not place exchange orders, execute mainnet treasury
+moves or calculate trading profit and loss. The earlier testnet treasury demo
+is a separate optional module.
 
-1. **Real autonomy** — the agent decides *when to spend money* (buy a signal) and *when to move money* (rebalance), based on explainable rules tied to real market signals. Not an LLM relaying human commands.
-2. **Safety before cleverness** — every fund-touching action passes the discipline layer. The agent should be boring and auditable, because it holds a wallet.
-3. **Maximal reuse of the Circle stack** — the x402/nanopayments flow, wallets, and treasury actions all use official Circle components. Our own code is the decision logic and the discipline layer.
+## Mainnet data and payment path
 
-## Components
+```text
+Agent buyer                         Vercel seller
+inspect unpaid 402 quote  <--------  advertise exact USDC price and payment terms
+check wallet/network/price/budget
+reserve local spending budget
+sign exact payment authorization
+send original authorization  ---->  verify through Circle Gateway
+                                    durable nonce/request claim in Redis
+                                    prepare fresh response and response digest
+                                    request Gateway settlement
+save response and receipt   <----  return accepted payment reference + observation
+apply deterministic rule
+record decision locally
 
-### 1. Seller: paywalled Signal API
-
-Implemented as a Next.js route using the official
-[circlefin/arc-nanopayments](https://github.com/circlefin/arc-nanopayments)
-Circle Gateway verification and settlement flow.
-
-- Endpoint `GET /api/signals/latest?symbol=ETH-USD` converts public Coinbase
-  Exchange one-minute candles into the production price-radar format:
-
-```json
-{
-  "signal_id": "pr-2026-07-22-000123",
-  "ts": "2026-07-22T09:14:03Z",
-  "type": "sharp_drop",
-  "symbol": "ETH-USD",
-  "magnitude_bps": -180,
-  "window_s": 120,
-  "confidence": 0.92
-}
+Circle Gateway accepts the payment, then settles it in a shared Arc batch.
+An HTTP success or Gateway acceptance reference is not a confirmed chain hash.
 ```
 
-- Unpaid request → HTTP 402 with payment requirements.
-- Paid request → EIP-3009 payment authorization verified against Circle
-  Gateway, response served, payment queued for batch on-chain settlement.
-- Live-feed failure → an explicit stale, non-actionable signal. Treasury
-  movement is forbidden for stale data.
+### Signal seller
 
-### 2. Buyer: Radar Agent
+`GET /api/signals/latest?symbol=ETH-USD` supports ETH-USD and BTC-USD observations
+at 0.001 USDC per query. `lib/signals.ts` derives a timestamped observation from
+public Coinbase Exchange one-minute candles and reports the actual `window_s`.
+Its live calculation requires at least three candles; a fixed two-minute demo
+fixture is not the production window. Stale, unavailable or future-dated live
+data is refused before settlement. Demo fixtures must be explicitly enabled
+and labelled; production has them disabled.
 
-TypeScript (`agent/radar.mts`). Loop:
+Circle Gateway x402 advertises the network, asset, recipient and exact price
+in an unpaid HTTP 402 response. The seller retains request/nonce claims and the
+prepared paid response in durable Redis. Exact-authorisation recovery returns
+the original content rather than substituting a newer market observation.
+Unavailable storage fails closed. See [payment recovery](PAYMENT_RECOVERY.md)
+for state transitions and unknown outcomes.
 
-```
-wake → discipline.preflight()            # position safety, budget remaining, breaker state
-     → decide whether a signal purchase is warranted (schedule + market context)
-     → pay via x402 nanopayment → receive signal
-     → decision rules (explainable):
-         e.g. sharp_drop ≥ 150bps & confidence ≥ 0.9 → shift 20% treasury USDC → reserve vault
-     → discipline.authorize(action)      # cap check + idempotency key
-     → execute via App Kit Send on Arc testnet
-     → audit.log(signal, decision, tx)   # end-to-end traceability
-     → verify settlement, reconcile balances
-```
+### Agent buyer and browser controls
 
-### 3. Discipline layer (`lib/discipline.ts`)
+`agent/radar.mts` checks the quote, configured wallet, network, recipient and
+spending policy before signing. Authorizations reserve local budget even if an
+HTTP acknowledgement is lost. The buyer verifies the delivered response and
+records a deterministic hold or suggested-rebalance decision. A rebalance
+suggestion is not a mainnet trade or transfer.
 
-Ported patterns from production trading bots:
+`/pilot` provides an owner-operated browser demonstration, while `/billing`
+provides wallet-scoped receipt reads and CSV export using a five-minute read-only
+signature. These pages support inspection and recovery; the intended API users
+are other agents and developers. The fixed one-query owner pilot and its spent
+budget remain separate from the reliability campaign.
 
-- `SpendingCap` — separate daily budgets for data purchases vs. treasury moves; hard refuse on breach.
-- `IdempotencyGuard` — deterministic action keys (date + signal_id + action type); persisted; replay-safe.
-- `PositionSafety` — requires a reconciled active-wallet balance and preserves
-  a configured minimum reserve before any App Kit send.
-- `CircuitBreaker` — N consecutive failures or anomalous signal rate → halt, require human reset.
-- `AuditLog` — append-only JSONL; every entry links signal → decision → tx hash.
+The local discipline layer implements spending reservations, deterministic
+action keys, a circuit breaker and a local JSONL audit. Treasury-only reserve
+and balance checks apply to the optional testnet module. These are prototype
+software controls, not cryptographic restrictions on a wallet key or a claim
+that every possible duplicate, outage or storage failure has been eliminated.
 
-### 4. Treasury actions
+## Separate reliability campaign
 
-Circle App Kit Send against Arc testnet. The current MVP action set is
-deliberately small:
+`/validation` reports a staged 1,000-payment campaign across ten fixed amount
+tiers, totaling 0.232600 USDC before funding gas. Its isolated
+`/api/validation/payment` endpoint returns payment-test receipts. These payments
+are neither 1,000 market-signal purchases nor exchange trades. Both wallets are
+controlled by the owner, so the campaign does not measure customer demand or
+independent revenue.
 
-- `rebalance_to_reserve(amount)` — move a capped amount of USDC between the
-  developer-controlled active and reserve wallets.
+The schedule, stage budgets, durable reservations and original authorizations
+bind each intent. Stage three spreads 900 payments over at least 24 hours.
+An optional owner-run local signer removes repeated browser prompts while
+retaining those limits; the key stays on the owner's computer. Vercel handles
+individual requests and does not run the 24-hour client loop.
 
-## Trust & failure model
+The campaign exercises sequential requests, spread sessions, identical-header
+replays, controlled response loss and real client restarts. Reconciliation
+matches Gateway records to each payment and independently verifies Arc batch
+receipts and aggregate wallet deltas. Multiple payments can share a batch hash.
+Per-payment attribution depends on Gateway records; chain evidence independently
+proves the batch's aggregate changes, not each offchain authorization.
 
-- Agent keys live in env, never in the repo. Testnet only for the hackathon.
-- The seller cannot drain the buyer: nanopayment authorizations are amount-bounded per query.
-- The agent cannot drain itself: caps are enforced locally *before* signing anything.
-- Every failure path ends in either a safe retry (bounded) or a halted agent + human alert — never a silent partial state.
+Public results separate accepted payments, chain-verified payments and scenario
+passes. Supplemental concurrent retrieval of an already settled receipt is
+labelled `settled_receipt_replay`; it does not prove an initial-settlement race.
+Observed failures remain in the record. The campaign is in progress as of this
+update, and no final 1,000-payment pass is claimed. See the
+[live report](https://radar-agent-ivory.vercel.app/validation) and
+[campaign runbook](MAINNET_VALIDATION.md).
 
-## Judging-criteria mapping
+## Settlement, trust and costs
 
-| Criterion | Where |
-|---|---|
-| Clear decision logic tied to real signals | `lib/decision.ts` + Coinbase candle signal |
-| Autonomous spending / settlement in USDC | x402 signal purchases + App Kits treasury actions |
-| Agent Stack usage | wallet + payment wiring |
-| Nanopayments / App Kits usage | seller paywall + treasury execution |
-| Why Arc | sub-cent per-query payments only economical with USDC gas + sub-second settlement |
+- Arc Mainnet uses chain 5042 and USDC for gas. Gateway payment authorizations
+  are offchain signatures; funding and other onchain transactions have separate
+  gas costs. This is not a zero-fee service claim.
+- API acceptance references, Gateway completion, funding transaction hashes and
+  verified fee-settlement batch hashes are distinct evidence fields.
+- Unknown outcomes retain reservations and require reconciliation or replay of
+  the saved original authorization. Recovery does not silently create a new
+  nonce or assume that a timeout means no payment occurred.
+- Buyer keys remain local. Server storage, provider availability, RPC evidence
+  and the owner's private journal are operational dependencies.
+- Public reports omit reusable signatures and private request details. Logs and
+  snapshots are operator-controlled records, not independently immutable logs.
+
+The October 12 baseline completed one real 0.001 USDC ETH observation purchase
+between two distinct owner-controlled wallets, with a matching response digest,
+authenticated receipt reads, owner-confirmed CSV export and an independently
+checked Arc settlement batch. CSV file contents were not independently inspected.
+The [baseline evidence](mainnet-pilot-2026-10-12.json) is retained separately from
+the campaign; it is not a production-readiness or customer-revenue claim.
+
+## Historical testnet treasury module
+
+The earlier Encode Club × Circle hackathon prototype uses Circle App Kit Send
+to move a capped amount of USDC from a developer-controlled active wallet to a
+reserve wallet on Arc Testnet. It requires separate configuration and explicit
+treasury permission. Mainnet treasury execution remains disabled.
+
+The original testnet demo, checkpoint deck and September implementation explain
+the project's history. They do not document the October mainnet product or
+replace its current payment evidence. See [the submission pack](ARC_MICROGRANTS.md)
+for the current scope and links.

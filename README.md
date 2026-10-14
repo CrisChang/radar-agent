@@ -1,16 +1,17 @@
 # Radar Agent
 
-> An agent commerce prototype with USDC per-query market signals,
-> deterministic spending checks and a local buyer audit. Mainnet treasury
-> execution remains disabled in this October Vercel branch.
+> Pay-per-query ETH/BTC market data for other agents and developers, with
+> USDC spending checks, recoverable payment records and wallet-scoped billing.
+> Mainnet exchange trading and treasury execution are not part of this service.
 
 Originally built for the **Encode Club × Circle [Programmable Money Hackathon](https://www.encodeclub.com/programmes/arc-hackathon)** — Agentic Economy track, July–August 2026.
 Continued for **[Arc Microgrants](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq)** in October 2026. See [the submission and deployment pack](docs/ARC_MICROGRANTS.md).
 
 ## Working MVP
 
-Radar Agent is a two-sided agentic-economy demo on
-[Arc](https://docs.arc.io/):
+Radar Agent connects a market-data seller and an agent buyer on
+[Arc](https://docs.arc.io/). Browser pages provide an owner-operated pilot,
+receipt inspection and reliability testing:
 
 - **Seller** — `GET /api/signals/latest` converts public Coinbase Exchange
   candles into a price-radar signal and protects it with Circle Gateway x402.
@@ -27,11 +28,11 @@ The local buyer uses deterministic policy checks. These prototype controls do no
 
 | Guard | What it does |
 |---|---|
-| **Spending cap** | Hard daily budget for signal purchases and treasury moves. Exceed → refuse before signing. |
-| **Idempotency** | Every action carries a deterministic key; the same decision can never execute twice. |
-| **Position safety** | Refuses to act if unexpected balances/positions exist that the agent didn't create. |
+| **Spending cap** | Separate daily budgets for data purchases and optional testnet treasury moves; refuse before signing above the cap. |
+| **Idempotency** | Persistent action keys and reservations block known duplicate execution; uncertain outcomes require recovery. |
+| **Position safety** | Optional testnet sends require a configured reconciled balance and preserve the minimum reserve. |
 | **Circuit breaker** | Consecutive failures or anomalous signal patterns → agent halts until a manual reset. |
-| **Audit trail** | Every signal purchase, decision, and settlement is logged and traceable end-to-end. |
+| **Audit trail** | Local records link purchases and decisions; Gateway acceptance and independently checked chain settlement remain distinct evidence. |
 
 Buyer and seller select the same network via `ARC_NETWORK=testnet|mainnet`.
 The default remains testnet. Mainnet signing requires a key matching the approved `BUYER_ADDRESS` and
@@ -100,7 +101,8 @@ npm run agent -- --demo-signal
 
 ## Decision and discipline
 
-The default rule rebalances only when all conditions are true:
+The default rule suggests a rebalance only when all conditions are true.
+Executing that suggestion requires the separately enabled testnet treasury module:
 
 - the feed is fresh;
 - signal type is `sharp_drop`;
@@ -123,7 +125,7 @@ npm run typecheck
 npm run build
 ```
 
-## Roadmap (hackathon checkpoints)
+## Historical roadmap (July–August hackathon checkpoints)
 
 - [x] **Checkpoint 1 (Jul 19)** — project, team, idea
 - [x] **Checkpoint 2 (Jul 26)** — architecture and discipline-layer skeleton
@@ -139,7 +141,7 @@ lib/                live signal feed, x402 wrapper, rules and discipline
 agent/radar.mts      autonomous buyer + Circle App Kit executor
 agent/discipline/    original Python discipline reference
 tests/               deterministic rule and safety tests
-docs/                architecture and checkpoint deck
+docs/                current architecture, submission materials and historical deck
 ```
 
 ## Status
@@ -149,9 +151,9 @@ The October Arc mainnet continuation is public at
 The reviewed source is on `codex/arc-microgrants`; the main branch retains
 historical testnet media and the September implementation.
 
-Validated October 12, 2026: 70 tests, TypeScript and the production build pass.
-Sixteen anonymous cloud checks pass, including fresh Coinbase data, retained
-Free Upstash Redis readiness, Arc mainnet 402 quotes, funding simulation and
+Historical validation baseline, October 12, 2026 (`e01709c`): 70 tests,
+TypeScript, the production build and sixteen anonymous cloud checks passed,
+including fresh Coinbase data, retained Free Upstash Redis readiness, Arc mainnet 402 quotes, funding simulation and
 preview login protection. See the
 [public deployment evidence](docs/deployment-public-vercel-2026-10-12.json).
 No owner signature, funding transaction or paid response was used by those checks.
@@ -174,8 +176,10 @@ video is optional in the application form.
 
 Application prose, recording script and submission status are in the
 [Arc Microgrants materials](docs/submission/ARC_MICROGRANTS_APPLICATION.md).
-The old testnet video and transactions are historical evidence only. The
-checkpoints above record the original hackathon, not current deadlines.
+The old testnet video, checkpoint deck (`docs/deck.pdf`) and transactions are
+historical evidence only. Use the October application and architecture for
+the current mainnet scope; do not present the old deck as current mainnet
+results. The checkpoints above record the original hackathon, not current deadlines.
 
 ## License
 
@@ -207,7 +211,8 @@ See [Agent integration](docs/AGENT_INTEGRATION.md),
 [payment recovery](docs/PAYMENT_RECOVERY.md), and the
 [mainnet pilot runbook](docs/PILOT_RUNBOOK.md).
 Earlier October 9 deployment evidence is historical; the October 12 public
-record contains the current hosting configuration and verification results.
+record contains the October 12 hosting and verification snapshot, not the
+current campaign totals or current full-suite test count.
 
 The owner pilot supports one explicit recovery attempt after an authenticated
 missing-receipt query. The previous request stays recorded. An atomic Redis
@@ -224,4 +229,23 @@ chain; older failed self-transfer reservations are retained, not cleared.
 
 ## Mainnet reliability validation
 
-The [validation page](https://radar-agent-ivory.vercel.app/validation) publishes honest campaign progress, per-payment batch attribution and aggregate chain reconciliation. The new 1,000-payment campaign has ten fixed amount tiers and a 0.232600 USDC payment budget; it starts only after owner wallet approvals. The earlier successful pilot is a separate baseline and is excluded. See [the runbook](docs/MAINNET_VALIDATION.md) for staged execution, bounded funding, local signer options, replay/restart tests and full exports.
+As of October 14, 2026, the staged 1,000-payment campaign is in progress after
+owner approval. The [validation page](https://radar-agent-ivory.vercel.app/validation)
+shows current reservations and the timestamp of the last reconciliation report;
+accepted requests are not automatically counted as chain-verified payments.
+
+Ten fixed amount tiers total **0.232600 USDC**, before separate funding gas.
+The isolated payment-test receipt endpoint is not 1,000 market-signal purchases
+or exchange trades. The earlier successful pilot is excluded from the campaign.
+Both wallets belong to the owner, so these are functional reliability tests,
+not customer revenue or adoption.
+
+Gateway records attribute each payment to a batch. Arc receipts independently
+verify batch success and aggregate wallet deltas; several payments can share
+one chain hash. Reports separate payment verification from scenario passes
+and retain observed failures. Supplemental concurrent replay of settled receipts
+does not prove initial-settlement concurrency. No final 1,000-payment pass or
+zero-difference conclusion is claimed while the campaign is running.
+
+See [the runbook](docs/MAINNET_VALIDATION.md) for staged execution, bounded
+funding, local signer options, replay/restart tests and complete exports.
