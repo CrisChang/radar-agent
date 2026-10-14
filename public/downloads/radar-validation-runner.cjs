@@ -1,4 +1,4 @@
-// Radar Agent owner-run local runner v1. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
+// Radar Agent owner-run local runner 2026-10-14-proxy-v2. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -32008,11 +32008,1109 @@ var init_esm2 = __esm({
   }
 });
 
+// node_modules/ms/index.js
+var require_ms = __commonJS({
+  "node_modules/ms/index.js"(exports2, module2) {
+    var s = 1e3;
+    var m = s * 60;
+    var h = m * 60;
+    var d = h * 24;
+    var w = d * 7;
+    var y = d * 365.25;
+    module2.exports = function(val, options) {
+      options = options || {};
+      var type = typeof val;
+      if (type === "string" && val.length > 0) {
+        return parse(val);
+      } else if (type === "number" && isFinite(val)) {
+        return options.long ? fmtLong(val) : fmtShort(val);
+      }
+      throw new Error(
+        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
+      );
+    };
+    function parse(str) {
+      str = String(str);
+      if (str.length > 100) {
+        return;
+      }
+      var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+        str
+      );
+      if (!match) {
+        return;
+      }
+      var n = parseFloat(match[1]);
+      var type = (match[2] || "ms").toLowerCase();
+      switch (type) {
+        case "years":
+        case "year":
+        case "yrs":
+        case "yr":
+        case "y":
+          return n * y;
+        case "weeks":
+        case "week":
+        case "w":
+          return n * w;
+        case "days":
+        case "day":
+        case "d":
+          return n * d;
+        case "hours":
+        case "hour":
+        case "hrs":
+        case "hr":
+        case "h":
+          return n * h;
+        case "minutes":
+        case "minute":
+        case "mins":
+        case "min":
+        case "m":
+          return n * m;
+        case "seconds":
+        case "second":
+        case "secs":
+        case "sec":
+        case "s":
+          return n * s;
+        case "milliseconds":
+        case "millisecond":
+        case "msecs":
+        case "msec":
+        case "ms":
+          return n;
+        default:
+          return void 0;
+      }
+    }
+    function fmtShort(ms) {
+      var msAbs = Math.abs(ms);
+      if (msAbs >= d) {
+        return Math.round(ms / d) + "d";
+      }
+      if (msAbs >= h) {
+        return Math.round(ms / h) + "h";
+      }
+      if (msAbs >= m) {
+        return Math.round(ms / m) + "m";
+      }
+      if (msAbs >= s) {
+        return Math.round(ms / s) + "s";
+      }
+      return ms + "ms";
+    }
+    function fmtLong(ms) {
+      var msAbs = Math.abs(ms);
+      if (msAbs >= d) {
+        return plural(ms, msAbs, d, "day");
+      }
+      if (msAbs >= h) {
+        return plural(ms, msAbs, h, "hour");
+      }
+      if (msAbs >= m) {
+        return plural(ms, msAbs, m, "minute");
+      }
+      if (msAbs >= s) {
+        return plural(ms, msAbs, s, "second");
+      }
+      return ms + " ms";
+    }
+    function plural(ms, msAbs, n, name) {
+      var isPlural = msAbs >= n * 1.5;
+      return Math.round(ms / n) + " " + name + (isPlural ? "s" : "");
+    }
+  }
+});
+
+// node_modules/debug/src/common.js
+var require_common = __commonJS({
+  "node_modules/debug/src/common.js"(exports2, module2) {
+    function setup(env) {
+      createDebug.debug = createDebug;
+      createDebug.default = createDebug;
+      createDebug.coerce = coerce;
+      createDebug.disable = disable;
+      createDebug.enable = enable;
+      createDebug.enabled = enabled;
+      createDebug.humanize = require_ms();
+      createDebug.destroy = destroy;
+      Object.keys(env).forEach((key) => {
+        createDebug[key] = env[key];
+      });
+      createDebug.names = [];
+      createDebug.skips = [];
+      createDebug.formatters = {};
+      function selectColor(namespace) {
+        let hash3 = 0;
+        for (let i = 0; i < namespace.length; i++) {
+          hash3 = (hash3 << 5) - hash3 + namespace.charCodeAt(i);
+          hash3 |= 0;
+        }
+        return createDebug.colors[Math.abs(hash3) % createDebug.colors.length];
+      }
+      createDebug.selectColor = selectColor;
+      function createDebug(namespace) {
+        let prevTime;
+        let enableOverride = null;
+        let namespacesCache;
+        let enabledCache;
+        function debug(...args) {
+          if (!debug.enabled) {
+            return;
+          }
+          const self2 = debug;
+          const curr = Number(/* @__PURE__ */ new Date());
+          const ms = curr - (prevTime || curr);
+          self2.diff = ms;
+          self2.prev = prevTime;
+          self2.curr = curr;
+          prevTime = curr;
+          args[0] = createDebug.coerce(args[0]);
+          if (typeof args[0] !== "string") {
+            args.unshift("%O");
+          }
+          let index2 = 0;
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format2) => {
+            if (match === "%%") {
+              return "%";
+            }
+            index2++;
+            const formatter = createDebug.formatters[format2];
+            if (typeof formatter === "function") {
+              const val = args[index2];
+              match = formatter.call(self2, val);
+              args.splice(index2, 1);
+              index2--;
+            }
+            return match;
+          });
+          createDebug.formatArgs.call(self2, args);
+          const logFn = self2.log || createDebug.log;
+          logFn.apply(self2, args);
+        }
+        debug.namespace = namespace;
+        debug.useColors = createDebug.useColors();
+        debug.color = createDebug.selectColor(namespace);
+        debug.extend = extend;
+        debug.destroy = createDebug.destroy;
+        Object.defineProperty(debug, "enabled", {
+          enumerable: true,
+          configurable: false,
+          get: () => {
+            if (enableOverride !== null) {
+              return enableOverride;
+            }
+            if (namespacesCache !== createDebug.namespaces) {
+              namespacesCache = createDebug.namespaces;
+              enabledCache = createDebug.enabled(namespace);
+            }
+            return enabledCache;
+          },
+          set: (v) => {
+            enableOverride = v;
+          }
+        });
+        if (typeof createDebug.init === "function") {
+          createDebug.init(debug);
+        }
+        return debug;
+      }
+      function extend(namespace, delimiter) {
+        const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+        newDebug.log = this.log;
+        return newDebug;
+      }
+      function enable(namespaces) {
+        createDebug.save(namespaces);
+        createDebug.namespaces = namespaces;
+        createDebug.names = [];
+        createDebug.skips = [];
+        const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+        for (const ns of split2) {
+          if (ns[0] === "-") {
+            createDebug.skips.push(ns.slice(1));
+          } else {
+            createDebug.names.push(ns);
+          }
+        }
+      }
+      function matchesTemplate(search, template) {
+        let searchIndex = 0;
+        let templateIndex = 0;
+        let starIndex = -1;
+        let matchIndex = 0;
+        while (searchIndex < search.length) {
+          if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
+            if (template[templateIndex] === "*") {
+              starIndex = templateIndex;
+              matchIndex = searchIndex;
+              templateIndex++;
+            } else {
+              searchIndex++;
+              templateIndex++;
+            }
+          } else if (starIndex !== -1) {
+            templateIndex = starIndex + 1;
+            matchIndex++;
+            searchIndex = matchIndex;
+          } else {
+            return false;
+          }
+        }
+        while (templateIndex < template.length && template[templateIndex] === "*") {
+          templateIndex++;
+        }
+        return templateIndex === template.length;
+      }
+      function disable() {
+        const namespaces = [
+          ...createDebug.names,
+          ...createDebug.skips.map((namespace) => "-" + namespace)
+        ].join(",");
+        createDebug.enable("");
+        return namespaces;
+      }
+      function enabled(name) {
+        for (const skip of createDebug.skips) {
+          if (matchesTemplate(name, skip)) {
+            return false;
+          }
+        }
+        for (const ns of createDebug.names) {
+          if (matchesTemplate(name, ns)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      function coerce(val) {
+        if (val instanceof Error) {
+          return val.stack || val.message;
+        }
+        return val;
+      }
+      function destroy() {
+        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+      }
+      createDebug.enable(createDebug.load());
+      return createDebug;
+    }
+    module2.exports = setup;
+  }
+});
+
+// node_modules/debug/src/browser.js
+var require_browser = __commonJS({
+  "node_modules/debug/src/browser.js"(exports2, module2) {
+    exports2.formatArgs = formatArgs;
+    exports2.save = save;
+    exports2.load = load;
+    exports2.useColors = useColors;
+    exports2.storage = localstorage();
+    exports2.destroy = /* @__PURE__ */ (() => {
+      let warned = false;
+      return () => {
+        if (!warned) {
+          warned = true;
+          console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+        }
+      };
+    })();
+    exports2.colors = [
+      "#0000CC",
+      "#0000FF",
+      "#0033CC",
+      "#0033FF",
+      "#0066CC",
+      "#0066FF",
+      "#0099CC",
+      "#0099FF",
+      "#00CC00",
+      "#00CC33",
+      "#00CC66",
+      "#00CC99",
+      "#00CCCC",
+      "#00CCFF",
+      "#3300CC",
+      "#3300FF",
+      "#3333CC",
+      "#3333FF",
+      "#3366CC",
+      "#3366FF",
+      "#3399CC",
+      "#3399FF",
+      "#33CC00",
+      "#33CC33",
+      "#33CC66",
+      "#33CC99",
+      "#33CCCC",
+      "#33CCFF",
+      "#6600CC",
+      "#6600FF",
+      "#6633CC",
+      "#6633FF",
+      "#66CC00",
+      "#66CC33",
+      "#9900CC",
+      "#9900FF",
+      "#9933CC",
+      "#9933FF",
+      "#99CC00",
+      "#99CC33",
+      "#CC0000",
+      "#CC0033",
+      "#CC0066",
+      "#CC0099",
+      "#CC00CC",
+      "#CC00FF",
+      "#CC3300",
+      "#CC3333",
+      "#CC3366",
+      "#CC3399",
+      "#CC33CC",
+      "#CC33FF",
+      "#CC6600",
+      "#CC6633",
+      "#CC9900",
+      "#CC9933",
+      "#CCCC00",
+      "#CCCC33",
+      "#FF0000",
+      "#FF0033",
+      "#FF0066",
+      "#FF0099",
+      "#FF00CC",
+      "#FF00FF",
+      "#FF3300",
+      "#FF3333",
+      "#FF3366",
+      "#FF3399",
+      "#FF33CC",
+      "#FF33FF",
+      "#FF6600",
+      "#FF6633",
+      "#FF9900",
+      "#FF9933",
+      "#FFCC00",
+      "#FFCC33"
+    ];
+    function useColors() {
+      if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
+        return true;
+      }
+      if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+        return false;
+      }
+      let m;
+      return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // Is firebug? http://stackoverflow.com/a/398120/376773
+      typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || // Is firefox >= v31?
+      // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+      typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
+      typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+    }
+    function formatArgs(args) {
+      args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module2.exports.humanize(this.diff);
+      if (!this.useColors) {
+        return;
+      }
+      const c = "color: " + this.color;
+      args.splice(1, 0, c, "color: inherit");
+      let index2 = 0;
+      let lastC = 0;
+      args[0].replace(/%[a-zA-Z%]/g, (match) => {
+        if (match === "%%") {
+          return;
+        }
+        index2++;
+        if (match === "%c") {
+          lastC = index2;
+        }
+      });
+      args.splice(lastC, 0, c);
+    }
+    exports2.log = console.debug || console.log || (() => {
+    });
+    function save(namespaces) {
+      try {
+        if (namespaces) {
+          exports2.storage.setItem("debug", namespaces);
+        } else {
+          exports2.storage.removeItem("debug");
+        }
+      } catch (error) {
+      }
+    }
+    function load() {
+      let r;
+      try {
+        r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
+      } catch (error) {
+      }
+      if (!r && typeof process !== "undefined" && "env" in process) {
+        r = process.env.DEBUG;
+      }
+      return r;
+    }
+    function localstorage() {
+      try {
+        return localStorage;
+      } catch (error) {
+      }
+    }
+    module2.exports = require_common()(exports2);
+    var { formatters: formatters2 } = module2.exports;
+    formatters2.j = function(v) {
+      try {
+        return JSON.stringify(v);
+      } catch (error) {
+        return "[UnexpectedJSONParseError]: " + error.message;
+      }
+    };
+  }
+});
+
+// node_modules/debug/src/node.js
+var require_node = __commonJS({
+  "node_modules/debug/src/node.js"(exports2, module2) {
+    var tty = require("tty");
+    var util = require("util");
+    exports2.init = init;
+    exports2.log = log;
+    exports2.formatArgs = formatArgs;
+    exports2.save = save;
+    exports2.load = load;
+    exports2.useColors = useColors;
+    exports2.destroy = util.deprecate(
+      () => {
+      },
+      "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`."
+    );
+    exports2.colors = [6, 2, 3, 4, 5, 1];
+    try {
+      const supportsColor = require("supports-color");
+      if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+        exports2.colors = [
+          20,
+          21,
+          26,
+          27,
+          32,
+          33,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          56,
+          57,
+          62,
+          63,
+          68,
+          69,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          92,
+          93,
+          98,
+          99,
+          112,
+          113,
+          128,
+          129,
+          134,
+          135,
+          148,
+          149,
+          160,
+          161,
+          162,
+          163,
+          164,
+          165,
+          166,
+          167,
+          168,
+          169,
+          170,
+          171,
+          172,
+          173,
+          178,
+          179,
+          184,
+          185,
+          196,
+          197,
+          198,
+          199,
+          200,
+          201,
+          202,
+          203,
+          204,
+          205,
+          206,
+          207,
+          208,
+          209,
+          214,
+          215,
+          220,
+          221
+        ];
+      }
+    } catch (error) {
+    }
+    exports2.inspectOpts = Object.keys(process.env).filter((key) => {
+      return /^debug_/i.test(key);
+    }).reduce((obj, key) => {
+      const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
+        return k.toUpperCase();
+      });
+      let val = process.env[key];
+      if (/^(yes|on|true|enabled)$/i.test(val)) {
+        val = true;
+      } else if (/^(no|off|false|disabled)$/i.test(val)) {
+        val = false;
+      } else if (val === "null") {
+        val = null;
+      } else {
+        val = Number(val);
+      }
+      obj[prop] = val;
+      return obj;
+    }, {});
+    function useColors() {
+      return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+    }
+    function formatArgs(args) {
+      const { namespace: name, useColors: useColors2 } = this;
+      if (useColors2) {
+        const c = this.color;
+        const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
+        const prefix = `  ${colorCode};1m${name} \x1B[0m`;
+        args[0] = prefix + args[0].split("\n").join("\n" + prefix);
+        args.push(colorCode + "m+" + module2.exports.humanize(this.diff) + "\x1B[0m");
+      } else {
+        args[0] = getDate() + name + " " + args[0];
+      }
+    }
+    function getDate() {
+      if (exports2.inspectOpts.hideDate) {
+        return "";
+      }
+      return (/* @__PURE__ */ new Date()).toISOString() + " ";
+    }
+    function log(...args) {
+      return process.stderr.write(util.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
+    }
+    function save(namespaces) {
+      if (namespaces) {
+        process.env.DEBUG = namespaces;
+      } else {
+        delete process.env.DEBUG;
+      }
+    }
+    function load() {
+      return process.env.DEBUG;
+    }
+    function init(debug) {
+      debug.inspectOpts = {};
+      const keys = Object.keys(exports2.inspectOpts);
+      for (let i = 0; i < keys.length; i++) {
+        debug.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
+      }
+    }
+    module2.exports = require_common()(exports2);
+    var { formatters: formatters2 } = module2.exports;
+    formatters2.o = function(v) {
+      this.inspectOpts.colors = this.useColors;
+      return util.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
+    };
+    formatters2.O = function(v) {
+      this.inspectOpts.colors = this.useColors;
+      return util.inspect(v, this.inspectOpts);
+    };
+  }
+});
+
+// node_modules/debug/src/index.js
+var require_src = __commonJS({
+  "node_modules/debug/src/index.js"(exports2, module2) {
+    if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
+      module2.exports = require_browser();
+    } else {
+      module2.exports = require_node();
+    }
+  }
+});
+
+// node_modules/agent-base/dist/src/promisify.js
+var require_promisify = __commonJS({
+  "node_modules/agent-base/dist/src/promisify.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    function promisify2(fn) {
+      return function(req, opts) {
+        return new Promise((resolve2, reject) => {
+          fn.call(this, req, opts, (err, rtn) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve2(rtn);
+            }
+          });
+        });
+      };
+    }
+    exports2.default = promisify2;
+  }
+});
+
+// node_modules/agent-base/dist/src/index.js
+var require_src2 = __commonJS({
+  "node_modules/agent-base/dist/src/index.js"(exports2, module2) {
+    "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod3) {
+      return mod3 && mod3.__esModule ? mod3 : { "default": mod3 };
+    };
+    var events_1 = require("events");
+    var debug_1 = __importDefault(require_src());
+    var promisify_1 = __importDefault(require_promisify());
+    var debug = debug_1.default("agent-base");
+    function isAgent(v) {
+      return Boolean(v) && typeof v.addRequest === "function";
+    }
+    function isSecureEndpoint() {
+      const { stack } = new Error();
+      if (typeof stack !== "string")
+        return false;
+      return stack.split("\n").some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
+    }
+    function createAgent(callback, opts) {
+      return new createAgent.Agent(callback, opts);
+    }
+    (function(createAgent2) {
+      class Agent extends events_1.EventEmitter {
+        constructor(callback, _opts) {
+          super();
+          let opts = _opts;
+          if (typeof callback === "function") {
+            this.callback = callback;
+          } else if (callback) {
+            opts = callback;
+          }
+          this.timeout = null;
+          if (opts && typeof opts.timeout === "number") {
+            this.timeout = opts.timeout;
+          }
+          this.maxFreeSockets = 1;
+          this.maxSockets = 1;
+          this.maxTotalSockets = Infinity;
+          this.sockets = {};
+          this.freeSockets = {};
+          this.requests = {};
+          this.options = {};
+        }
+        get defaultPort() {
+          if (typeof this.explicitDefaultPort === "number") {
+            return this.explicitDefaultPort;
+          }
+          return isSecureEndpoint() ? 443 : 80;
+        }
+        set defaultPort(v) {
+          this.explicitDefaultPort = v;
+        }
+        get protocol() {
+          if (typeof this.explicitProtocol === "string") {
+            return this.explicitProtocol;
+          }
+          return isSecureEndpoint() ? "https:" : "http:";
+        }
+        set protocol(v) {
+          this.explicitProtocol = v;
+        }
+        callback(req, opts, fn) {
+          throw new Error('"agent-base" has no default implementation, you must subclass and override `callback()`');
+        }
+        /**
+         * Called by node-core's "_http_client.js" module when creating
+         * a new HTTP request with this Agent instance.
+         *
+         * @api public
+         */
+        addRequest(req, _opts) {
+          const opts = Object.assign({}, _opts);
+          if (typeof opts.secureEndpoint !== "boolean") {
+            opts.secureEndpoint = isSecureEndpoint();
+          }
+          if (opts.host == null) {
+            opts.host = "localhost";
+          }
+          if (opts.port == null) {
+            opts.port = opts.secureEndpoint ? 443 : 80;
+          }
+          if (opts.protocol == null) {
+            opts.protocol = opts.secureEndpoint ? "https:" : "http:";
+          }
+          if (opts.host && opts.path) {
+            delete opts.path;
+          }
+          delete opts.agent;
+          delete opts.hostname;
+          delete opts._defaultAgent;
+          delete opts.defaultPort;
+          delete opts.createConnection;
+          req._last = true;
+          req.shouldKeepAlive = false;
+          let timedOut = false;
+          let timeoutId = null;
+          const timeoutMs = opts.timeout || this.timeout;
+          const onerror = (err) => {
+            if (req._hadError)
+              return;
+            req.emit("error", err);
+            req._hadError = true;
+          };
+          const ontimeout = () => {
+            timeoutId = null;
+            timedOut = true;
+            const err = new Error(`A "socket" was not created for HTTP request before ${timeoutMs}ms`);
+            err.code = "ETIMEOUT";
+            onerror(err);
+          };
+          const callbackError = (err) => {
+            if (timedOut)
+              return;
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
+            onerror(err);
+          };
+          const onsocket = (socket) => {
+            if (timedOut)
+              return;
+            if (timeoutId != null) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
+            if (isAgent(socket)) {
+              debug("Callback returned another Agent instance %o", socket.constructor.name);
+              socket.addRequest(req, opts);
+              return;
+            }
+            if (socket) {
+              socket.once("free", () => {
+                this.freeSocket(socket, opts);
+              });
+              req.onSocket(socket);
+              return;
+            }
+            const err = new Error(`no Duplex stream was returned to agent-base for \`${req.method} ${req.path}\``);
+            onerror(err);
+          };
+          if (typeof this.callback !== "function") {
+            onerror(new Error("`callback` is not defined"));
+            return;
+          }
+          if (!this.promisifiedCallback) {
+            if (this.callback.length >= 3) {
+              debug("Converting legacy callback function to promise");
+              this.promisifiedCallback = promisify_1.default(this.callback);
+            } else {
+              this.promisifiedCallback = this.callback;
+            }
+          }
+          if (typeof timeoutMs === "number" && timeoutMs > 0) {
+            timeoutId = setTimeout(ontimeout, timeoutMs);
+          }
+          if ("port" in opts && typeof opts.port !== "number") {
+            opts.port = Number(opts.port);
+          }
+          try {
+            debug("Resolving socket for %o request: %o", opts.protocol, `${req.method} ${req.path}`);
+            Promise.resolve(this.promisifiedCallback(req, opts)).then(onsocket, callbackError);
+          } catch (err) {
+            Promise.reject(err).catch(callbackError);
+          }
+        }
+        freeSocket(socket, opts) {
+          debug("Freeing socket %o %o", socket.constructor.name, opts);
+          socket.destroy();
+        }
+        destroy() {
+          debug("Destroying agent %o", this.constructor.name);
+        }
+      }
+      createAgent2.Agent = Agent;
+      createAgent2.prototype = createAgent2.Agent.prototype;
+    })(createAgent || (createAgent = {}));
+    module2.exports = createAgent;
+  }
+});
+
+// node_modules/https-proxy-agent/dist/parse-proxy-response.js
+var require_parse_proxy_response = __commonJS({
+  "node_modules/https-proxy-agent/dist/parse-proxy-response.js"(exports2) {
+    "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod3) {
+      return mod3 && mod3.__esModule ? mod3 : { "default": mod3 };
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    var debug_1 = __importDefault(require_src());
+    var debug = debug_1.default("https-proxy-agent:parse-proxy-response");
+    function parseProxyResponse(socket) {
+      return new Promise((resolve2, reject) => {
+        let buffersLength = 0;
+        const buffers = [];
+        function read() {
+          const b = socket.read();
+          if (b)
+            ondata(b);
+          else
+            socket.once("readable", read);
+        }
+        function cleanup() {
+          socket.removeListener("end", onend);
+          socket.removeListener("error", onerror);
+          socket.removeListener("close", onclose);
+          socket.removeListener("readable", read);
+        }
+        function onclose(err) {
+          debug("onclose had error %o", err);
+        }
+        function onend() {
+          debug("onend");
+        }
+        function onerror(err) {
+          cleanup();
+          debug("onerror %o", err);
+          reject(err);
+        }
+        function ondata(b) {
+          buffers.push(b);
+          buffersLength += b.length;
+          const buffered = Buffer.concat(buffers, buffersLength);
+          const endOfHeaders = buffered.indexOf("\r\n\r\n");
+          if (endOfHeaders === -1) {
+            debug("have not received end of HTTP headers yet...");
+            read();
+            return;
+          }
+          const firstLine = buffered.toString("ascii", 0, buffered.indexOf("\r\n"));
+          const statusCode = +firstLine.split(" ")[1];
+          debug("got proxy server response: %o", firstLine);
+          resolve2({
+            statusCode,
+            buffered
+          });
+        }
+        socket.on("error", onerror);
+        socket.on("close", onclose);
+        socket.on("end", onend);
+        read();
+      });
+    }
+    exports2.default = parseProxyResponse;
+  }
+});
+
+// node_modules/https-proxy-agent/dist/agent.js
+var require_agent = __commonJS({
+  "node_modules/https-proxy-agent/dist/agent.js"(exports2) {
+    "use strict";
+    var __awaiter = exports2 && exports2.__awaiter || function(thisArg, _arguments, P, generator) {
+      function adopt(value) {
+        return value instanceof P ? value : new P(function(resolve2) {
+          resolve2(value);
+        });
+      }
+      return new (P || (P = Promise))(function(resolve2, reject) {
+        function fulfilled(value) {
+          try {
+            step(generator.next(value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function rejected(value) {
+          try {
+            step(generator["throw"](value));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        function step(result) {
+          result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+        }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      });
+    };
+    var __importDefault = exports2 && exports2.__importDefault || function(mod3) {
+      return mod3 && mod3.__esModule ? mod3 : { "default": mod3 };
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    var net_1 = __importDefault(require("net"));
+    var tls_1 = __importDefault(require("tls"));
+    var url_1 = __importDefault(require("url"));
+    var assert_1 = __importDefault(require("assert"));
+    var debug_1 = __importDefault(require_src());
+    var agent_base_1 = require_src2();
+    var parse_proxy_response_1 = __importDefault(require_parse_proxy_response());
+    var debug = debug_1.default("https-proxy-agent:agent");
+    var HttpsProxyAgent = class extends agent_base_1.Agent {
+      constructor(_opts) {
+        let opts;
+        if (typeof _opts === "string") {
+          opts = url_1.default.parse(_opts);
+        } else {
+          opts = _opts;
+        }
+        if (!opts) {
+          throw new Error("an HTTP(S) proxy server `host` and `port` must be specified!");
+        }
+        debug("creating new HttpsProxyAgent instance: %o", opts);
+        super(opts);
+        const proxy = Object.assign({}, opts);
+        this.secureProxy = opts.secureProxy || isHTTPS(proxy.protocol);
+        proxy.host = proxy.hostname || proxy.host;
+        if (typeof proxy.port === "string") {
+          proxy.port = parseInt(proxy.port, 10);
+        }
+        if (!proxy.port && proxy.host) {
+          proxy.port = this.secureProxy ? 443 : 80;
+        }
+        if (this.secureProxy && !("ALPNProtocols" in proxy)) {
+          proxy.ALPNProtocols = ["http 1.1"];
+        }
+        if (proxy.host && proxy.path) {
+          delete proxy.path;
+          delete proxy.pathname;
+        }
+        this.proxy = proxy;
+      }
+      /**
+       * Called when the node-core HTTP client library is creating a
+       * new HTTP request.
+       *
+       * @api protected
+       */
+      callback(req, opts) {
+        return __awaiter(this, void 0, void 0, function* () {
+          const { proxy, secureProxy } = this;
+          let socket;
+          if (secureProxy) {
+            debug("Creating `tls.Socket`: %o", proxy);
+            socket = tls_1.default.connect(proxy);
+          } else {
+            debug("Creating `net.Socket`: %o", proxy);
+            socket = net_1.default.connect(proxy);
+          }
+          const headers = Object.assign({}, proxy.headers);
+          const hostname = `${opts.host}:${opts.port}`;
+          let payload = `CONNECT ${hostname} HTTP/1.1\r
+`;
+          if (proxy.auth) {
+            headers["Proxy-Authorization"] = `Basic ${Buffer.from(proxy.auth).toString("base64")}`;
+          }
+          let { host, port, secureEndpoint } = opts;
+          if (!isDefaultPort(port, secureEndpoint)) {
+            host += `:${port}`;
+          }
+          headers.Host = host;
+          headers.Connection = "close";
+          for (const name of Object.keys(headers)) {
+            payload += `${name}: ${headers[name]}\r
+`;
+          }
+          const proxyResponsePromise = parse_proxy_response_1.default(socket);
+          socket.write(`${payload}\r
+`);
+          const { statusCode, buffered } = yield proxyResponsePromise;
+          if (statusCode === 200) {
+            req.once("socket", resume);
+            if (opts.secureEndpoint) {
+              debug("Upgrading socket connection to TLS");
+              const servername = opts.servername || opts.host;
+              return tls_1.default.connect(Object.assign(Object.assign({}, omit(opts, "host", "hostname", "path", "port")), {
+                socket,
+                servername
+              }));
+            }
+            return socket;
+          }
+          socket.destroy();
+          const fakeSocket = new net_1.default.Socket({ writable: false });
+          fakeSocket.readable = true;
+          req.once("socket", (s) => {
+            debug("replaying proxy buffer for failed request");
+            assert_1.default(s.listenerCount("data") > 0);
+            s.push(buffered);
+            s.push(null);
+          });
+          return fakeSocket;
+        });
+      }
+    };
+    exports2.default = HttpsProxyAgent;
+    function resume(socket) {
+      socket.resume();
+    }
+    function isDefaultPort(port, secure) {
+      return Boolean(!secure && port === 80 || secure && port === 443);
+    }
+    function isHTTPS(protocol) {
+      return typeof protocol === "string" ? /^https:?$/i.test(protocol) : false;
+    }
+    function omit(obj, ...keys) {
+      const ret = {};
+      let key;
+      for (key in obj) {
+        if (!keys.includes(key)) {
+          ret[key] = obj[key];
+        }
+      }
+      return ret;
+    }
+  }
+});
+
+// node_modules/https-proxy-agent/dist/index.js
+var require_dist = __commonJS({
+  "node_modules/https-proxy-agent/dist/index.js"(exports2, module2) {
+    "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod3) {
+      return mod3 && mod3.__esModule ? mod3 : { "default": mod3 };
+    };
+    var agent_1 = __importDefault(require_agent());
+    function createHttpsProxyAgent2(opts) {
+      return new agent_1.default(opts);
+    }
+    (function(createHttpsProxyAgent3) {
+      createHttpsProxyAgent3.HttpsProxyAgent = agent_1.default;
+      createHttpsProxyAgent3.prototype = agent_1.default.prototype;
+    })(createHttpsProxyAgent2 || (createHttpsProxyAgent2 = {}));
+    module2.exports = createHttpsProxyAgent2;
+  }
+});
+
 // scripts/local-validation.mts
 var import_promises2 = require("node:fs/promises");
 var import_node_path = require("node:path");
 var import_node_os = require("node:os");
-var import_node_child_process = require("node:child_process");
+var import_node_child_process2 = require("node:child_process");
 var import_promises3 = require("node:readline/promises");
 var import_node_crypto = require("node:crypto");
 
@@ -32206,28 +33304,28 @@ function object(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Expected JSON object");
   return value;
 }
-function validateOffer(raw, network, maximumAtomic = "1000", maximumAuthorizationSeconds = 604900) {
+function validateOffer(raw, network2, maximumAtomic = "1000", maximumAuthorizationSeconds = 604900) {
   const challenge2 = object(raw);
   if (challenge2.x402Version !== 2 || !Array.isArray(challenge2.accepts)) throw new Error("Unsupported x402 challenge");
   const maximum = BigInt(maximumAtomic);
   if (maximum <= 0n) throw new Error("Maximum price must be positive");
   for (const value of challenge2.accepts) {
     const offer = object(value);
-    if (offer.network !== network.network || offer.scheme !== "exact") continue;
+    if (offer.network !== network2.network || offer.scheme !== "exact") continue;
     const extra = object(offer.extra);
     if (!Number.isInteger(maximumAuthorizationSeconds) || maximumAuthorizationSeconds < 604800 || maximumAuthorizationSeconds > 608400 || !Number.isInteger(offer.maxTimeoutSeconds) || Number(offer.maxTimeoutSeconds) < 604800 || Number(offer.maxTimeoutSeconds) > maximumAuthorizationSeconds) throw new Error("Unsupported authorization validity window");
-    if (String(offer.asset).toLowerCase() !== network.usdc.toLowerCase()) throw new Error("Wrong payment asset");
-    if (extra.name !== "GatewayWalletBatched" || extra.version !== "1" || String(extra.verifyingContract).toLowerCase() !== network.gatewayWallet.toLowerCase()) {
+    if (String(offer.asset).toLowerCase() !== network2.usdc.toLowerCase()) throw new Error("Wrong payment asset");
+    if (extra.name !== "GatewayWalletBatched" || extra.version !== "1" || String(extra.verifyingContract).toLowerCase() !== network2.gatewayWallet.toLowerCase()) {
       throw new Error("Wrong Gateway authorization domain");
     }
     if (typeof offer.amount !== "string" || !/^[1-9]\d*$/.test(offer.amount) || BigInt(offer.amount) > maximum) throw new Error("Invalid or over-budget offer");
     if (typeof offer.payTo !== "string" || !/^0x[\da-fA-F]{40}$/.test(offer.payTo) || /^0x0{40}$/.test(offer.payTo)) throw new Error("Invalid seller address");
-    return { network: network.network, amountAtomic: offer.amount, asset: network.usdc, payTo: offer.payTo };
+    return { network: network2.network, amountAtomic: offer.amount, asset: network2.usdc, payTo: offer.payTo };
   }
-  throw new Error(`No accepted offer for ${network.network}; refusing cross-network fallback`);
+  throw new Error(`No accepted offer for ${network2.network}; refusing cross-network fallback`);
 }
-function assertUnchangedOffer(selected, approved, network, maximumAuthorizationSeconds = 604900) {
-  const actual = validateOffer({ x402Version: 2, accepts: [selected] }, network, approved.amountAtomic, maximumAuthorizationSeconds);
+function assertUnchangedOffer(selected, approved, network2, maximumAuthorizationSeconds = 604900) {
+  const actual = validateOffer({ x402Version: 2, accepts: [selected] }, network2, approved.amountAtomic, maximumAuthorizationSeconds);
   if (actual.amountAtomic !== approved.amountAtomic || actual.payTo.toLowerCase() !== approved.payTo.toLowerCase()) {
     throw new Error("Seller changed the approved quote");
   }
@@ -34034,13 +35132,142 @@ async function runPlannedPayment(row, deps) {
   return { state: "accepted", journal: active };
 }
 
+// lib/validation-local-network.ts
+var import_node_child_process = require("node:child_process");
+var import_node_util = require("node:util");
+var import_node_https = require("node:https");
+var import_https_proxy_agent = __toESM(require_dist(), 1);
+var RunnerNetworkError = class extends Error {
+};
+function checkedProxy(value) {
+  try {
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error();
+    return url.origin;
+  } catch {
+    throw new RunnerNetworkError("\u4EE3\u7406\u5730\u5740\u4E0D\u7B26\u5408\u8981\u6C42\uFF1A\u8BF7\u4F7F\u7528\u4EE3\u7406\u8F6F\u4EF6\u7684 HTTP\uFF0F\u6DF7\u5408\u7AEF\u53E3\uFF0C\u4F8B\u5982 --proxy http://127.0.0.1:\u7AEF\u53E3\uFF1B\u4E0D\u652F\u6301 SOCKS\u3001PAC \u6216\u5E26\u5BC6\u7801\u7684\u5730\u5740\u3002");
+  }
+}
+function macProxy(text) {
+  function value(key) {
+    return new RegExp(`^\\s*${key}\\s*:\\s*([^\\r\\n]+)`, "m").exec(text)?.[1].trim();
+  }
+  for (const kind of ["HTTPS", "HTTP"]) {
+    if (value(`${kind}Enable`) !== "1") continue;
+    const host = value(`${kind}Proxy`), port = value(`${kind}Port`);
+    if (!host || !port || !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) throw new RunnerNetworkError("macOS \u7CFB\u7EDF\u4EE3\u7406\u914D\u7F6E\u4E0D\u5B8C\u6574\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u8F6F\u4EF6\u7684 HTTP\uFF0F\u6DF7\u5408\u7AEF\u53E3\u3002");
+    return checkedProxy(`http://${host.includes(":") && !host.startsWith("[") ? `[${host}]` : host}:${port}`);
+  }
+}
+async function selectNetwork(explicit, options = {}) {
+  const env = options.env ?? process.env;
+  if (env.NODE_TLS_REJECT_UNAUTHORIZED === "0") throw new RunnerNetworkError("\u7EC8\u7AEF\u5173\u95ED\u4E86 HTTPS \u8BC1\u4E66\u6821\u9A8C\u3002\u8BF7\u79FB\u9664 NODE_TLS_REJECT_UNAUTHORIZED=0 \u540E\u518D\u68C0\u67E5\uFF1B\u811A\u672C\u4E0D\u4F1A\u5728\u5173\u95ED\u6821\u9A8C\u65F6\u8FD0\u884C\u3002");
+  if (explicit === "direct") return { source: "direct" };
+  if (explicit) return { proxy: checkedProxy(explicit), source: "manual" };
+  const bypass = (env.NO_PROXY ?? env.no_proxy ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const host = new URL(RUNNER_ORIGIN).hostname;
+  if (bypass.some((s) => s === "*" || host === s.replace(/^\./, "") || s.startsWith(".") && host.endsWith(s))) return { source: "direct" };
+  const configured = env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy || env.ALL_PROXY || env.all_proxy;
+  if (configured) return { proxy: checkedProxy(configured), source: "environment" };
+  if ((options.platform ?? process.platform) === "darwin") {
+    const read = options.readMacProxy ?? (async () => (await (0, import_node_util.promisify)(import_node_child_process.execFile)("/usr/sbin/scutil", ["--proxy"], { timeout: 3e3, maxBuffer: 65536 })).stdout);
+    let raw;
+    try {
+      raw = await read();
+    } catch {
+      raw = "";
+    }
+    const proxy = macProxy(raw);
+    if (proxy) return { proxy, source: "macOS" };
+  }
+  return { source: "direct" };
+}
+function safeNetworkError(error) {
+  let current = error;
+  const codes = [];
+  for (let n = 0; n < 6 && current && typeof current === "object"; n++) {
+    const e = current;
+    if (typeof e.code === "string") codes.push(e.code);
+    if (typeof e.name === "string") codes.push(e.name);
+    current = e.cause;
+  }
+  const known = codes.find((c) => ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "DEPTH_ZERO_SELF_SIGNED_CERT", "ERR_TLS_CERT_ALTNAME_INVALID", "TimeoutError", "AbortError", "ABORT_ERR"].includes(c)) ?? "NETWORK_ERROR";
+  if (/CERT|TLS|VERIFY/.test(known)) return `\u7F51\u7EDC\u68C0\u67E5\u5931\u8D25\uFF08${known}\uFF09\uFF1AHTTPS \u8BC1\u4E66\u6821\u9A8C\u5931\u8D25\uFF1B\u8BF7\u68C0\u67E5\u7CFB\u7EDF\u65F6\u95F4\u548C\u4EE3\u7406\u8BC1\u4E66\u8BBE\u7F6E\uFF0C\u4E0D\u8981\u5173\u95ED\u8BC1\u4E66\u6821\u9A8C\u3002`;
+  return `\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF08${known}\uFF09\uFF1A\u6D4F\u89C8\u5668\u4EE3\u7406\u53EF\u80FD\u6CA1\u6709\u5E94\u7528\u5230\u7EC8\u7AEF\u3002\u8BF7\u5F00\u542F macOS \u7CFB\u7EDF\u4EE3\u7406\uFF0C\u6216\u5728\u547D\u4EE4\u672B\u5C3E\u6DFB\u52A0 --proxy http://127.0.0.1:\u5B9E\u9645HTTP\u7AEF\u53E3\u3002\u65E0\u9700\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002`;
+}
+function createRunnerNetwork(choice, direct = globalThis.fetch) {
+  const proxy = choice.proxy ? new URL(checkedProxy(choice.proxy)) : void 0;
+  let lastError;
+  const fetcher = async (input, init) => {
+    const url = new URL(typeof input === "string" || input instanceof URL ? String(input) : input.url);
+    if (url.origin !== RUNNER_ORIGIN || url.username || url.password || url.hash || !["/api/validation/status", "/api/validation/payment"].includes(url.pathname) || init?.method && init.method !== "GET" || init?.body || input instanceof Request && input.method !== "GET") throw new RunnerNetworkError("\u7F51\u7EDC\u8BF7\u6C42\u8D85\u51FA\u56FA\u5B9A\u6D4B\u8BD5\u63A5\u53E3\uFF0C\u5DF2\u62D2\u7EDD\u3002");
+    try {
+      const response = !proxy ? await direct(input, { ...init, redirect: "error" }) : await new Promise((resolve2, reject) => {
+        const headers = new Headers(init?.headers);
+        headers.set("accept-encoding", "identity");
+        const signal = init?.signal ?? AbortSignal.timeout(3e4);
+        const agent = (0, import_https_proxy_agent.default)({ host: proxy.hostname.replace(/^\[|\]$/g, ""), port: Number(proxy.port || (proxy.protocol === "https:" ? 443 : 80)), protocol: proxy.protocol, signal });
+        const req = (0, import_node_https.request)(url, {
+          method: "GET",
+          // agent-base v6 predates the modern Agent type; its addRequest API is supported.
+          headers: Object.fromEntries(headers),
+          agent,
+          signal
+        }, (res) => {
+          const status = res.statusCode ?? 502, bytes = [];
+          let size5 = 0;
+          res.on("error", reject);
+          res.on("data", (chunk) => {
+            size5 += chunk.length;
+            if (size5 > 8388608) {
+              req.destroy(new RunnerNetworkError("\u7F51\u7EDC\u54CD\u5E94\u8D85\u51FA\u5927\u5C0F\u4E0A\u9650\uFF0C\u5DF2\u505C\u6B62\u3002"));
+              return;
+            }
+            bytes.push(chunk);
+          });
+          res.on("end", () => {
+            if (!res.complete) {
+              reject(new RunnerNetworkError("\u7F51\u7EDC\u54CD\u5E94\u4E0D\u5B8C\u6574\uFF0C\u5DF2\u505C\u6B62\uFF1B\u8BF7\u4FDD\u7559\u539F\u8BB0\u5F55\u3002"));
+              return;
+            }
+            const out = new Headers();
+            for (let i = 0; i < res.rawHeaders.length; i += 2) out.append(res.rawHeaders[i], res.rawHeaders[i + 1]);
+            try {
+              resolve2(new Response([204, 205, 304].includes(status) ? null : Buffer.concat(bytes), { status, headers: out }));
+            } catch {
+              reject(new RunnerNetworkError("\u7F51\u7EDC\u54CD\u5E94\u683C\u5F0F\u5F02\u5E38\uFF0C\u5DF2\u505C\u6B62\uFF1B\u8BF7\u68C0\u67E5\u4EE3\u7406\u8BBE\u7F6E\u3002"));
+            }
+          });
+        });
+        req.on("error", reject);
+        req.end();
+      });
+      if (response.status >= 300 && response.status < 400) throw new RunnerNetworkError("\u6D4B\u8BD5\u63A5\u53E3\u53D1\u751F\u8DF3\u8F6C\uFF0C\u5DF2\u505C\u6B62\uFF1B\u8BF7\u68C0\u67E5\u4EE3\u7406\u6216\u7F51\u7EDC\u767B\u5F55\u9875\u3002");
+      if (response.status === 407) throw new RunnerNetworkError("\u672C\u673A\u4EE3\u7406\u8981\u6C42\u8BA4\u8BC1\u3002\u8BF7\u4F7F\u7528\u65E0\u9700\u5BC6\u7801\u7684\u672C\u673A HTTP\uFF0F\u6DF7\u5408\u7AEF\u53E3\u3002");
+      lastError = void 0;
+      return response;
+    } catch (e) {
+      lastError = e instanceof RunnerNetworkError ? e.message : safeNetworkError(e);
+      throw new RunnerNetworkError(lastError);
+    }
+  };
+  return { fetcher, lastError: () => lastError, description: proxy ? `${choice.source} HTTP \u4EE3\u7406 ${proxy}` : "\u76F4\u8FDE\uFF08\u672A\u68C0\u6D4B\u5230 HTTP \u7CFB\u7EDF\uFF0F\u73AF\u5883\u4EE3\u7406\uFF09" };
+}
+
 // scripts/local-validation.mts
+var RUNNER_VERSION = "2026-10-14-proxy-v2";
+var network = createRunnerNetwork({ source: "direct" });
 var LocalRunnerError = class extends Error {
 };
 async function liveState(bundle) {
-  const response = await fetch(`${RUNNER_ORIGIN}/api/validation/status`, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(3e4) });
-  if (!response.ok) throw new LocalRunnerError("\u65E0\u6CD5\u8BFB\u53D6\u670D\u52A1\u7AEF\u8FDB\u5EA6\uFF0C\u5DF2\u505C\u6B62\u3002");
-  const { state } = await response.json();
+  const response = await network.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(3e4) });
+  if (!response.ok) throw new LocalRunnerError(`\u8FDB\u5EA6\u63A5\u53E3\u8FD4\u56DE HTTP ${response.status}\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u53EA\u8BFB\u68C0\u67E5\u3002`);
+  let state;
+  try {
+    ({ state } = await response.json());
+  } catch {
+    throw new LocalRunnerError("\u8FDB\u5EA6\u63A5\u53E3\u6CA1\u6709\u8FD4\u56DE JSON\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u6216\u7F51\u7EDC\u767B\u5F55\u9875\uFF1B\u4E0D\u8981\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002");
+  }
   if (!state || state.stage !== 3 || state.halted || state.expiresAt <= Date.now() || state.executionMode !== "local" || state.runnerId !== bundle.runnerId || state.bundleHash !== await handoffDigest(bundle) || state.handoffCount !== bundle.reservedCount || state.maximumCount !== 1e3 || state.maximumAtomic !== "232600" || !Number.isFinite(state.stage3StartedAt) || state.stage3StartedAt <= 0) throw new LocalRunnerError("\u670D\u52A1\u7AEF\u63A5\u7BA1\u5305\u3001\u9884\u7B97\u6216\u6709\u6548\u671F\u4E0D\u7B26\u3002\u8BF7\u5728\u539F\u7F51\u9875\u6838\u67E5\uFF0C\u7981\u6B62\u76F4\u63A5\u65B0\u5EFA\u4ED8\u6B3E\u3002");
   return state;
 }
@@ -34126,6 +35353,7 @@ async function worker(bundle, root) {
         seller: bundle.seller,
         bootId,
         runnerId: bundle.runnerId,
+        fetcher: network.fetcher,
         signer: { address: bundle.payer, async signTypedData(params) {
           const id = (0, import_node_crypto.randomUUID)();
           return new Promise((resolve2, reject) => {
@@ -34155,6 +35383,7 @@ async function worker(bundle, root) {
     await saveQueue;
     return 0;
   } catch {
+    if (network.lastError()) console.error(network.lastError());
     console.error("\u6267\u884C\u5DF2\u505C\u6B62\uFF1A\u8BF7\u4FDD\u7559\u63A5\u7BA1\u5305\u548C\u672C\u673A\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u505A\u53EA\u8BFB\u6838\u67E5\u3002\u672A\u77E5\u4ED8\u6B3E\u4E0D\u4F1A\u81EA\u52A8\u6362 nonce \u6216\u91CD\u7B7E\u3002");
     return 1;
   } finally {
@@ -34169,6 +35398,7 @@ async function main() {
       const m = raw;
       if (m?.type !== "init") process.exit(1);
       try {
+        network = createRunnerNetwork(m.network ?? { source: "direct" });
         const code = await worker(m.bundle, m.root);
         process.exit(code);
       } catch {
@@ -34178,14 +35408,36 @@ async function main() {
     return;
   }
   if (Number(process.versions.node.split(".")[0]) < 22) throw new LocalRunnerError("\u8BF7\u5148\u5B89\u88C5 Node.js 22 \u6216\u66F4\u65B0\u7248\u672C\uFF1Ahttps://nodejs.org/en/download");
-  if (args.includes("--help")) {
-    console.log("macOS \u672C\u673A\u6267\u884C\uFF1A--check \u53EA\u8BFB\u9884\u68C0\uFF1B--execute \u672C\u4EBA\u786E\u8BA4\u540E\u542F\u52A8\uFF1B--offline-check \u79BB\u7EBF\u68C0\u67E5\uFF1B--bundle \u8DEF\u5F84 \u6307\u5B9A\u539F\u63A5\u7BA1\u5305\u3002\u79C1\u94A5\u53EA\u80FD\u5728\u6267\u884C\u65F6\u9690\u85CF\u8F93\u5165\u3002\u6309 Ctrl+C \u505C\u6B62\uFF0C\u539F\u8BB0\u5F55\u4FDD\u7559\u3002");
+  if (args.includes("--version")) {
+    console.log(RUNNER_VERSION);
     return;
   }
-  const allowed = /* @__PURE__ */ new Set(["--check", "--execute", "--offline-check", "--bundle"]);
+  if (args.includes("--help")) {
+    console.log("macOS \u672C\u673A\u6267\u884C\uFF1A--check \u53EA\u8BFB\u9884\u68C0\uFF1B--network-check \u4EC5\u6D4B\u8BD5\u8054\u7F51\uFF1B--proxy http://127.0.0.1:\u7AEF\u53E3 \u6307\u5B9A HTTP \u4EE3\u7406\uFF08\u6216 direct \u76F4\u8FDE\uFF09\uFF1B--execute \u672C\u4EBA\u786E\u8BA4\u540E\u542F\u52A8\uFF1B--offline-check \u79BB\u7EBF\u68C0\u67E5\uFF1B--bundle \u8DEF\u5F84 \u6307\u5B9A\u539F\u63A5\u7BA1\u5305\u3002\u79C1\u94A5\u53EA\u80FD\u5728\u6267\u884C\u65F6\u9690\u85CF\u8F93\u5165\u3002\u6309 Ctrl+C \u505C\u6B62\uFF0C\u539F\u8BB0\u5F55\u4FDD\u7559\u3002");
+    return;
+  }
+  const allowed = /* @__PURE__ */ new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy"]);
   for (let i = 0; i < args.length; i++) {
     if (!allowed.has(args[i])) throw new LocalRunnerError("\u672A\u77E5\u53C2\u6570\uFF0C\u8BF7\u8FD0\u884C --help\uFF1B\u4E0D\u8981\u628A\u79C1\u94A5\u5199\u8FDB\u547D\u4EE4\u3002");
-    if (args[i] === "--bundle" && !args[++i]) throw new LocalRunnerError("--bundle \u540E\u9700\u8981\u539F\u63A5\u7BA1\u5305\u6587\u4EF6\u8DEF\u5F84\u3002");
+    if (["--bundle", "--proxy"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle \u6216 --proxy \u540E\u9700\u8981\u586B\u5199\u5BF9\u5E94\u8DEF\u5F84\u6216\u4EE3\u7406\u5730\u5740\u3002");
+  }
+  const proxyArg = args.indexOf("--proxy");
+  const choice = await selectNetwork(proxyArg >= 0 ? args[proxyArg + 1] : void 0);
+  network = createRunnerNetwork(choice);
+  console.log(`Radar \u672C\u673A\u811A\u672C ${RUNNER_VERSION}\uFF1BNode ${process.versions.node}\uFF1B${network.description}`);
+  if (args.includes("--network-check")) {
+    if (args.includes("--execute")) throw new LocalRunnerError("\u4EC5\u8054\u7F51\u68C0\u67E5\u4E0D\u80FD\u540C\u65F6\u6267\u884C\u4ED8\u6B3E\u3002");
+    const response = await network.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { signal: AbortSignal.timeout(2e4) });
+    if (!response.ok) throw new LocalRunnerError(`\u8054\u7F51\u68C0\u67E5\u8FD4\u56DE HTTP ${response.status}\u3002`);
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new LocalRunnerError("\u7F51\u7EDC\u6CA1\u6709\u8FD4\u56DE\u6D4B\u8BD5\u63A5\u53E3 JSON\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u8BBE\u7F6E\u3002");
+    }
+    if (data.storage_status !== "available") throw new LocalRunnerError("\u5DF2\u8FDE\u63A5\u7F51\u7AD9\uFF0C\u4F46\u670D\u52A1\u7AEF\u5B58\u50A8\u72B6\u6001\u5C1A\u672A\u5C31\u7EEA\u3002");
+    console.log("\u8054\u7F51\u68C0\u67E5\u901A\u8FC7\uFF1B\u6CA1\u6709\u8BFB\u53D6\u63A5\u7BA1\u5305\u3001\u79C1\u94A5\uFF0C\u4E5F\u6CA1\u6709\u4ED8\u6B3E\u3002");
+    return;
   }
   const fileArg = args.indexOf("--bundle"), file = (0, import_node_path.resolve)(fileArg >= 0 ? args[fileArg + 1] : (0, import_node_path.join)((0, import_node_os.homedir)(), "Downloads", "radar-local-handoff.json"));
   let stat;
@@ -34206,6 +35458,7 @@ async function main() {
     console.log("\u79BB\u7EBF\u63A5\u7BA1\u5305\u683C\u5F0F\u68C0\u67E5\u901A\u8FC7\uFF1B\u672A\u8FDE\u63A5\u7F51\u7EDC\u3001\u672A\u8BFB\u53D6\u79C1\u94A5\u3001\u672A\u4ED8\u6B3E\u3002");
     return;
   }
+  console.log("\u63A5\u7BA1\u6587\u4EF6\u683C\u5F0F\u68C0\u67E5\u901A\u8FC7\uFF0C\u6B63\u5728\u8054\u7F51\u6838\u5BF9\u670D\u52A1\u7AEF\u7ED1\u5B9A\u2026");
   const state = await liveState(bundle);
   console.log(`\u63A5\u7BA1\u68C0\u67E5\u901A\u8FC7\uFF1AArc 5042\uFF1B\u4ED8\u6B3E ${bundle.payer}\uFF1B\u6536\u6B3E ${bundle.seller}\u3002`);
   console.log(`\u7B2C\u4E09\u9636\u6BB5\u56FA\u5B9A\u4E0A\u9650 900 \u7B14 / 0.209340 USDC\uFF1B\u76EE\u524D\u7D2F\u8BA1\u9884\u7559 ${state.reservedCount} \u7B14\u3002\u539F\u8BA1\u5212\u6700\u665A\u5F00\u653E\u65F6\u95F4 ${new Date(state.stage3StartedAt + 864e5).toLocaleString()}\u3002`);
@@ -34270,7 +35523,7 @@ async function main() {
     while (!stopped) {
       await liveState(bundle);
       if (stopped) break;
-      active = (0, import_node_child_process.fork)(process.argv[1], ["--worker"], { stdio: ["ignore", "inherit", "inherit", "ipc"], serialization: "advanced", env: { ...process.env, NODE_OPTIONS: "" } });
+      active = (0, import_node_child_process2.fork)(process.argv[1], ["--worker"], { stdio: ["ignore", "inherit", "inherit", "ipc"], serialization: "advanced", env: { ...process.env, NODE_OPTIONS: "" } });
       const child = active;
       let signQueue = Promise.resolve();
       child.on("message", (raw) => {
@@ -34299,7 +35552,7 @@ async function main() {
         });
         child.once("close", (code2) => resolve2(failed ? 1 : code2 ?? 1));
       });
-      child.send({ type: "init", bundle, root });
+      child.send({ type: "init", bundle, root, network: choice });
       const code = await closed;
       await signQueue;
       active = void 0;
@@ -34324,7 +35577,7 @@ async function main() {
   }
 }
 main().catch((error) => {
-  console.error(error instanceof LocalRunnerError ? error.message : "\u51C6\u5907\u6216\u6267\u884C\u672A\u5B8C\u6210\uFF1A\u7F51\u7EDC\u3001\u6743\u9650\u6216\u539F\u8BB0\u5F55\u68C0\u67E5\u5931\u8D25\u3002\u8BF7\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u53EA\u8BFB\u6838\u67E5\uFF1B\u4E0D\u8981\u53D1\u9001\u79C1\u94A5\u6216\u63A5\u7BA1\u5305\u3002");
+  console.error(error instanceof LocalRunnerError || error instanceof RunnerNetworkError ? error.message : "\u51C6\u5907\u6216\u6267\u884C\u672A\u5B8C\u6210\uFF1A\u7F51\u7EDC\u3001\u6743\u9650\u6216\u539F\u8BB0\u5F55\u68C0\u67E5\u5931\u8D25\u3002\u8BF7\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u53EA\u8BFB\u6838\u67E5\uFF1B\u4E0D\u8981\u53D1\u9001\u79C1\u94A5\u6216\u63A5\u7BA1\u5305\u3002");
   process.exitCode = 1;
 });
 /*! Bundled license information:

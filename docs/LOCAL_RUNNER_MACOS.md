@@ -10,25 +10,25 @@
 1. 使用保存着付款记录的原 Mac 和 Chrome。先点“停止本机后续请求”，等待当前操作结束。不要清理本站数据。
 2. 在 https://radar-agent-ivory.vercel.app/validation 连接原付款钱包、Arc 5042，点“只读核查全部付款与链上批次”，签署免费核查消息。
 3. 等已有付款全部链上核实且金额差异为 0。若服务端已暂停，完成核查后点“核查完成后恢复原阶段”。
-4. 刷新页面，找到“macOS 本机自动执行”，勾选同意接管，再点“准备／重新下载本机接管包”。在钱包签署免费接管消息。
-5. 下载的 `radar-local-handoff.json` 包含原付款授权，仅保留在本人电脑，不要上传、发给客服或发送到聊天。接管后网页新付款入口被锁住，只读核查保留。重复点击按钮会下载相同原包。
-6. 在同一区域下载 `radar-validation-runner.cjs`，两个文件都放在“下载”目录。若浏览器添加了 `(1)` 等后缀，使用最新原包，通过 `--bundle` 指定其路径。
+4. 刷新页面，找到“macOS 本机自动执行”，勾选同意接管，再点“准备本机接管包”。在钱包签署免费接管消息。
+5. 接管确认后，点击独立的“下载接管文件 radar-local-handoff.json”链接。该文件包含原付款授权，仅保留在本人电脑，不要上传、发给客服或发送到聊天。接管后网页新付款入口被锁住，只读核查保留。重复点击按钮会下载相同原包。
+6. 在同一区域下载 `radar-validation-runner-v2.cjs`，两个文件都放在“下载”目录。若浏览器添加了 `(1)` 等后缀，使用最新原包，通过 `--bundle` 指定其路径。
 
 ## 2. 在本机终端检查
 
 需要 Node.js 22 或更新版本。如果 `node -v` 显示 command not found，请先从 https://nodejs.org/en/download 安装，重新打开终端。
 
 ```sh
-node ~/Downloads/radar-validation-runner.cjs --check
+node ~/Downloads/radar-validation-runner-v2.cjs --check
 ```
 
 这一步仅校验接管包和服务端绑定，不读取私钥、不付款。下载页另有脚本 SHA-256；可以用
-`shasum -a 256 ~/Downloads/radar-validation-runner.cjs` 与下载页对照。
+`shasum -a 256 ~/Downloads/radar-validation-runner-v2.cjs` 与下载页对照。
 
 ## 3. 本人启动
 
 ```sh
-caffeinate -i node ~/Downloads/radar-validation-runner.cjs --execute
+caffeinate -i node ~/Downloads/radar-validation-runner-v2.cjs --execute
 ```
 
 终端显示固定付款范围后，输入 `RUN`，回车。随后私钥输入不会显示字符，粘贴专用测试钱包私钥后回车。
@@ -60,3 +60,24 @@ caffeinate -i node ~/Downloads/radar-validation-runner.cjs --execute
 
 构建：`npm ci` 后 `npm run build:local-runner`。提交生成的 public/downloads 文件及 SHA-256。
 `--offline-check --bundle <合成文件>` 可离线验证安装包；开发和助手检查不得运行真实 `--execute`。
+
+
+## v2 联网诊断（代理用户）
+
+v2 会优先使用 `--proxy`，其次 HTTPS_PROXY／HTTP_PROXY 等环境配置，再读取 macOS 系统 HTTP 代理。
+支付工作进程沿用同一代理，HTTPS 证书校验仍开启。不会因网络错误自动换授权或重发新付款。
+原 v1 接管包、账单和签名继续使用，重新下载脚本即可，不需要重新接管。
+
+```sh
+node ~/Downloads/radar-validation-runner-v2.cjs --network-check
+```
+
+若代理软件只在浏览器中启用、没有设为系统代理，请从软件设置读取实际 HTTP／混合端口，再传给 `--proxy`。
+例如端口确为 7897 时：
+
+```sh
+node ~/Downloads/radar-validation-runner-v2.cjs --check --proxy http://127.0.0.1:7897
+caffeinate -i node ~/Downloads/radar-validation-runner-v2.cjs --execute --proxy http://127.0.0.1:7897
+```
+
+`--network-check` 不读取接管包或私钥；`--check` 只读核实接管。不要关闭 TLS 校验来绕过证书错误。

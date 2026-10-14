@@ -145,6 +145,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
           setMessage(`等待分散执行时间：${row.planned_intent_id} 最早 ${new Date(due).toLocaleString()}。保持页面打开，或之后使用同一浏览器继续。`);
           await new Promise(resolve => setTimeout(resolve, Math.min(30_000, due - Date.now())));
         }
+        if (stop.current) { setMessage("已停止本机后续请求，请只读核查后接管。"); return; }
         setMessage(`处理 ${row.planned_intent_id}，${row.amount_usdc} USDC。请核对钱包签名。`);
         const result = await runPlannedPayment(row, { origin: location.origin, payer, seller, bootId: bootId.current, sessionId,
           signer: { address: payer as `0x${string}`, async signTypedData(params) { await account(); return client.signTypedData(params); } },
@@ -250,7 +251,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
         <p><label><input type="checkbox" checked={renewalConsent} disabled={busy} onChange={e => setRenewalConsent(e.target.checked)}/>我同意仅延长这笔原 nonce 授权，金额仍为 {recoveryIntent.amount_usdc} USDC，有效期约七天加一小时，不增加付款预算。</label></p>
         <button disabled={!walletReady || busy || !renewalConsent} onClick={() => void perform(renewOriginal)}>核查并延长原授权（不提交付款）</button>
       </section>}
-      {state?.stage === 3 && <LocalRunner payer={payer} seller={seller} account={account} disabled={!walletReady || busy} onMessage={setMessage} onRefresh={refresh}/> }
+      {state?.stage === 3 && <LocalRunner payer={payer} seller={seller} account={account} disabled={!walletReady || busy} handedOff={state.executionMode === "local"} disabledReason={busy ? "网页仍在处理操作，请先点上方“停止本机后续请求”，等当前操作结束后接管。" : !walletReady ? "请先在上方连接 0xefc7…8422 钱包，并切换到 Arc Mainnet（5042）。" : undefined} onMessage={setMessage} onRefresh={refresh}/> }
       {state?.executionMode === "local" && <p className="tool-notice">已由本机脚本接管，网页新付款已锁住。付款记录与只读核查仍可使用。</p>}
       <CampaignFunding arc={arc} payer={payer} account={account} disabled={!walletReady || busy} onMessage={setMessage}/>
     </div>
