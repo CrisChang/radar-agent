@@ -1,144 +1,22 @@
-import { getArcConfig } from "@/lib/arc";
-
+import SiteNav from "./site-nav";
+import TraceCard from "./trace-card";
+import { publicEvidence } from "@/lib/public-evidence";
 export const dynamic = "force-dynamic";
-
-const guards = [
-  ["Spending checks", "Payment limits checked before signing"],
-  ["Quote checks", "Network, asset, recipient and amount verified"],
-  ["Recovery", "Saved responses and original-authorization replays"],
-  ["Uncertain outcomes", "Reconciliation before new payments"],
-  ["Evidence", "Acceptance and confirmed batches labelled separately"],
-];
-
-export default function Home() {
-  const arc = getArcConfig();
-  return (
-    <main>
-      <nav>
-        <a className="brand" href="#top">
-          RADAR<span>•</span>AGENT
-        </a>
-        <div className="tool-actions"><a href="/pilot">Payment pilot</a><a href="/billing">Receipts</a><a href="/validation">Mainnet validation</a><a href="/api/openapi">API docs</a></div>
-        <div className="network">
-          <i />
-          {arc.name.toUpperCase()}
-        </div>
-      </nav>
-
-      <section className="hero" id="top">
-        <p className="eyebrow">MARKET DATA AND PAYMENT RECORDS FOR AGENTS</p>
-        <h1>
-          Agents buy signals,
-          <br />
-          with <em>recoverable receipts.</em>
-        </h1>
-        <p className="lede">
-          USDC pay-per-query ETH and BTC observations for agents and developers,
-          with spending checks, payment recovery and wallet-scoped receipts on
-          Arc. Mainnet trading and treasury execution are disabled.
-        </p>
-
-        <div className="endpoint">
-          <div>
-            <span className="method">GET</span>
-            <code>/api/signals/latest?symbol=ETH-USD</code>
-          </div>
-          <strong>${process.env.SIGNAL_PRICE_USDC ?? "0.001"} USDC</strong>
-        </div>
-      </section>
-
-      <section className="flow">
-        <article>
-          <span>01</span>
-          <h2>Observe</h2>
-          <p>Read structured observations from the latest three Coinbase Exchange one-minute candles.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h2>Pay</h2>
-          <p>Check the quote, then authorize an exact USDC payment. Gateway settles accepted payments in batches.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h2>Recover</h2>
-          <p>Retrieve the original paid response after an interrupted request, with durable payment records.</p>
-        </article>
-        <article>
-          <span>04</span>
-          <h2>Audit</h2>
-          <p>Read wallet-scoped receipts and export CSV. Distinguish payment acceptance from confirmed settlement.</p>
-        </article>
-      </section>
-
-      <section className="discipline">
-        <div>
-          <p className="eyebrow">PAYMENT CONTROLS</p>
-          <h2>Keep spending bounded.</h2>
-          <p>
-            The buyer checks quotes and budgets before signing. Durable
-            reservations, receipt recovery and reconciliation help handle
-            failures without treating every retry as a new purchase.
-          </p>
-        </div>
-        <ul>
-          {guards.map(([name, detail]) => (
-            <li key={name}>
-              <b>{name}</b>
-              <span>{detail}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="discipline" aria-labelledby="evidence-title">
-        <div>
-          <p className="eyebrow">MAINNET EVIDENCE</p>
-          <h2 id="evidence-title">Proof you can inspect.</h2>
-          <p>
-            On October 12, two distinct owner-controlled wallets completed a
-            0.001 USDC live ETH signal purchase, with response verification,
-            receipt reads and a confirmed Arc settlement batch.
-          </p>
-          <div className="tool-actions">
-            <a href="https://explorer.arc.io/tx/0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41">
-              Inspect the confirmed API-fee batch
-            </a>
-            <a href="https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants">
-              Source and evidence records
-            </a>
-          </div>
-        </div>
-        <div>
-          <h3>1,000-payment reliability campaign</h3>
-          <p>
-            A staged test covers ten fixed payment amounts totaling 0.232600
-            USDC, with funding gas accounted for separately. It exercises
-            retries, response loss, client restarts and reconciliation through
-            a dedicated test-receipt endpoint. These are test payments, not
-            1,000 market-data purchases.
-          </p>
-          <p>
-            Payments may share batch hashes. Gateway records provide per-payment
-            attribution; Arc receipts independently verify aggregate wallet
-            changes in each batch. The live report separates payment verification
-            from scenario passes and retains observed failures.
-          </p>
-          <p>
-            Both wallets are owner-controlled. The tests measure functionality
-            and reliability; they do not establish customer revenue, adoption
-            or production readiness. Final conclusions require complete
-            reconciliation.
-          </p>
-          <div className="tool-actions">
-            <a href="/validation">View current progress and evidence</a>
-            <a href="/billing">Query wallet receipts</a>
-          </div>
-        </div>
-      </section>
-
-      <footer>
-        Radar Agent · Built on Arc and Circle Gateway · Arc Microgrants prototype
-      </footer>
-    </main>
-  );
+export default async function Home() {
+ const { report } = await publicEvidence();
+ const samples=["sequential","response_loss_after_submit","client_restart","concurrent_same_authorization_replay"].flatMap(s=>{const row=report.rows.find(r=>r.scenario===s);return row?[row]:[];});
+ return <main><SiteNav/>
+  <section className="hero focused-hero"><div className="hero-copy"><p className="eyebrow">PAID API CALLS · RECEIPTS · RECONCILIATION</p>
+   <h1>Agent calls.<br/><em>Accounted<br className="desktop-break"/> for.</em></h1>
+   <p className="lede">Give an agent a priced API call, a spending limit and a recoverable receipt. Follow each request from USDC authorization to delivery, retries and Arc settlement.</p>
+   <div className="hero-actions"><a className="primary-link" href="/integrate">Integrate an agent →</a><a href="/evidence">Inspect the mainnet evidence ↗</a></div>
+   <div className="endpoint"><div><span className="method">GET</span><code>/api/signals/latest?symbol=ETH-USD</code></div><strong>0.001 USDC / call</strong></div>
+   <p className="small-note">One working example: a paid ETH observation. The same request ID connects its payment, response and receipt.</p>
+  </div><TraceCard samples={samples}/></section>
+  <section className="proof-strip" aria-label="Mainnet reconciliation"><div><strong>{report.completed_payments.toLocaleString()} / 1,000</strong><span>payments verified</span></div><div><strong>{report.money_difference_atomic === "0" ? "0" : "Pending"}</strong><span>atomic-unit amount difference</span></div><div><strong>{report.batch_transactions}</strong><span>shared Arc batch hashes</span></div><div><strong>{report.scenario_verified_payments ?? 0} / 1,000</strong><span>payment + scenario passes</span></div></section>
+  <section className="flow compact-flow"><article><span>01 / QUOTE</span><h2>Check the cost.</h2><p>An unpaid 402 returns the exact price, recipient and network. The agent checks its budget before signing.</p></article><article><span>02 / CALL</span><h2>Pay once.</h2><p>Reserve the budget and retain the original request and authorization. Verify the delivered response digest.</p></article><article><span>03 / RECOVER</span><h2>Keep the trail.</h2><p>Retain failures and retry the same logical request. Uncertain outcomes stay reserved until reconciled.</p></article><article><span>04 / RECONCILE</span><h2>Explain the spend.</h2><p>Match expected charges, Gateway transfers and Arc batch wallet deltas. Keep fees and retry overhead separate.</p></article></section>
+  <section className="focus-section proof-story"><div><p className="eyebrow">A MEASURED MAINNET EXPERIMENT</p><h2>Small payments.<br/>Inspectable evidence.</h2><p>1,000 owner-controlled payments across ten amount tiers, totaling <b>0.232600 USDC</b>. Tests cover retries, response loss, client restarts and sessions.</p><p>Gateway supplies per-payment attribution. Arc receipts independently verify shared batch execution and aggregate wallet changes.</p><a className="text-link" href="/evidence">Explore amounts, scenarios and every batch →</a></div><div className="evidence-callout"><p className="eyebrow">WHAT THE RESULT MEANS</p><dl><div><dt>Payment amounts</dt><dd>{report.completed_payments} / 1,000 chain verified</dd></div><div><dt>Scenario evidence</dt><dd>{report.scenario_verified_payments ?? 0} / 1,000 passed</dd></div><div><dt>Cost boundary</dt><dd>Principal variance ≠ total fees</dd></div><div><dt>Data delivery baseline</dt><dd>One live 0.001 USDC ETH query</dd></div></dl><p className="small-note">The campaign uses payment-test receipts. Both wallets belong to the owner; these payments measure functionality and do not establish customer revenue. Supplemental receipt reads and the accelerated schedule are disclosed.</p></div></section>
+  <section className="focus-section home-faq"><p className="eyebrow">CLEAR BOUNDARIES</p><h2>What the evidence tells you.</h2><details><summary>What does zero amount difference prove?</summary><p>The expected USDC charges match Gateway records and decoded batch wallet deltas in this campaign. Funding gas, shared batch gas and infrastructure costs are separate measurements.</p></details><details><summary>What happens when an agent loses the response?</summary><p>The original request, authorization and budget reservation remain. Recovery returns the saved bytes after reconciliation; a timeout is never treated as permission to sign a fresh payment.</p></details><details><summary>What do the 1,000 payments represent?</summary><p>A controlled experiment across ten amounts and six scenarios. It is separate from the live ETH API delivery baseline. Scenario passes, supplemental receipt reads and schedule changes stay visible.</p></details></section>
+  <footer>Radar Agent · Agent API payments and accounting on Arc · <a href="/evidence">Evidence as of {report.generated_at ? new Date(report.generated_at).toISOString().replace("T", " ").slice(0,16) + " UTC" : "pending"}</a></footer>
+ </main>;
 }

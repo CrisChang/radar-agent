@@ -21,7 +21,9 @@
     "test:redis": "tsx --test tests/integration/redis.test.ts",
     "validation:plan": "tsx scripts/validation.mts",
     "validation:run": "tsx scripts/validation.mts",
-    "build:local-runner": "node scripts/build-local-runner.mjs"
+    "build:local-runner": "node scripts/build-local-runner.mjs",
+    "agent:call": "tsx examples/external-agent/call.mts",
+    "audit:mainnet": "tsx scripts/audit-mainnet.mts"
   },
   "dependencies": {
     "@circle-fin/adapter-circle-wallets": "^1.1.0",

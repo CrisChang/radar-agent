@@ -2,14 +2,14 @@ import { getArcConfig } from "./arc";
 export function openapiDocument(origin: string) {
   const arc = getArcConfig();
   return {
-    openapi: "3.1.0", info: { title: "Radar Agent", version: "0.2.0",
-      description: "Pay-per-query market signals and wallet-scoped receipts. Gateway acceptance is not independent onchain confirmation." },
+    openapi: "3.1.0", info: { title: "Radar Agent", version: "0.3.0",
+      description: "Agent API payments and accounting: one working paid-data endpoint, recoverable receipts and wallet-scoped billing. Gateway acceptance is distinct from independent Arc settlement evidence." },
     servers: [{ url: origin }],
     paths: {
       "/api/health": { get: { summary: "Read-only service and storage readiness",
         parameters: ["feed", "store"].map(name => ({ name, in: "query", schema: { type: "string", enum: ["1"] } })),
         responses: { "200": { description: "Configured metadata; inspect payment_acceptance and payment_store" }, "503": { description: "Requested probe unavailable" } } } },
-      "/api/signals/latest": { get: { summary: "Discover or purchase one live ETH/BTC signal",
+      "/api/signals/latest": { get: { summary: "Canonical paid-call example: one ETH observation",
         description: "First request without payment-signature returns 402. A paid request needs a stable caller-generated UUID, the approved original authorization, and enabled durable storage. Never automatically sign a replacement after a timeout.",
         parameters: [
           { name: "symbol", in: "query", schema: { type: "string", enum: ["ETH-USD", "BTC-USD"], default: "ETH-USD" } },
@@ -21,7 +21,7 @@ export function openapiDocument(origin: string) {
           "402": { description: "Unpaid offer in payment-required" }, "409": { description: "Conflicting or uncertain payment; do not repay" },
           "502": { description: "Payment processing uncertainty; retain budget" }, "503": { description: "Payments paused, feed or durable store unavailable" } } } },
       "/api/billing": { get: { summary: "Read only the signing wallet's latest receipts",
-        description: "EOA personal-sign authorization binds origin, network, exact GET path/query and timestamp. See docs/AGENT_INTEGRATION.md for the canonical message. Signature expires in 300 seconds. No reusable payment authorization is returned.",
+        description: "EOA personal-sign authorization binds origin, network, exact GET path/query and timestamp. Start at /integrate; see docs/AGENT_INTEGRATION.md for the canonical message. Signature expires in 300 seconds. No reusable payment authorization is returned.",
         parameters: [
           ...["x-radar-wallet", "x-radar-auth-timestamp", "x-radar-auth-signature"].map(name => ({ name, in: "header", required: true, schema: { type: "string" } })),
           { name: "request_id", in: "query", schema: { type: "string", format: "uuid" } },

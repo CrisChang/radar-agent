@@ -1,11 +1,8 @@
 # Mainnet payment reliability campaign
 
-Status updated October 14, 2026: the owner-approved campaign is **in progress**
-on [the public validation page](https://radar-agent-ivory.vercel.app/validation).
-The first two stages have been completed and stage three is running under the
-original fixed schedule unless the owner explicitly activates the optional timing amendment below. The page distinguishes current reservations from the
-last timestamped reconciliation report. No final 1,000-payment pass or final
-zero-difference result is claimed here.
+Status updated October 15, 2026 (Asia/Shanghai): all **1,000 payments are chain verified**, totaling **0.232600 USDC** in **32 shared batches**, with **zero atomic-unit wallet difference**. The dated public snapshot has **993/1,000 payment-and-scenario passes**, with seven concurrent-overlap cases still open. [Read-only public evidence](https://radar-agent-ivory.vercel.app/evidence) separates those results and includes its latest reconciliation timestamp.
+
+The owner activated an explicit accelerated timing amendment from payment 332. The original 24-hour schedule was not completed. Operator controls remain at `/validation` and are excluded from main navigation and indexing.
 
 The initial deployment snapshot (`086bfe6`, `dpl_9enbrfFJrFwBc7PRfbjWomXHp2Ci`)
 passed nine unsigned online checks on October 13 while its count was still zero.

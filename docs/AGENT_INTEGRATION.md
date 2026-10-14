@@ -1,78 +1,60 @@
-# Agent integration
+# Agent integration: one paid call and its accounting trail
 
-Radar Agent sells timestamped ETH/BTC observations to other agents. Human
-operators choose the wallet, recipient and budget. This branch does not place
-exchange orders or keep a trading profit-and-loss ledger.
+Start here: https://radar-agent-ivory.vercel.app/integrate.
+Canonical service example: `GET /api/signals/latest?symbol=ETH-USD`, priced at 0.001 USDC on Arc Mainnet 5042.
 
-## Discovery without spending
+## One reference entry
 
-Use `GET /api/health?feed=1&store=1` and `GET /api/openapi` first. Inspect
-`payment_acceptance` and `payment_store.status`: a configured quote is not a
-ready payment service. The hosted seller defaults to discovery-only.
-
-`GET /api/signals/latest?symbol=ETH-USD` returns HTTP 402 with a base64 JSON
-`payment-required` header. The approved offer must match the configured Arc
-network, USDC asset, Gateway contract, recipient, authorization timeout and
-per-query price. A response resource URL must equal the requested endpoint.
-
-The independent, no-signature probe is:
-
-```sh
-npm run agent:probe
+```bash
+npm ci
+npm run agent:call
 ```
 
-Configure `.env.mainnet.local` locally. It is ignored by Git and Vercel uploads.
-Do not put a wallet key in source code or send one through chat. Browser wallet
-users can use `/pilot` without configuring a private key.
+Default mode performs an unpaid readiness/quote probe. It does not load a local key file or sign a payment.
+The expected seller defaults to this deployment's public address, `0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C`.
 
-## One approved purchase
+For one explicitly approved purchase, configure an ignored `.env.mainnet.local`:
 
-The local buyer is the complete example with budget reservations and an
-exclusive process lock:
-
-```sh
-npm run agent:mainnet -- --allow-mainnet
+```dotenv
+ARC_NETWORK=mainnet
+BASE_URL=https://radar-agent-ivory.vercel.app
+SELLER_ADDRESS=0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C
+BUYER_ADDRESS=<your approved wallet address>
+BUYER_PRIVATE_KEY=<configure locally, never send through chat>
+SIGNAL_MAX_PRICE_USDC=0.001
+DATA_DAILY_CAP_USDC=0.001
+GATEWAY_AUTO_DEPOSIT_USDC=0
 ```
 
-Run it only after approving the wallet, live recipient and spending limit.
-The buyer refuses a key that does not match `BUYER_ADDRESS`, a changed offer,
-a low Gateway balance or an unresolved earlier payment. Automatic Gateway
-deposits are disabled. Mainnet treasury execution is disabled.
+```bash
+npm run agent:call -- --execute
+```
 
-A stable caller-generated UUID in `x-radar-request-id` identifies one logical
-purchase. The signed x402 payload goes only in `payment-signature`. Treat it as
-private: it remains reusable for approximately seven days. Reserve budget
-before requesting a signature. On any uncertain result retain the reservation
-and stop; do not create a replacement authorization.
+The default call has a durable local journal. Repeating the command resumes or returns that original call. Use `--request-id <UUID>` only to explicitly choose another purchase under the daily budget. This does not reopen the project's already-spent pilot. The key must match the approved buyer address. The Gateway balance must already be funded by a separately approved owner action. It never deposits or approves tokens automatically. Mainnet treasury execution is disabled.
 
-A successful response has matching request ID, SHA-256 digest, payment network,
-payer and `gateway_accepted_not_onchain_verified` metadata. Validate the signal
-schema and freshness before making a decision. See `lib/agent-http.ts` and
-`agent/radar.mts` for the complete implementation.
+## The API sequence
 
-The same original authorization and request may replay the exact saved response
-without another settlement. This is recovery of a purchase, not permission to
-make a new purchase. Old signal bytes must not trigger a fresh treasury action.
+1. Generate one stable UUID for the logical purchase. Read the unsigned 402 quote.
+2. Check the exact amount, USDC asset, Arc network, Gateway contract, expected recipient and requested resource URL. Reject changed terms.
+3. Reserve the budget before signing and retain the exact authorization privately before submission.
+4. Send the same `x-radar-request-id` and `payment-signature` header to the same endpoint. Never forward the authorization through a redirect.
+5. Verify the response digest, request ID, network, payer and receipt. Preserve the acceptance reference separately from an onchain hash.
+6. On uncertainty, retain the reservation and stop. Recover or replay the original authorization and original request; do not assume a timeout means no charge.
 
-## Wallet-scoped receipts
+The focused reference is `lib/agent-call.ts` and `examples/external-agent/call.mts`, using the quote checks in `lib/agent-http.ts`. Its private journal records quote, signing and HTTP-attempt timing. The older `agent/radar.mts` client remains historical/advanced context.
 
-`GET /api/billing?limit=50` returns only the signing wallet's latest receipts.
-Use `request_id=<UUID>` for one purchase or `format=csv` to export. Limit is
-1–100; this MVP exposes the most recent records rather than cursor pagination.
+A replay retrieves the original paid bytes. An old recovered observation must not be mistaken for a fresh market observation or a new action.
 
-Send these headers:
+## Receipt access
 
-| Header | Value |
-| --- | --- |
-| x-radar-wallet | The signing EOA address |
-| x-radar-auth-timestamp | Current Unix seconds |
-| x-radar-auth-signature | EIP-191 personal signature of the canonical message |
+`GET /api/billing?limit=50` returns the signing wallet's latest receipts. Use `request_id=<UUID>` for a logical purchase or `format=csv` for CSV. Limits are 1–100; this endpoint is a recent-record lookup, not cursor pagination.
 
-The exact message is generated by `billingMessage` in `lib/billing-auth.ts`:
+Headers: `x-radar-wallet`, `x-radar-auth-timestamp`, `x-radar-auth-signature`.
+The EOA signs the canonical message generated by `billingMessage` in `lib/billing-auth.ts`:
 
 ```text
 Radar Agent billing read
-Origin: https://YOUR_ORIGIN
+Origin: https://radar-agent-ivory.vercel.app
 Network: eip155:5042
 Wallet: <lowercase signer address>
 Method: GET
@@ -82,22 +64,12 @@ Expires in: 300 seconds
 This signature only authorizes reading this wallet's Radar Agent receipts.
 ```
 
-The origin and path/query must match the signed request exactly. The signature
-expires after five minutes; replay within that time can only read the same
-wallet-scoped resource. It does not authorize a payment. Contract-wallet
-ERC-1271 authentication is not implemented in this MVP.
+The exact origin, path/query, network and timestamp are bound. The signature cannot authorize payment. Browser operators can use `/billing`; an advanced local receipt reader remains in `examples/external-agent/bills.mts`. Contract-wallet ERC-1271 authentication is not implemented.
 
-Browser operators can use `/billing`. A local example is:
+Receipts contain amounts, payer, recipient, network, request ID, timestamps, state, response hash and Gateway reference. Normal billing does not return reusable payment signatures or other wallets' records. `accepted` means Gateway acceptance and a saved response; independent chain settlement is displayed separately on `/evidence`.
 
-```sh
-npm run agent:bills -- --allow-read-signature
-```
+## Accounting boundaries
 
-The endpoint returns amount, payer, recipient, network, request ID, timestamps,
-state, signal ID and Gateway reference. It never returns an authorization,
-nonce, signature, response body or another wallet's records. Buyer decision
-reasons remain in its local audit; inspect them with `npm run bills:local`.
+Expected price, actual principal, reserved budget, retry counts and server intervals are different measurements. Funding gas, provider fees and hosting costs must be accounted for separately. Unknown is not zero. The public reliability campaign isolates this accounting path with synthetic payment-test content and real payments; it is not 1,000 market-data purchases.
 
-An `accepted` record means Gateway accepted a payment and the response was saved.
-It does not prove an independently confirmed chain transaction or that an HTTP
-client received the bytes. See [payment recovery](PAYMENT_RECOVERY.md).
+Additional BTC support and historical buyer CLI options remain in the source. The recommended integration path stays the ETH example above.

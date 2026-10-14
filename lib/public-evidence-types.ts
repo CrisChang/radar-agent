@@ -1,0 +1,10 @@
+export interface EvidenceRow { intent: string; stage: number; scenario: string; amount_atomic: string; amount_usdc: string; local_state: string; transfer_status: string | null; scenario_passed: boolean | null; batch_hash: string | null; proof: string; http_attempts: number; supplemental_replay_attempts?: number; concurrent_evidence?: string | null; money_difference_atomic: string | null; response_sha256?: string | null; verification_rejections?: number }
+export interface EvidenceReport { status: string; completed_payments: number; attempted_payments: number; scenario_verified_payments?: number; http_attempts: number; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; execution_timing?: { mode?: string; original_24h_plan_followed?: boolean; stage3_observed_duration_hours?: number }; rows: EvidenceRow[]; batches: { hash: string; block_number: string; buyer: { chain: string; provider: string; difference: string }; seller: { chain: string; provider: string; difference: string }; passed: boolean }[] }
+export const SCENARIOS: Record<string, { title: string; description: string }> = {
+ sequential: { title: "Sequential calls", description: "One logical request, one exact payment and one saved response." },
+ spread_sessions: { title: "Across sessions", description: "Continue with retained request identity, budget and original receipts." },
+ serial_same_authorization_replay: { title: "Serial retries", description: "Resend the same authorization; recover the same response without another charge." },
+ concurrent_same_authorization_replay: { title: "Concurrent retries", description: "Check actual server overlap. A settled-receipt supplement covers cached retrieval only." },
+ response_loss_after_submit: { title: "Lost acknowledgement", description: "Deliberately discard a response, then recover using the original authorization." },
+ client_restart: { title: "Client restart", description: "Restart the process and recover the original request and saved response." },
+};

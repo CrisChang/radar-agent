@@ -1,19 +1,17 @@
-# External agent examples
+# Canonical agent entry
 
-`probe.mts` discovers the live feed, storage readiness and exact 402 offer
-without a wallet key, signature or payment. Run `npm run agent:probe` after
-configuring the public origin and expected seller in the ignored local env.
+```bash
+npm run agent:call
+```
 
-The complete budgeted buyer is `agent/radar.mts`, invoked with
-`npm run agent:mainnet -- --allow-mainnet` only after an explicit approved pilot.
-It requires the configured key to match `BUYER_ADDRESS`, pins the seller and
-price, reserves spend before signing and stops on uncertainty. No automatic
-deposit is performed.
+This checks readiness and the exact 402 quote without a key or payment.
+After configuring and approving your own local wallet and budget:
 
-`bills.mts` creates a five-minute, read-only wallet authorization and retrieves
-that wallet's receipts. Run `npm run agent:bills -- --allow-read-signature` only
-when ready to create that read signature. It never prints the key or signature.
-Browser operators can use `/billing` without exporting a key.
+```bash
+npm run agent:call -- --execute
+```
 
-API schemas are served at `/api/openapi`. The full flow and authentication
-message are documented in [Agent integration](../../docs/AGENT_INTEGRATION.md).
+One durable call, with the exact authorization saved before submission. Repeating the command resumes that call. An explicit `--request-id <UUID>` selects another logical purchase under the daily budget. No automatic funding. Unknown payments stop execution. Retry recovery retains the original identity and authorization. The private journal records quote, signing and HTTP-attempt durations.
+
+Use [the integration guide](../../docs/AGENT_INTEGRATION.md) as the complete contract.
+`probe.mts` and `bills.mts` are lower-level discovery and wallet-receipt helpers; they are not alternate recommended starts.

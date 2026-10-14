@@ -1,136 +1,66 @@
-# Radar Agent Arc Microgrants application record
+# Radar Agent application record and current public copy
 
-Updated October 14, 2026. The October 12 owner-operated Arc Mainnet paid-query
-baseline passed. A separate 1,000-payment reliability campaign is in progress.
-The owner submitted on October 12; DoraHacks records the application as under
-review. Submission does not establish selection or funding.
+Updated October 15, 2026 (Asia/Shanghai). The owner submitted October 12; DoraHacks shows Under Review. This records the current focused public copy and measured evidence, not selection or funding.
 
 ## Project fields
 
 | Field | Value |
 | --- | --- |
-| Project name | Radar Agent |
-| One line description | USDC pay per query market signals with a buyer that enforces spending limits on Arc |
-| Source code | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
-| Builder profile | https://github.com/CrisChang |
-| Public deployment | https://radar-agent-ivory.vercel.app |
-| Network | Arc Mainnet, chain 5042 |
-| Service price | 0.001 USDC per ETH/BTC market-data query |
-| Reliability report | https://radar-agent-ivory.vercel.app/validation — separate payment-test receipts, campaign in progress |
-| API-fee batch evidence | https://explorer.arc.io/tx/0xc407227af427e96af16521bff611e6719c68e6e26e6de9eefae8ee642bd7ed41 |
-| Funding evidence | https://explorer.arc.io/tx/0xa0286660f1881b42b2679b9e47ae06dfa6e393129a94c71f0fe8654f3a8d9b30 — 0.01 USDC deposit, separate from API-fee settlement |
-| Prior Arc deployment | Testnet, confirmed by the owner |
-| Prior Circle or Arc funding/prizes for this project | None, confirmed by the owner October 8, 2026 |
-| Mainnet video | Not recorded; optional in the official form |
+| Name | Radar Agent |
+| One line | Agent API payments and accounting with recoverable USDC receipts on Arc |
+| Public app | https://radar-agent-ivory.vercel.app |
+| Agent integration | https://radar-agent-ivory.vercel.app/integrate |
+| Evidence | https://radar-agent-ivory.vercel.app/evidence |
+| Source | https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants |
+| Public build | https://dorahacks.io/build/49626 |
+| Network | Arc Mainnet 5042 |
+| Working API example | One ETH observation, 0.001 USDC |
+| Prior Arc deployment | Testnet, owner-confirmed |
+| Prior Circle/Arc project funding or prizes | None, owner-confirmed |
 
-## Short description in English
+## Short introduction
 
-Radar Agent sells timestamped ETH/BTC market observations to other agents for
-0.001 USDC per query. A buyer enforces spending limits before signing,
-validates delivery and keeps recoverable, wallet-scoped receipts with CSV export.
+Radar Agent helps agents account for paid API calls: exact USDC quotes, spending limits, recoverable responses, retry records and Arc settlement evidence. One request identity connects the payment and receipt. A working ETH data endpoint and a 1,000-payment mainnet experiment demonstrate the path.
 
-## Detailed description in English
+## Detailed public description
 
-Radar Agent is an agent commerce prototype. Its Next.js seller converts public
-Coinbase Exchange candles into structured observations and advertises a
-0.001 USDC price through Circle Gateway x402. The local buyer validates the
-network, asset, recipient, approved wallet and budget before signing. It applies
-deterministic rules to the returned signal and retains a local decision audit.
-The hosted wallet pilot demonstrates bounded payment, delivery verification,
-durable receipt recovery and wallet-authenticated billing. Mainnet treasury
-execution is disabled. The current service sells data; exchange-order execution
-and trading profit-and-loss accounting are not implemented.
+### One focus: paid agent calls with a verifiable accounting trail
 
-Arc Mainnet supplies USDC for funding and gas. Circle Gateway enables offchain
-payment authorization and subsequent batched onchain settlement. The October 12
-`e01709c` baseline passed 70 tests, TypeScript, production build
-and 16 anonymous checks covering public pages, fresh data, durable Redis,
-unpaid quotes, funding and allowance safeguards, billing authentication and
-preview protection. These are dated baseline results, not a claim about the
-current full-suite test count.
+An agent can lose a response even after its payment was accepted. Retrying with a fresh authorization can spend again, while treating HTTP 200 as chain confirmation can make a ledger misleading. Radar Agent keeps one logical request connected to its quote, original USDC authorization, saved response, attempts and settlement evidence.
 
-On October 12 the owner funded Gateway with 0.01 USDC and completed a corrected
-two-wallet purchase for exactly 0.001 USDC. The API returned a live ETH signal;
-its SHA-256 matched independently. Production logs show successful billing
-reads and the owner confirmed CSV export. Circle subsequently reported the
-payment completed, Arc RPC confirmed the linked batch transaction and the
-seller's Gateway balance showed the 0.001 USDC credit. Both wallets belong to
-the owner; this is a functional test, not independent customer demand or revenue.
-The exported CSV contents have not been independently inspected.
+The working API example is a timestamped ETH observation for 0.001 USDC. The agent validates the quote and spending policy before signing, reserves its budget, verifies the returned bytes and retains uncertain outcomes. Wallet-scoped receipts support read-only authentication and CSV export. The core product is paid-call accounting and recovery; the market observation is demonstration content.
 
-A separate staged reliability campaign is now in progress: 1,000 payments in ten
-fixed amount tiers totaling 0.232600 USDC before funding gas, with the final
-900 payments under a default 24-hour schedule. An explicit owner-signed acceleration, if enabled, is disclosed as a timing amendment and does not prove completion of the original 24-hour plan. Its isolated payment-test receipt
-endpoint is not 1,000 purchases of market signals or exchange trades. The
-earlier single-query baseline is excluded. The campaign exercises sequential
-payments, spread sessions, identical-authorization replays, controlled response
-loss and client restart recovery. Progress and timestamped reconciliation
-results are public at https://radar-agent-ivory.vercel.app/validation.
+### Live product and integration
 
-Per-payment attribution relies on Gateway records. Arc receipts independently
-verify corresponding batches and aggregate wallet deltas; multiple payments
-may share one hash. Reports distinguish accepted, pending and verified payments
-from scenario passes and retain observed failures. Supplemental concurrent
-replay of an already settled receipt does not establish an initial-settlement
-concurrency test. No final 1,000-payment pass or zero-difference conclusion is
-claimed while the campaign remains in progress.
+- App: https://radar-agent-ivory.vercel.app
+- One agent entry: https://radar-agent-ivory.vercel.app/integrate
+- Read-only evidence: https://radar-agent-ivory.vercel.app/evidence
+- Source: https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants
 
-The project began as an Encode Club and Circle hackathon prototype. Historical
-testnet media and September work remain on the main branch. The October branch
-continues that work on Vercel with Free Upstash Redis. No third-party users,
-production readiness or prior prizes/funding are claimed.
+The seller runs on Vercel with durable Redis. Circle Gateway accepts exact USDC authorizations and subsequently settles payments in Arc batches. The buyer retains its key locally. No automatic funding or mainnet treasury execution occurs in this path.
 
-## 中文介绍
+### Measured mainnet evidence
 
-Radar Agent 面向需要按次购买行情数据的 Agent，把公开 ETH、BTC 行情整理成
-带时间戳的信号，每次 0.001 USDC。买方在签名前检查报价、网络、收款地址、
-钱包身份和预算，收到数据后验证摘要、按确定规则记录判断。账单通过五分钟
-有效的只读钱包签名查询，可导出 CSV。目前付款对应数据购买，尚未接入交易
-下单或交易盈亏账单，主网资金再平衡执行保持关闭。
+The October 14 reconciliation verifies 1,000 unique payments across ten amount tiers, totaling 0.232600 USDC and linked to 32 shared Arc batch hashes. All payments are completed and the maximum aggregate-wallet amount difference per batch is zero atomic units. The acceptance tolerance is exactly zero.
 
-10 月 12 日已完成 Arc 主网实测：使用两个本人控制的钱包，购买一次实时
-ETH 信号，核对摘要、账单读取和 CSV 导出；Circle 付款状态完成，关联批量
-结算交易回执成功，收款方 Gateway 入账 0.001 USDC。这证明功能可运行，
-不代表独立客户或营收。CSV 导出由本人确认，导出文件内容尚未独立复核。
+The campaign covers 600 sequential payments, 200 cross-session payments, 100 serial retries, 50 concurrent retries, 25 controlled lost responses and 25 real client restarts. The current dated snapshot has 993 of 1,000 payment-and-scenario passes. Seven concurrent-overlap cases remain open even though their payments completed. The evidence page always shows the latest saved report and timestamp.
 
-另一个分阶段的 1,000 笔付款可靠性测试正在进行：10 档固定金额合计
-0.232600 USDC，充值 gas 另计；最后 900 笔默认分散到 24 小时。如本人明确签署快速续跑变更，公开记录变更及实际时长，不宣称完成原 24 小时计划。它使用隔离的
-付款测试回执接口，不是 1,000 次行情消费或交易下单，早先的单笔实测不计入。
-网站分别展示付款接收、链上核验和场景通过情况，保留失败记录。逐笔归属依赖
-Gateway 记录，链上独立核对批次及钱包汇总变化，多笔可以共用同一批次哈希。
-已结算账单的并发读取补测不等于首次结算并发测试；最终对账前不宣称全部通过
-或最终金额差异为零。
+This is a controlled payment-test experiment, separate from the earlier real 0.001 USDC ETH API delivery. Both wallets belong to the owner; these payments do not establish independent customers or revenue. Per-payment attribution relies on Gateway, while Arc independently verifies shared-batch execution and aggregate wallet changes. Several payments share each batch hash. Supplemental concurrent reads after settlement are labelled and do not prove an initial-settlement race.
 
-## Evidence and review
+The owner explicitly amended the remaining schedule to accelerated execution. The original 24-hour schedule was not completed. Request overhead, server-observed timing, payment principal and network gas are distinct measurements. Funding gas, provider fees and infrastructure costs are not inferred as zero from a zero-principal-variance result.
 
-- [October 12 deployment baseline checks](../deployment-public-vercel-2026-10-12.json).
-- [Live reliability report](https://radar-agent-ivory.vercel.app/validation) and [campaign methodology](../MAINNET_VALIDATION.md).
-- [Funding, revocation, paid delivery and batch evidence](../mainnet-pilot-2026-10-12.json).
-- [Submission checklist](ARC_MICROGRANTS_CHECKLIST.md).
-- [Optional recording script](ARC_MICROGRANTS_DEMO.md).
+### Current scope
 
-The acceptance UUID returned by the API is not a chain hash. Circle links it to
-the batch transaction above; the batch is shared infrastructure and is not a
-separate transaction for each query. The application transaction field uses
-that confirmed batch hash, while the deposit is labelled separately as funding.
-The stored billing receipt conservatively reports Gateway acceptance and is
-not retroactively represented as a separately verified chain receipt.
+The project is a working mainnet prototype for agent developers. Its proof is the runnable API, recoverable accounting path and inspectable mainnet records. The older testnet treasury demo remains historical context. No trading profit, production readiness, independent adoption or previous funding is claimed.
 
-Earlier same-address attempts failed with self_transfer before settlement. The
-configuration now pins buyer 0xefc70a0dedefee6a010bac44de489bafb2fd8422 and recipient 0x1c19A9afa995B096Ea029723DF3C2AfA33c2957C. The excessive
-wallet-edited approval was revoked to zero before the successful query. Old
-reservations remain intact. Do not repeat the spent one-query experiment.
+## 中文定位
 
-The owner supplied contact details privately in DoraHacks; they are excluded
-from source and this pack. Profile, logo, project links, descriptions, team,
-contacts, prior Testnet deployment and no prior funding are filled. The owner
-completed final submission on October 12. The success page displays Build
-Submitted and confirms Radar Agent is under review for Arc Microgrants.
-[View submission status](https://dorahacks.io/hackathon/arc-microgrants/build).
-Submission does not establish selection or an award. No optional mainnet video
-was submitted.
+Radar Agent 聚焦 Agent 付费 API 调用的账务与恢复：报价和预算、原授权、请求与响应摘要、失败重试、Gateway 付款和 Arc 批次核验，均按同一逻辑请求串联。ETH 行情是现有演示内容，主方向是看清调用花了多少、重试了多少，以及实际结算是否与预期一致。
 
-The official program asks for a working mainnet deployment, public repository,
-short explanation and public builder profile. Previously Circle/Arc-funded
-work is ineligible. Deadline: October 14, 2026, 23:59 ET; October 15, 11:59
-Asia/Shanghai. [Official requirements](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq).
+1,000 笔主网付款均已链上核验，合计 0.232600 USDC、32 个共享批次，批次内钱包金额偏差为零。当前场景证据快照通过 993/1,000，七个并发重叠场景仍待证据；实际付款已完成。资金均来自本人控制钱包，补测读取及快速时间变更均单独披露。
+
+## Application handling
+
+The authenticated application page remains Under Review; management fields are locked. Update the public Build text through Edit Build, keeping the original application and private contacts intact. Do not withdraw and resubmit, accept new legal terms or message the organizer without a specific need and authorization. Private contacts are excluded from source.
+
+Official requirements and deadline: https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq. Deadline October 15, 2026, 11:59 Asia/Shanghai. Optional mainnet video is not recorded. Historical testnet video must not be presented as current mainnet evidence.

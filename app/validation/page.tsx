@@ -1,3 +1,4 @@
+export const metadata = { robots: { index: false, follow: false } };
 import ValidationTools from "./tools";
 import { getArcConfig, getPilotBuyerAddress, getSellerAddress } from "@/lib/arc";
 export const dynamic = "force-dynamic";

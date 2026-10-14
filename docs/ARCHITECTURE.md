@@ -1,10 +1,8 @@
 # Radar Agent architecture
 
-Updated October 14, 2026. The current mainnet product is a pay-per-query market
-data service for agents and developers, with spending checks and recoverable
-payment records. It does not place exchange orders, execute mainnet treasury
-moves or calculate trading profit and loss. The earlier testnet treasury demo
-is a separate optional module.
+Current focus: agent API payments and accounting. One logical request links quote and budget, original authorization, delivery digest, retries and settlement evidence. ETH market data is the working demonstration payload. The older testnet decision and treasury modules are historical context.
+
+Public routes: `/` for the concise product, `/integrate` for the single recommended agent entry and `/evidence` for read-only proof. `/pilot`, `/validation` and `/billing` retain owner operations but are absent from main navigation and search indexing. This is presentation separation, not authentication.
 
 ## Mainnet data and payment path
 
@@ -88,9 +86,8 @@ proves the batch's aggregate changes, not each offchain authorization.
 Public results separate accepted payments, chain-verified payments and scenario
 passes. Supplemental concurrent retrieval of an already settled receipt is
 labelled `settled_receipt_replay`; it does not prove an initial-settlement race.
-Observed failures remain in the record. The campaign is in progress as of this
-update, and no final 1,000-payment pass is claimed. See the
-[live report](https://radar-agent-ivory.vercel.app/validation) and
+Observed failures remain in the record. All 1,000 payment amounts are chain verified in the current snapshot. Scenario evidence is 993/1,000; seven concurrent-overlap cases remain open. A final full-scenario pass is not claimed. See the
+[live report](https://radar-agent-ivory.vercel.app/evidence) and
 [campaign runbook](MAINNET_VALIDATION.md).
 
 ## Settlement, trust and costs
