@@ -75,7 +75,15 @@ test("downloaded CLI connects through a real local CONNECT tunnel and retains TL
     await exec("/usr/bin/openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", `${root}/tls-key.pem`, "-out", `${root}/tls-cert.pem`, "-days", "1", "-subj", "/CN=radar-agent-ivory.vercel.app"]);
     let requests = 0, tunnels = 0, redirect = false, stall = false, stallDisconnected = false, resetNext = false;
     tls = httpsServer({ key: await readFile(`${root}/tls-key.pem`), cert: await readFile(`${root}/tls-cert.pem`) }, (req, res) => {
-      requests++; assert.equal(req.url, "/api/validation/status"); assert.equal(req.headers["payment-signature"], undefined);
+      requests++; assert.equal(req.headers["payment-signature"], undefined);
+      if (req.url === "/api/validation/control") {
+        assert.equal(req.method, "POST"); let body = "";
+        req.on("data", c => { body += c; }); req.on("end", () => {
+          const b = JSON.parse(body); assert.equal(b.action, "accelerate"); assert.equal(b.reservedCount, 331);
+          res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ payment_attempted: false }));
+        }); return;
+      }
+      assert.equal(req.url, "/api/validation/status");
       if (resetNext) { resetNext = false; res.destroy(); return; }
       if (redirect) { res.writeHead(302, { location: "https://evil.example" }); res.end(); return; }
       res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify({ storage_status: "available" }));
@@ -108,15 +116,39 @@ test("downloaded CLI connects through a real local CONNECT tunnel and retains TL
     const resumed = await exec(process.execPath, args, { env: { ...env, NODE_EXTRA_CA_CERTS: `${root}/tls-cert.pem` }, timeout: 15000 });
     assert.match(resumed.stdout, /只读状态查询暂时失败/); assert.match(resumed.stdout, /只读联网检查 3\/3 通过/);
     assert.equal(requests, 8); assert.equal(tunnels, 9); // one reset + three successful status reads
+    const controlCode = `import {createRunnerNetwork} from ${JSON.stringify(fileURLToPath(new URL("../lib/validation-local-network.ts", import.meta.url)))};
+      const network=createRunnerNetwork({source:"manual",proxy:"http://127.0.0.1:${proxyPort}"});
+      const body={action:"accelerate",runnerId:"11111111-1111-4111-8111-111111111111",bundleHash:"a".repeat(64),reservedCount:331,timestamp:String(Math.floor(Date.now()/1000)),signature:"0x"+"ab".repeat(65)};
+      const r=await network.fetcher("${RUNNER_ORIGIN}/api/validation/control",{method:"POST",body:JSON.stringify(body),headers:{"content-type":"application/json"}});
+      if(!r.ok || (await r.json()).payment_attempted!==false) throw Error("POST failed");`;
+    await exec(process.execPath, ["--import", "tsx", "--input-type=module", "-e", controlCode], { env: { ...env, NODE_EXTRA_CA_CERTS: `${root}/tls-cert.pem` }, timeout: 15000 });
+    assert.equal(requests, 9); assert.equal(tunnels, 10);
     stall = true;
     const stalled = createRunnerNetwork({ source: "manual", proxy: `http://127.0.0.1:${proxyPort}` });
     await assert.rejects(stalled.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { signal: AbortSignal.timeout(50) }), /ABORT|Timeout/);
     await new Promise(r => setTimeout(r, 50));
-    assert.equal(tunnels, 10); assert.equal(stallDisconnected, true, "cancel disconnects even an unfinished CONNECT socket");
+    assert.equal(tunnels, 11); assert.equal(stallDisconnected, true, "cancel disconnects even an unfinished CONNECT socket");
   } finally {
     for (const socket of sockets) socket.destroy();
     if (proxy) await new Promise<void>(r => proxy!.close(() => r()));
     if (tls) await new Promise<void>(r => tls!.close(() => r()));
     await rm(root, { recursive: true, force: true });
   }
+});
+
+
+test("transport permits only the exact acceleration control, never retries its uncertain outcome", async () => {
+  const body = { action: "accelerate", runnerId: "11111111-1111-4111-8111-111111111111", bundleHash: "a".repeat(64), reservedCount: 331,
+    timestamp: String(Math.floor(Date.now()/1000)), signature: `0x${"ab".repeat(65)}` };
+  let calls = 0;
+  const network = createRunnerNetwork({ source: "direct" }, async (_url, init) => {
+    calls++; assert.equal(init?.method, "POST"); assert.deepEqual(JSON.parse(String(init?.body)), body);
+    throw { code: "ECONNRESET" };
+  });
+  for (const patch of [{ action: "approve" }, { reservedCount: 1000 }, { budget: "9999" }, { signature: "bad" }]) {
+    await assert.rejects(network.fetcher(`${RUNNER_ORIGIN}/api/validation/control`, { method: "POST", body: JSON.stringify({ ...body, ...patch }) }));
+  }
+  assert.equal(calls, 0);
+  await assert.rejects(network.fetcher(`${RUNNER_ORIGIN}/api/validation/control`, { method: "POST", body: JSON.stringify(body) }), /时间计划变更.*ECONNRESET/);
+  assert.equal(calls, 1);
 });

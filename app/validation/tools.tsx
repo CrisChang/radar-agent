@@ -13,7 +13,9 @@ import { connectedAddress, connectionError, connectionRequest, injectedWallet, t
 import { supplementConcurrentReplay } from "@/lib/validation-replay-client";
 import { renewRejectedAuthorization } from "@/lib/validation-renewal";
 
-interface State { executionMode?: "local"; stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
+import type { TimingAmendment } from "@/lib/validation-timing";
+
+interface State { timingAmendment?: TimingAmendment; executionMode?: "local"; stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
 interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; concurrent_evidence?: string | null; supplemental_replay_attempts?: number; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number; verification_rejections?: number; verification_rejection_reasons?: string[]; same_nonce_renewal_checks?: number }
 interface Report { status: string; completed_payments: number; scenario_verified_payments?: number; attempted_payments: number; http_attempts: number | null; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
 export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig; payer: string; seller: string }) {
@@ -219,9 +221,10 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     <div className="tool-actions"><a href="/">Radar Agent</a><a href="/pilot">原单笔测试</a><a href="/billing">钱包账单</a><a href="/api/validation/status">公开 JSON 记录</a></div>
     <p className="eyebrow">ARC MAINNET · OWNER-CONTROLLED RELIABILITY TEST</p>
     <h1>逐笔付款，逐笔核查。</h1>
-    <p className="lede">1,000 笔独立付款，10 档金额，至少 24 小时。每笔关联 Gateway 的真实结算批次，核对链上净余额变化。原先的一笔测试不计入本轮。</p>
+    <p className="lede">1,000 笔独立付款，10 档金额。原计划分散到 24 小时；快速续跑须明确确认并公开时间计划变更。每笔关联 Gateway 的真实结算批次，核对链上净余额变化。原先的一笔测试不计入本轮。</p>
     <div className="tool-card"><h2>真实进度 / Evidence</h2>
       <div className="validation-metrics"><p>链上核实付款<strong>{report?.completed_payments ?? "—"} / 1,000</strong></p><p>付款及场景均通过<strong>{report?.scenario_verified_payments ?? "—"} / 1,000</strong></p><p>已保留付款意图<strong>{report ? state?.reservedCount ?? 0 : "—"}</strong></p><p>独立批次哈希<strong>{report?.batch_transactions ?? "—"}</strong></p><p>最大金额差异（原子单位）<strong>{report?.money_difference_atomic ?? "待核查"}</strong></p></div>
+      {state?.timingAmendment && <p className="tool-notice">已启用快速续跑：从第 {state.timingAmendment.fromOrdinal} 笔起，新付款至少间隔 5 秒。启用时间：{new Date(state.timingAmendment.activatedAt).toLocaleString()}。预算和历史记录保留；本轮不再作为原 24 小时计划完成的证明。链上统计仍以最近对账时间为准。</p>}
       <p>状态：{report?.status ?? "读取中"} · 最终结论：{report?.overall_passed === true ? "通过" : report?.overall_passed === false ? "失败或需复核" : "尚无最终结论"}</p>
       <p>{report?.conclusion}</p><p>最近对账：{report?.generated_at ?? "尚未对账"}。1 个 USDC 原子单位 = 0.000001 USDC，金额差异容许值为 0。</p>
       <p>同一控制人的两个钱包进行功能测试，不代表客户数、营收或项目采用量。批次哈希可能被多笔付款共用；逐笔归属依赖 Gateway 记录，链上独立核实的是批次内钱包净变动。</p>
@@ -230,7 +233,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     <div className="tool-card"><h2>此前真实付款基线（不计入本轮）</h2><p>已核实 0.001000 USDC：付款方链上净减 1,000 原子单位，收款方净增 1,000，均与 Gateway 记录完全一致，差异为 0。</p><p><a href={`${arc.explorerUrl}/tx/${baseline.hash}`} target="_blank" rel="noreferrer">查看原真实批次 {baseline.hash.slice(0, 14)}…</a> · 复核时间 {baseline.checked_at}。本次复核只读取链上记录，没有新付款。</p></div>
     <div className="tool-card"><h2>付款计划与操作</h2><p>付款钱包：<code>{payer}</code><br/>收款钱包：<code>{seller}</code><br/>网络：Arc Mainnet（5042）</p>
       <p>每档 100 笔：{AMOUNT_TIERS.map(n => formatAtomic(BigInt(n))).join(" / ")} USDC。总额 <b>0.232600 USDC</b>，充值和 gas 单独确认。</p>
-      <p>阶段：10 笔 / 0.002326 USDC → 90 笔 / 0.020934 USDC → 900 笔 / 0.209340 USDC。第三阶段按固定时间分散到 24 小时，不会一次全部提交。</p>
+      <p>阶段：10 笔 / 0.002326 USDC → 90 笔 / 0.020934 USDC → 900 笔 / 0.209340 USDC。第三阶段默认按 24 小时分散；可由本机脚本明确改为快速续跑，变更会公开记录。</p>
       <p>当前连接：<code>{wallet ?? "尚未连接"}</code> · 钱包网络：{connectedChain ?? "未读取"}。阶段 {state?.stage ?? 0}，累计已保留 {formatAtomic(state?.reservedAtomic ?? "0")} USDC，{state?.halted ? "已暂停" : "未暂停"}。</p>
       <p>浏览器逐笔弹窗签名；新授权有效期为七天加一小时，其中一小时用于人工核对签名。付款时保留至少七天供 Gateway 批量结算。本机保存原授权用于原样重试。请使用可信电脑，不要清理本站记录或在另一台电脑重新签同一笔。暂停新请求不会撤销已经签过的授权。</p>
       <p><label>连接的钱包： <select aria-label="连接的钱包" value={walletChoice} disabled={!clientReady || busy} onChange={e => { setWalletChoice(e.target.value as WalletChoice); setWallet(undefined); setConnectedChain(undefined); setConsent(false); selectedProvider.current = undefined; setMessage("已更换钱包类型，请点击连接。历史付款记录仍保留。"); }}><option value="auto">自动选择（优先 OKX）</option><option value="okx">OKX Wallet</option><option value="ethereum">MetaMask／浏览器 EVM 钱包</option></select></label></p>

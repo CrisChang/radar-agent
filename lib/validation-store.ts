@@ -4,7 +4,10 @@ import { RedisPaymentStore, paymentStoreConfigured } from "./redis-payment-store
 import type { PaymentRecord, PaymentState, SavedResponse } from "./payment-store";
 import { CAMPAIGN_ID, SCHEDULE_SHA256, PAYMENT_SCHEDULE, STAGES, plannedPayment, intentRequestId, dueTime } from "./validation-plan";
 
+import { FAST_INTERVAL_MS, type TimingAmendment } from "./validation-timing";
+
 export interface CampaignState {
+  timingAmendment?: TimingAmendment; lastClaimAt?: number;
   stage: number; maximumCount: number; maximumAtomic: string; reservedCount: number; reservedAtomic: string;
   expiresAt: number; startedAt: number; stage3StartedAt: number; halted: boolean;
   verifiedCount: number; reportRevision: number; executionMode?: "local"; runnerId?: string; bundleHash?: string; handoffCount?: number; ownerPaused?: boolean; haltReason?: string;
@@ -20,9 +23,17 @@ local s = cjson.decode(raw)
 if (s.executionMode == 'local' and s.runnerId ~= ARGV[9]) or (s.executionMode ~= 'local' and ARGV[9] ~= '') then return 0 end
 if s.halted or s.expiresAt < tonumber(ARGV[3]) or s.stage < tonumber(ARGV[4]) or tonumber(ARGV[5]) > s.maximumCount then return 0 end
 if redis.call('SCARD', KEYS[7]) > 0 then return 0 end
-if tonumber(ARGV[4]) == 3 and tonumber(ARGV[3]) < s.stage3StartedAt + tonumber(ARGV[7]) then return 0 end
+if tonumber(ARGV[4]) == 3 then
+ local due = s.stage3StartedAt + tonumber(ARGV[7])
+ if s.timingAmendment and tonumber(ARGV[5]) >= s.timingAmendment.fromOrdinal then
+  local a = s.timingAmendment
+  if a.mode ~= 'accelerated-5s-v1' or a.intervalMs ~= 5000 then return 0 end
+  due = math.max(a.activatedAt + (tonumber(ARGV[5]) - a.fromOrdinal + 1) * a.intervalMs, (s.lastClaimAt or 0) + a.intervalMs)
+ end
+ if tonumber(ARGV[3]) < due then return 0 end
+end
 if s.reservedCount + 1 > s.maximumCount or tonumber(s.reservedAtomic) + tonumber(ARGV[6]) > tonumber(s.maximumAtomic) then return 0 end
-s.reservedCount = s.reservedCount + 1; s.reservedAtomic = tostring(tonumber(s.reservedAtomic) + tonumber(ARGV[6]))
+s.lastClaimAt = tonumber(ARGV[3]); s.reservedCount = s.reservedCount + 1; s.reservedAtomic = tostring(tonumber(s.reservedAtomic) + tonumber(ARGV[6]))
 redis.call('SET', KEYS[1], ARGV[1]); redis.call('SET', KEYS[2], ARGV[2]); redis.call('SET', KEYS[6], ARGV[2])
 redis.call('ZADD', KEYS[3], ARGV[3], ARGV[2]); redis.call('SET', KEYS[4], cjson.encode(s))
 redis.call('SADD', KEYS[7], ARGV[2]); redis.call('RPUSH', KEYS[5], ARGV[8]); return 1`;
@@ -95,6 +106,27 @@ export class ValidationStore extends RedisPaymentStore {
       4, this.campaignKey("state"), this.campaignKey("events"), this.campaignKey("inflight"), this.campaignKey("report"),
       runnerId, bundleHash, reservedCount, Date.now(), JSON.stringify({ type: "local_runner_handoff", at: new Date().toISOString(), runnerId, bundleHash, reservedCount })]);
     return result === 1;
+  }
+  async accelerate(runnerId: string, bundleHash: string, reservedCount: number, authorizationHash: string, now = Date.now()) {
+    if (!/^[a-f0-9-]{36}$/i.test(runnerId) || !/^[a-f0-9]{64}$/.test(bundleHash) || !/^[a-f0-9]{64}$/.test(authorizationHash) ||
+        !Number.isInteger(reservedCount) || reservedCount < 100 || reservedCount >= 1000) throw new Error("Invalid timing amendment");
+    return await this.command(["EVAL", `
+      local raw = redis.call('GET', KEYS[1]); if not raw then return 0 end
+      local s = cjson.decode(raw)
+      if s.stage ~= 3 or s.executionMode ~= 'local' or s.runnerId ~= ARGV[1] or s.bundleHash ~= ARGV[2] then return 0 end
+      if s.timingAmendment then
+        if s.timingAmendment.fromOrdinal == tonumber(ARGV[3]) + 1 then return 1 end
+        return 0
+      end
+      if s.halted or s.ownerPaused or s.expiresAt <= tonumber(ARGV[4]) or s.reservedCount ~= tonumber(ARGV[3]) or
+         s.maximumCount ~= 1000 or s.maximumAtomic ~= '232600' or redis.call('SCARD', KEYS[3]) ~= 0 then return 0 end
+      local a = {mode='accelerated-5s-v1', fromOrdinal=s.reservedCount+1, activatedAt=tonumber(ARGV[4]),
+        intervalMs=tonumber(ARGV[6]), originalStage3StartedAt=s.stage3StartedAt, authorizationHash=ARGV[5]}
+      s.timingAmendment = a; s.reportRevision = s.reportRevision + 1
+      redis.call('SET', KEYS[1], cjson.encode(s))
+      redis.call('RPUSH', KEYS[2], cjson.encode({type='timing_amended', at=ARGV[7], amendment=a, reservedCount=s.reservedCount}))
+      return 1`, 3, this.campaignKey("state"), this.campaignKey("events"), this.campaignKey("inflight"),
+      runnerId, bundleHash, reservedCount, now, authorizationHash, FAST_INTERVAL_MS, new Date(now).toISOString()]) === 1;
   }
   async pause() {
     const result = await this.command(["EVAL", `local raw = redis.call('GET', KEYS[1]); if not raw then return 0 end

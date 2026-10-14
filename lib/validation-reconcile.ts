@@ -6,6 +6,8 @@ import { decodeProtocolJson } from "./protocol";
 import { CAMPAIGN_ID, PAYMENT_SCHEDULE, SCHEDULE_SHA256 } from "./validation-plan";
 import type { CampaignEvent, CampaignState, ValidationStore } from "./validation-store";
 
+import { timingEvidence } from "./validation-timing";
+
 export interface GatewayTransfer {
   id: string; status: string; token: string; sendingNetwork: string; recipientNetwork: string;
   fromAddress: string; toAddress: string; amount: string; nonce: string; txHash?: string;
@@ -208,7 +210,10 @@ export async function reconcileCampaign(store: ValidationStore, state: CampaignS
   const elapsed = Date.now() - state.startedAt;
   const spreadSessions = new Set(allEvents.filter(e => e.type === "attempt_started" &&
     PAYMENT_SCHEDULE.find(r => r.planned_intent_id === e.intent)?.scenario === "spread_sessions").map(e => e.sessionId).filter(Boolean)).size;
-  const passed = completed === 1000 && scenarioCompleted === 1000 && spreadSessions >= 10 && !issues && elapsed >= 86_400_000;
+  const timing = timingEvidence(state, records.map(r => ({ ordinal: PAYMENT_SCHEDULE.find(p => p.planned_intent_id === r.campaign?.intent)!.ordinal, at: Date.parse(r.createdAt ?? "") })));
+  if (!timing.schedule_respected) issues = true;
+  const passed = completed === 1000 && scenarioCompleted === 1000 && spreadSessions >= 10 && !issues && timing.eligible_for_completion;
+  if (!state.timingAmendment && passed) timing.original_24h_plan_followed = true;
   const maximumDifference = batches.flatMap(b => [b.buyer.difference, b.seller.difference]).map(x => { const n = BigInt(x); return n < 0n ? -n : n; }).reduce((a, b) => a > b ? a : b, 0n);
   const report = { ...emptyReport(), status: issues ? "failed_or_requires_review" : passed ? "passed" : "in_progress",
     scenario_verified_payments: scenarioCompleted, spread_sessions_observed: spreadSessions,
@@ -217,8 +222,8 @@ export async function reconcileCampaign(store: ValidationStore, state: CampaignS
     batch_transactions: batches.length, money_difference_atomic: maximumDifference > 0n ? maximumDifference.toString() : completed === records.length && records.length > 0 && !issues ? "0" : null,
     money_difference_measure: "maximum_absolute_wallet_difference_per_batch",
     overall_passed: passed ? true : issues ? false : null, generated_at: new Date().toISOString(),
-    elapsed_hours: elapsed / 3_600_000, event_count: eventCount, rows, batches,
-    conclusion: passed ? "1,000 owner-controlled payments reconciled with zero atomic-unit differences. Shared batch hashes are not individual transaction proofs or customer revenue."
+    execution_timing: timing, elapsed_hours: elapsed / 3_600_000, event_count: eventCount, rows, batches,
+    conclusion: passed ? (state.timingAmendment ? "1,000 owner-controlled payments reconciled under an explicitly amended accelerated schedule, with zero atomic-unit differences. This is not completion of the original 24-hour plan. Shared batches are not individual transaction proofs or customer revenue." : "1,000 owner-controlled payments reconciled under the original 24-hour plan with zero atomic-unit differences. Shared batch hashes are not individual transaction proofs or customer revenue.")
       : issues ? "An unresolved failure or discrepancy requires review; new payments remain halted."
       : "Partial results only. Pending payments and unverified batches are not counted as passes." };
   if (!await store.publish(state, report, scenarioCompleted, issues)) throw new Error("Campaign changed during reconciliation; run read-only reconciliation again");

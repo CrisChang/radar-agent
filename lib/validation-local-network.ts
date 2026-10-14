@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { request as httpsRequest, type Agent } from "node:https";
 import createHttpsProxyAgent from "https-proxy-agent";
 import { RUNNER_ORIGIN } from "./validation-handoff";
+import { accelerationMessage } from "./validation-timing";
 export class RunnerNetworkError extends Error {
   constructor(message: string, readonly retryable = false) { super(message); }
 }
@@ -63,17 +64,28 @@ export function safeNetworkError(error: unknown, choice?: NetworkChoice): string
   if (choice?.proxy) return `网络连接失败（${known}）：已使用指定 HTTP 代理，但本次连接失败或中断。请保持代理开启并检查当前节点；无需重新生成接管包。`;
   return `网络连接失败（${known}）：浏览器代理可能没有应用到终端。请开启 macOS 系统代理，或在命令末尾添加 --proxy http://127.0.0.1:实际HTTP端口。无需重新生成接管包。`;
 }
-/** GET-only, pinned host, TLS validation retained, no redirects or transport retries. */
+function isTimingControl(url: URL, input: RequestInfo | URL, init?: RequestInit) {
+  if (url.pathname !== "/api/validation/control" || url.search || input instanceof Request || init?.method !== "POST" ||
+      typeof init.body !== "string" || init.body.length > 4096 || new Headers(init.headers).has("payment-signature")) return false;
+  try {
+    const b = JSON.parse(init.body);
+    if (Object.keys(b).sort().join() !== "action,bundleHash,reservedCount,runnerId,signature,timestamp" ||
+        b.action !== "accelerate" || !/^0x[\da-f]{130}$/i.test(b.signature)) return false;
+    accelerationMessage(url.origin, b.runnerId, b.bundleHash, b.reservedCount, b.timestamp); return true;
+  } catch { return false; }
+}
+/** Pinned GET endpoints plus one narrowly scoped timing-control POST; TLS validation, no redirects or transport retries. */
 export function createRunnerNetwork(choice: NetworkChoice, direct: typeof fetch = globalThis.fetch) {
   const proxy = choice.proxy ? new URL(checkedProxy(choice.proxy)) : undefined;
   let lastError: string | undefined;
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(typeof input === "string" || input instanceof URL ? String(input) : input.url);
+    const timingControl = isTimingControl(url, input, init);
     if (url.origin !== RUNNER_ORIGIN || url.username || url.password || url.hash ||
-        !["/api/validation/status", "/api/validation/payment"].includes(url.pathname) ||
-        (init?.method && init.method !== "GET") || init?.body || (input instanceof Request && input.method !== "GET")) throw new RunnerNetworkError("网络请求超出固定测试接口，已拒绝。");
+        (!timingControl && (!["/api/validation/status", "/api/validation/payment"].includes(url.pathname) ||
+        (init?.method && init.method !== "GET") || init?.body || (input instanceof Request && input.method !== "GET")))) throw new RunnerNetworkError("网络请求超出固定测试接口，已拒绝。");
     const requestHeaders = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    const requestLabel = url.pathname.endsWith("/status") ? "只读状态查询" : requestHeaders.has("payment-signature") ? "付款提交／原授权重放" : "未签名付款报价";
+    const requestLabel = timingControl ? "时间计划变更" : url.pathname.endsWith("/status") ? "只读状态查询" : requestHeaders.has("payment-signature") ? "付款提交／原授权重放" : "未签名付款报价";
     try {
       const response = !proxy ? await direct(input, { ...init, redirect: "error" }) : await new Promise<Response>((resolve, reject) => {
         const headers = new Headers(requestHeaders); headers.set("accept-encoding", "identity");
@@ -81,7 +93,7 @@ export function createRunnerNetwork(choice: NetworkChoice, direct: typeof fetch 
         // Bind the same cancellation signal to the CONNECT socket, including
         // while the proxy has not replied. Each request owns its own agent.
         const agent = createHttpsProxyAgent({ host: proxy.hostname.replace(/^\[|\]$/g, ""), port: Number(proxy.port || (proxy.protocol === "https:" ? 443 : 80)), protocol: proxy.protocol, signal });
-        const req = httpsRequest(url, { method: "GET", // agent-base v6 predates the modern Agent type; its addRequest API is supported.
+        const req = httpsRequest(url, { method: timingControl ? "POST" : "GET", // agent-base v6 predates the modern Agent type; its addRequest API is supported.
           headers: Object.fromEntries(headers), agent: agent as unknown as Agent,
           signal }, res => {
           const status = res.statusCode ?? 502, bytes: Buffer[] = []; let size = 0;
@@ -94,7 +106,7 @@ export function createRunnerNetwork(choice: NetworkChoice, direct: typeof fetch 
             catch { reject(new RunnerNetworkError("网络响应格式异常，已停止；请检查代理设置。")); }
           });
         });
-        req.on("error", reject); req.end();
+        req.on("error", reject); req.end(timingControl ? init!.body as string : undefined);
       });
       if (response.status >= 300 && response.status < 400) throw new RunnerNetworkError("测试接口发生跳转，已停止；请检查代理或网络登录页。");
       if (response.status === 407) throw new RunnerNetworkError("本机代理要求认证。请使用无需密码的本机 HTTP／混合端口。");

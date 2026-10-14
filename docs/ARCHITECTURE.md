@@ -73,7 +73,7 @@ controlled by the owner, so the campaign does not measure customer demand or
 independent revenue.
 
 The schedule, stage budgets, durable reservations and original authorizations
-bind each intent. Stage three spreads 900 payments over at least 24 hours.
+bind each intent. Stage three defaults to 900 payments over 24 hours. An explicit owner-signed timing amendment can accelerate remaining new claims to at least five-second spacing; the report discloses the change and cannot claim original 24-hour completion.
 An optional owner-run local signer removes repeated browser prompts while
 retaining those limits; the key stays on the owner's computer. Vercel handles
 individual requests and does not run the 24-hour client loop.

@@ -10,21 +10,26 @@ import { handoffDigest, validateHandoffBundle, stageThreeRows, RUNNER_ORIGIN, ty
 import { localSigningPermit, addSigningPermit, validateSigningPermits, type SigningPermit } from "../lib/validation-local-policy";
 import { privateDirectory, readPrivateJson, writePrivateJson } from "../lib/validation-local-files";
 import { runPlannedPayment, type PrivateJournal } from "../lib/validation-runner";
-import { dueTime } from "../lib/validation-plan";
+import { effectiveDueTime, validateTimingAmendment, accelerationMessage, type TimingAmendment } from "../lib/validation-timing";
 import { campaignTypedData, inspectCampaignPayment } from "../lib/validation-authorization";
 import { getArcConfig } from "../lib/arc";
 import { selectNetwork, createRunnerNetwork, RunnerNetworkError, readRunnerStatus, type NetworkChoice } from "../lib/validation-local-network";
-const RUNNER_VERSION = "2026-10-14-proxy-v2.1";
+const RUNNER_VERSION = "2026-10-14-accelerated-v3";
+let accelerated = false;
 let network = createRunnerNetwork({ source: "direct" });
 
 class LocalRunnerError extends Error {}
-type StageState = { stage: number; halted: boolean; expiresAt: number; stage3StartedAt: number; executionMode?: string; runnerId?: string;
+type StageState = { timingAmendment?: TimingAmendment; lastClaimAt?: number; stage: number; halted: boolean; expiresAt: number; stage3StartedAt: number; executionMode?: string; runnerId?: string;
   bundleHash?: string; handoffCount?: number; reservedCount: number; maximumCount: number; maximumAtomic: string };
 async function liveState(bundle: HandoffBundle): Promise<StageState> {
   const { state } = await readRunnerStatus(network, message => console.log(message)) as { state: StageState };
   if (!state || state.stage !== 3 || state.halted || state.expiresAt <= Date.now() || state.executionMode !== "local" ||
       state.runnerId !== bundle.runnerId || state.bundleHash !== await handoffDigest(bundle) || state.handoffCount !== bundle.reservedCount ||
       state.maximumCount !== 1000 || state.maximumAtomic !== "232600" || !Number.isFinite(state.stage3StartedAt) || state.stage3StartedAt <= 0) throw new LocalRunnerError("服务端接管包、预算或有效期不符。请在原网页核查，禁止直接新建付款。");
+  if (state.timingAmendment) {
+    validateTimingAmendment(state.timingAmendment, state.stage3StartedAt);
+    if (!accelerated) throw new LocalRunnerError("本轮已启用快速计划。请用 --accelerate 续跑同一份原记录，不能回到旧时间规则。");
+  }
   return state;
 }
 async function hiddenKey(signal: AbortSignal): Promise<string> {
@@ -69,7 +74,7 @@ async function worker(bundle: HandoffBundle, root: string) {
   let phase = "工作进程初始状态查询";
   console.log(`工作进程已启动；${network.description}。正在只读核对进度…`);
   try {
-    const initial = await liveState(bundle);
+    await liveState(bundle);
     for (const row of stageThreeRows()) {
       const path = join(root, `${row.planned_intent_id}.json`), existing = await readPrivateJson<PrivateJournal>(path);
       if (existing) {
@@ -77,11 +82,11 @@ async function worker(bundle: HandoffBundle, root: string) {
         validateHandoffBundle({ ...bundle, journals: [existing] });
         if (existing.state === "accepted") continue;
       }
-      const due = dueTime(row, initial.stage3StartedAt);
-      if (due > Date.now()) console.log(`${row.planned_intent_id} 等待计划时间 ${new Date(due).toLocaleString()}（自动等待）`);
-      while (due > Date.now()) await new Promise(r => setTimeout(r, Math.min(30_000, due - Date.now())));
       phase = `${row.planned_intent_id} 付款前只读状态查询`;
-      await liveState(bundle);
+      const current = await liveState(bundle), due = effectiveDueTime(row, current);
+      if (due > Date.now()) console.log(`${row.planned_intent_id} 等待${current.timingAmendment ? "快速计划" : "原计划"}时间 ${new Date(due).toLocaleString()}（自动等待）`);
+      while (due > Date.now()) await new Promise(r => setTimeout(r, Math.min(30_000, due - Date.now())));
+      if (due > Date.now() - 30_000) await liveState(bundle);
       phase = `${row.planned_intent_id} ${existing?.paymentHeader ? "原授权重放" : "报价／签名／提交"}`;
       console.log(`准备 ${row.planned_intent_id} / ${row.amount_usdc} USDC / ${existing?.paymentHeader ? "沿用已保存的原授权" : "获取报价后按固定预算签名"}`);
       const result = await runPlannedPayment(row, { origin: bundle.origin, payer: bundle.payer, seller: bundle.seller, bootId, runnerId: bundle.runnerId, fetcher: network.fetcher,
@@ -111,16 +116,17 @@ async function main() {
   if (args.includes("--worker")) {
     if (!process.send) throw new LocalRunnerError("工作进程必须由本机主程序启动。");
     process.once("message", async (raw: unknown) => {
-      const m = raw as { type: string; bundle: HandoffBundle; root: string; network?: NetworkChoice };
+      const m = raw as { type: string; bundle: HandoffBundle; root: string; network?: NetworkChoice; accelerated?: boolean };
       if (m?.type !== "init") process.exit(1);
-      try { network = createRunnerNetwork(m.network ?? { source: "direct" }); const code = await worker(m.bundle, m.root); process.exit(code); } catch { process.exit(1); }
+      try { accelerated = m.accelerated === true; network = createRunnerNetwork(m.network ?? { source: "direct" }); const code = await worker(m.bundle, m.root); process.exit(code); } catch { process.exit(1); }
     }); return;
   }
   if (Number(process.versions.node.split(".")[0]) < 22) throw new LocalRunnerError("请先安装 Node.js 22 或更新版本：https://nodejs.org/en/download");
   if (args.includes("--version")) { console.log(RUNNER_VERSION); return; }
-  if (args.includes("--help")) { console.log("macOS 本机执行：--check 只读预检；--network-check 仅测试联网；--proxy http://127.0.0.1:端口 指定 HTTP 代理（或 direct 直连）；--execute 本人确认后启动；--offline-check 离线检查；--bundle 路径 指定原接管包。私钥只能在执行时隐藏输入。按 Ctrl+C 停止，原记录保留。"); return; }
-  const allowed = new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy"]);
+  if (args.includes("--help")) { console.log("macOS 本机执行：--check 只读预检；--network-check 仅测试联网；--proxy http://127.0.0.1:端口 指定 HTTP 代理（或 direct 直连）；--execute 本人确认后启动；--accelerate 明确改为至少 5 秒间隔快速续跑（只改后续时间，不增加预算）；--offline-check 离线检查；--bundle 路径 指定原接管包。私钥只能在执行时隐藏输入。按 Ctrl+C 停止，原记录保留。"); return; }
+  const allowed = new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy", "--accelerate"]);
   for (let i = 0; i < args.length; i++) { if (!allowed.has(args[i])) throw new LocalRunnerError("未知参数，请运行 --help；不要把私钥写进命令。"); if (["--bundle", "--proxy"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle 或 --proxy 后需要填写对应路径或代理地址。"); }
+  accelerated = args.includes("--accelerate");
   const proxyArg = args.indexOf("--proxy");
   const choice = await selectNetwork(proxyArg >= 0 ? args[proxyArg + 1] : undefined);
   network = createRunnerNetwork(choice);
@@ -149,6 +155,7 @@ async function main() {
   const state = await liveState(bundle);
   console.log(`接管检查通过：Arc 5042；付款 ${bundle.payer}；收款 ${bundle.seller}。`);
   console.log(`第三阶段固定上限 900 笔 / 0.209340 USDC；目前累计预留 ${state.reservedCount} 笔。原计划最晚开放时间 ${new Date(state.stage3StartedAt + 86_400_000).toLocaleString()}。`);
+  if (accelerated) console.log(`快速续跑：后续新付款间隔至少 5 秒，保持单笔未决保护。${state.timingAmendment ? "已启用，将沿用原变更。" : "尚未启用；只有 --execute 中本人确认并签署时间计划变更后才生效。"} 不再宣称完成原 24 小时计划。`);
   if (!args.includes("--execute")) { console.log("只读检查完成，无付款。启动请使用 --execute；私钥只在本机隐藏输入。"); return; }
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new LocalRunnerError("只能由本人在本机交互终端启动。");
   const parent = join(homedir(), ".radar-agent-local"); await privateDirectory(parent);
@@ -164,9 +171,9 @@ async function main() {
     console.log(`本机账单文件保存在 ${root}；付款时只向固定测试接口发送该笔授权。程序不充值、不授权代币；结果不确定即停止。`);
     const prompt = createInterface({ input: process.stdin, output: process.stdout });
     let answer: string;
-    try { answer = await prompt.question("确认由本机按原预算自动签名并付款？请输入 RUN： ", { signal: controller.signal }); }
+    try { answer = await prompt.question(accelerated ? "确认按原预算快速续跑，并公开原 24 小时时间计划变更？请输入 FAST： " : "确认由本机按原预算自动签名并付款？请输入 RUN： ", { signal: controller.signal }); }
     finally { prompt.close(); }
-    if (answer.trim() !== "RUN" || stopped) throw new LocalRunnerError("已取消，没有启动付款。");
+    if (answer.trim() !== (accelerated ? "FAST" : "RUN") || stopped) throw new LocalRunnerError("已取消，没有启动付款。");
     let key = (await hiddenKey(controller.signal)).trim();
     if (/^[0-9a-f]{64}$/i.test(key)) key = `0x${key}`;
     if (!/^0x[0-9a-f]{64}$/i.test(key)) { key = ""; throw new LocalRunnerError("私钥格式不符，已停止。"); }
@@ -184,6 +191,26 @@ async function main() {
       permits = addSigningPermit(permits, { intent: j.intent, digest: hashTypedData(campaignTypedData(p.payload.authorization, arc)), authorization: p.payload.authorization });
     }
     await writePrivateJson(guardPath, permits);
+    if (accelerated && !stopped) {
+      const current = await liveState(bundle);
+      if (!current.timingAmendment && current.reservedCount < 1000) {
+        const timestamp = String(Math.floor(Date.now() / 1000)), bundleHash = await handoffDigest(bundle);
+        const message = accelerationMessage(bundle.origin, bundle.runnerId, bundleHash, current.reservedCount, timestamp);
+        console.log(`确认后续第 ${current.reservedCount + 1} 至 1000 笔切换至至少 5 秒间隔；正在提交免费时间计划变更签名…`);
+        const signature = await signer.signMessage({ message });
+        if (stopped) throw new LocalRunnerError("已停止，未提交时间计划变更。");
+        const response = await network.fetcher(`${bundle.origin}/api/validation/control`, {
+          method: "POST", cache: "no-store", redirect: "error", signal: AbortSignal.timeout(30_000), headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "accelerate", runnerId: bundle.runnerId, bundleHash, reservedCount: current.reservedCount, timestamp, signature }) });
+        if (!response.ok) throw new LocalRunnerError("快速计划未确认；请只读核查后沿用原记录，不要新建接管包。");
+      }
+      const amended = await liveState(bundle);
+      if (amended.reservedCount < 1000 && !amended.timingAmendment) throw new LocalRunnerError("快速计划尚未生效，已停止。");
+      if (amended.timingAmendment) {
+        await writePrivateJson(join(root, ".timing-amendment.json"), amended.timingAmendment);
+        console.log(`快速计划已确认，从第 ${amended.timingAmendment.fromOrdinal} 笔起生效；已成功付款自动跳过，金额和原记录不变。`);
+      }
+    }
     while (!stopped) {
       await liveState(bundle);
       if (stopped) break;
@@ -195,7 +222,7 @@ async function main() {
         signQueue = signQueue.then(async () => {
           try {
             if (stopped) throw new LocalRunnerError("Stopped");
-            const current = await liveState(bundle), permit = localSigningPermit(m.intent, m.params, bundle, current.stage3StartedAt);
+            const current = await liveState(bundle), permit = localSigningPermit(m.intent, m.params, bundle, current);
             if (stopped) throw new LocalRunnerError("Stopped");
             const next = addSigningPermit(permits, permit);
             await writePrivateJson(guardPath, next); permits = next; // Durable reservation before producing any signature.
@@ -206,7 +233,7 @@ async function main() {
         });
       });
       closed = new Promise<number>(resolve => { let failed = false; child.once("error", () => { failed = true; }); child.once("close", code => resolve(failed ? 1 : code ?? 1)); });
-      child.send({ type: "init", bundle, root, network: choice }); const code = await closed; await signQueue; active = undefined;
+      child.send({ type: "init", bundle, root, network: choice, accelerated }); const code = await closed; await signQueue; active = undefined;
       if (stopped) break;
       if (code === 75) { console.log("测试检查点：自动重启工作进程，沿用原授权。"); continue; }
       process.exitCode = code;

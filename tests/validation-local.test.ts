@@ -113,9 +113,12 @@ test("a browser or mismatched runner cannot obtain a new quote after handoff", a
   } finally { globalThis.fetch = original; }
 });
 
-test("downloaded worker restarts as a new process and replays the saved header with no second signature", async () => {
+for (const accelerated of [false, true]) test(`downloaded worker (${accelerated ? "accelerated" : "original"}) restarts and replays the saved header without a second signature`, async () => {
   const root = await mkdtemp("/private/tmp/radar-worker-fixture-"), b = bundle(), row = stageThreeRows().find(r => r.scenario === "client_restart")!;
-  const config = { bundle: b, state: { stage: 3, halted: false, expiresAt: Date.now() + 86_400_000, stage3StartedAt: startedAt,
+  const workerStart = accelerated ? Date.now() - 10_000 : startedAt;
+  const config = { bundle: b, state: { stage: 3, halted: false, expiresAt: Date.now() + 86_400_000, stage3StartedAt: workerStart,
+    ...(accelerated ? { timingAmendment: { mode: "accelerated-5s-v1" as const, fromOrdinal: row.ordinal, activatedAt: Date.now() - 6000,
+      intervalMs: 5000 as const, originalStage3StartedAt: workerStart, authorizationHash: "a".repeat(64) } } : {}),
     maximumCount: 1000, maximumAtomic: "232600", reservedCount: 100, executionMode: "local", runnerId: b.runnerId,
     bundleHash: await handoffDigest(b), handoffCount: 100 }, row,
     offer: buildPaymentRequirements(row.amount_usdc, CAMPAIGN_AUTH_WINDOW_SECONDS), root };
@@ -143,14 +146,14 @@ globalThis.fetch = async (input,init) => {
         { execArgv: ["--import", preload], stdio: ["ignore", "ignore", "pipe", "ipc"], serialization: "advanced", env: { ...process.env, NODE_OPTIONS: "" } });
       child.on("message", (m: { type: string; id: string; intent: string; params: ReturnType<typeof campaignTypedData> }) => {
         if (m.type !== "sign") return;
-        localSigningPermit(m.intent, m.params, b, startedAt); signatures++;
+        localSigningPermit(m.intent, m.params, b, config.state); signatures++;
         child.send({ type: "signature", id: m.id, signature: `0x${"ab".repeat(65)}` });
       });
       const done = new Promise<number | null>((resolve, reject) => {
         const timer = setTimeout(() => { child.kill(); reject(new Error("synthetic worker timeout")); }, 15_000);
         child.once("error", e => { clearTimeout(timer); reject(e); }); child.once("close", code => { clearTimeout(timer); resolve(code); });
       });
-      child.send({ type: "init", bundle: b, root }); return done;
+      child.send({ type: "init", bundle: b, root, accelerated }); return done;
     }
     assert.equal(await launch(), 75);
     const first = (await readPrivateJson<PrivateJournal>(`${root}/${row.planned_intent_id}.json`))!;

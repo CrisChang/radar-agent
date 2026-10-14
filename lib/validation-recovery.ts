@@ -3,12 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyTypedData } from "viem";
 import { BatchFacilitatorClient } from "@circle-fin/x402-batching/server";
 import { getArcConfig, getPilotBuyerAddress, getSellerAddress } from "./arc";
-import { CAMPAIGN_ID, dueTime, intentRequestId, plannedPayment } from "./validation-plan";
+import { CAMPAIGN_ID, intentRequestId, plannedPayment } from "./validation-plan";
 import { CAMPAIGN_AUTH_WINDOW_SECONDS, campaignTypedData, inspectCampaignPayment } from "./validation-authorization";
 import { validationStore, type ValidationStore } from "./validation-store";
 import { searchAllTransfers, type GatewayTransfer } from "./validation-reconcile";
 import { paymentIdentity } from "./payment-store";
 import { buildPaymentRequirements, getResourceUrl } from "./x402";
+
+import { effectiveDueTime } from "./validation-timing";
 
 interface RecoveryDependencies {
   store?: Pick<ValidationStore, "state" | "intent" | "find" | "appendEvent">;
@@ -28,7 +30,7 @@ export async function validationRecovery(request: NextRequest, deps: RecoveryDep
     if (!await verifyTypedData({ ...campaignTypedData(authorization, arc), address: payer, signature: payload.payload.signature })) throw new Error();
     const store = deps.store ?? validationStore(); if (!store) throw new Error();
     const state = await store.state(), now = Date.now();
-    if (!state || state.halted || state.expiresAt < now || state.stage < row.stage || row.ordinal > state.maximumCount || dueTime(row, state.stage3StartedAt) > now) throw new Error();
+    if (!state || state.halted || state.expiresAt < now || state.stage < row.stage || row.ordinal > state.maximumCount || effectiveDueTime(row, state) > now) throw new Error();
     const identity = paymentIdentity(payload as unknown as { payload: Record<string, unknown> }, arc.network, arc.gatewayWallet,
       intentRequestId(row), `GET:/api/validation/payment?intent=${row.planned_intent_id}`);
     const hasReservation = async () => !!(await store.intent(row.planned_intent_id) || await store.find(identity.paymentKey, identity.requestKey));

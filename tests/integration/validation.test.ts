@@ -102,6 +102,57 @@ test("real Redis campaign: atomic varied-amount budgets, 1,000 complete indexes,
       local.campaign!.runnerId = id; assert.equal(await store.claim(local), true);
       assert.equal(await store.handoff(id, hash, 101), true); // a retry is idempotent even after local progress
     });
+    await t.test("timing amendment is atomic, immutable, bounded and still single-flight", async () => {
+      const store = new ValidationStore(options("validation-accelerate")), id = "11111111-1111-4111-8111-111111111111", hash = "a".repeat(64), auth = "b".repeat(64);
+      for (const stage of STAGES.slice(0, 2)) {
+        await store.approve(stage.stage);
+        for (const row of PAYMENT_SCHEDULE.filter(r => r.stage === stage.stage)) {
+          const r = record(row.ordinal); await store.claim(r); await store.transition(r.paymentKey, "preparing", "settling", response); await store.transition(r.paymentKey, "settling", "accepted", response);
+        }
+        await store.publish((await store.state())!, { completed_payments: stage.cumulativeCount, money_difference_atomic: "0" }, stage.cumulativeCount, false);
+      }
+      assert.equal(await store.accelerate(id, hash, 100, auth), false);
+      await store.approve(3); await store.handoff(id, hash, 100);
+      const local = (n: number) => { const r = record(n); r.campaign!.runnerId = id; return r; };
+      assert.equal(await store.claim(local(102)), false); // original slot not yet open
+      const r = local(101); assert.equal(await store.claim(r), true);
+      assert.equal(await store.accelerate(id, hash, 101, auth), false); // in-flight
+      await store.transition(r.paymentKey, "preparing", "settling", response); await store.transition(r.paymentKey, "settling", "accepted", response);
+      const before = (await store.state())!;
+      assert.equal(await store.accelerate(id, "c".repeat(64), 101, auth), false);
+      assert.equal(await store.accelerate(id, hash, 100, auth), false); // stale reservation snapshot
+      await store.pause(); assert.equal(await store.accelerate(id, hash, 101, auth), false);
+      await store.publish((await store.state())!, { fixture: true }, 101, false); await store.resume();
+      const snapshot = (await store.state())!;
+      assert.equal(await store.accelerate(id, hash, 101, auth), true);
+      assert.equal(await store.publish(snapshot, { stale_timing: true }, 101, false), false); // report CAS invalidated
+      const amended = (await store.state())!, a = amended.timingAmendment!;
+      for (const k of ["reservedCount", "reservedAtomic", "maximumCount", "maximumAtomic", "expiresAt", "stage3StartedAt", "runnerId", "bundleHash", "handoffCount"] as const) assert.equal(amended[k], before[k]);
+      assert.equal(a.fromOrdinal, 102); assert.equal(a.intervalMs, 5000);
+      assert.equal(await store.accelerate(id, hash, 101, auth), true); // idempotent, never moves the start time
+      assert.equal(await store.accelerate(id, hash, 102, auth), false);
+      const originalNow = Date.now;
+      try {
+        Date.now = () => a.activatedAt + 4999;
+        assert.equal(await store.claim(local(102)), false);
+        Date.now = () => a.activatedAt + 5000;
+        const second = local(102); assert.equal(await store.claim(second), true);
+        Date.now = () => a.activatedAt + 15000;
+        assert.equal(await store.claim(local(103)), false); // one unresolved payment still blocks all others
+        await store.transition(second.paymentKey, "preparing", "settling", response); await store.transition(second.paymentKey, "settling", "accepted", response);
+        assert.equal(await store.claim(local(102)), false); // original nonce and intent not charged again
+        const third = local(103); assert.equal(await store.claim(third), true);
+        await store.transition(third.paymentKey, "preparing", "settling", response); await store.transition(third.paymentKey, "settling", "accepted", response);
+        Date.now = () => a.activatedAt + 19999;
+        assert.equal(await store.claim(local(104)), false); // actual claim spacing, not just precomputed slots
+        Date.now = () => a.activatedAt + 20000;
+        const fourth = local(104); assert.equal(await store.claim(fourth), true);
+        await store.transition(fourth.paymentKey, "preparing", "settling", response); await store.transition(fourth.paymentKey, "settling", "unknown");
+        assert.equal(await store.claim(local(105)), false);
+      } finally { Date.now = originalNow; }
+      const events = await store.events(0, 1000) as { type: string }[];
+      assert.equal(events.filter(e => e.type === "timing_amended").length, 1);
+    });
     await t.test("all 1,000 varying payments fit exact stage and campaign budgets; exports survive restart", async () => {
       let store = new ValidationStore(options("validation-full"));
       for (const stage of STAGES) {

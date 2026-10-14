@@ -44,7 +44,7 @@ that reference to the shared batch confirmed independently by Arc RPC.
 The [public validation page](https://radar-agent-ivory.vercel.app/validation)
 reports a separate 1,000-payment campaign with ten fixed amount tiers and a
 0.232600 USDC payment budget. Stages are 10, 90 and 900 payments; the last stage
-is distributed over at least 24 hours. These are isolated payment-test receipts,
+defaults to a 24-hour schedule; an explicitly signed accelerated timing amendment, if enabled, is disclosed in the live report instead of being counted as original 24-hour completion. These are isolated payment-test receipts,
 not 1,000 market-signal purchases or exchange trades. The completed single-query
 baseline above is excluded.
 

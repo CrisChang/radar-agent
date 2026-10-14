@@ -60,7 +60,7 @@ The exported CSV contents have not been independently inspected.
 
 A separate staged reliability campaign is now in progress: 1,000 payments in ten
 fixed amount tiers totaling 0.232600 USDC before funding gas, with the final
-900 payments spread over at least 24 hours. Its isolated payment-test receipt
+900 payments under a default 24-hour schedule. An explicit owner-signed acceleration, if enabled, is disclosed as a timing amendment and does not prove completion of the original 24-hour plan. Its isolated payment-test receipt
 endpoint is not 1,000 purchases of market signals or exchange trades. The
 earlier single-query baseline is excluded. The campaign exercises sequential
 payments, spread sessions, identical-authorization replays, controlled response
@@ -94,7 +94,7 @@ ETH 信号，核对摘要、账单读取和 CSV 导出；Circle 付款状态完�
 不代表独立客户或营收。CSV 导出由本人确认，导出文件内容尚未独立复核。
 
 另一个分阶段的 1,000 笔付款可靠性测试正在进行：10 档固定金额合计
-0.232600 USDC，充值 gas 另计；最后 900 笔分散到至少 24 小时。它使用隔离的
+0.232600 USDC，充值 gas 另计；最后 900 笔默认分散到 24 小时。如本人明确签署快速续跑变更，公开记录变更及实际时长，不宣称完成原 24 小时计划。它使用隔离的
 付款测试回执接口，不是 1,000 次行情消费或交易下单，早先的单笔实测不计入。
 网站分别展示付款接收、链上核验和场景通过情况，保留失败记录。逐笔归属依赖
 Gateway 记录，链上独立核对批次及钱包汇总变化，多笔可以共用同一批次哈希。

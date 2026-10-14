@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMessage, verifyTypedData } from "viem";
 import { getArcConfig, getPilotBuyerAddress, getSellerAddress, assertDistinctPaymentParties } from "./arc";
-import { approvalMessage, CAMPAIGN_ID, STAGES, plannedPayment, intentRequestId, dueTime } from "./validation-plan";
+import { approvalMessage, CAMPAIGN_ID, STAGES, plannedPayment, intentRequestId } from "./validation-plan";
 import { validationStore } from "./validation-store";
 import { emptyReport, reconcileCampaign } from "./validation-reconcile";
 import { authenticateBilling } from "./billing-auth";
@@ -14,6 +14,7 @@ import { CAMPAIGN_AUTH_WINDOW_SECONDS } from "./validation-authorization";
 import { replayAcceptedCampaign } from "./validation-replay";
 import { handoffMessage } from "./validation-handoff";
 import { controlMessage } from "./validation-messages";
+import { accelerationMessage, effectiveDueTime } from "./validation-timing";
 const noStore = { "cache-control": "no-store" };
 async function owner(body: Record<string, unknown>, message: string) {
   const timestamp = String(body.timestamp ?? ""), age = Date.now() / 1000 - Number(timestamp);
@@ -41,8 +42,15 @@ export async function validationControl(request: NextRequest) {
     const action = String(body.action), timestamp = String(body.timestamp);
     const origin = new URL(getResourceUrl(request)).origin;
     const stage = Number(body.stage);
-    await owner(body, action === "approve" ? approvalMessage(origin, getPilotBuyerAddress(), getSellerAddress(), stage, timestamp) : action === "handoff" ? handoffMessage(origin, String(body.runnerId), String(body.bundleHash), Number(body.reservedCount), timestamp) : controlMessage(origin, action, timestamp));
+    await owner(body, action === "approve" ? approvalMessage(origin, getPilotBuyerAddress(), getSellerAddress(), stage, timestamp) : action === "handoff" ? handoffMessage(origin, String(body.runnerId), String(body.bundleHash), Number(body.reservedCount), timestamp) : action === "accelerate" ? accelerationMessage(origin, String(body.runnerId), String(body.bundleHash), Number(body.reservedCount), timestamp) : controlMessage(origin, action, timestamp));
     const store = validationStore(); if (!store) throw new Error("Durable campaign store unavailable");
+    if (action === "accelerate") {
+      const message = accelerationMessage(origin, String(body.runnerId), String(body.bundleHash), Number(body.reservedCount), timestamp);
+      const digest = createHash("sha256").update(message + "\n" + String(body.signature)).digest("hex");
+      if (!await store.accelerate(String(body.runnerId), String(body.bundleHash), Number(body.reservedCount), digest))
+        return NextResponse.json({ error: "加速未启用：请先停止旧脚本。原记录、执行端、未决付款或预算状态发生变化时不能调整；请只读核查。", payment_attempted: false }, { status: 409, headers: noStore });
+      return NextResponse.json({ state: await store.state(), payment_attempted: false }, { headers: noStore });
+    }
     if (action === "handoff") {
       if (!await store.handoff(String(body.runnerId), String(body.bundleHash), Number(body.reservedCount))) return NextResponse.json({ error: "接管未完成：请停止网页运行，并只读核查全部已有付款；存在未决交易、过期预算或不同接管包时不能切换。" }, { status: 409, headers: noStore });
       return NextResponse.json({ state: await store.state(), payment_attempted: false }, { headers: noStore });
@@ -104,7 +112,7 @@ export async function validationPayment(request: NextRequest) {
   if (!paid && await store.intent(row.planned_intent_id)) return NextResponse.json({ error: "Intent already reserved; resume the original signed journal or reconcile, never create a replacement authorization" }, { status: 409, headers: noStore });
   if (!paid) {
     const state = await store.state();
-    if (!state || state.halted || state.expiresAt < Date.now() || state.stage < row.stage || row.ordinal > state.maximumCount || dueTime(row, state.stage3StartedAt) > Date.now()) {
+    if (!state || state.halted || state.expiresAt < Date.now() || state.stage < row.stage || row.ordinal > state.maximumCount || effectiveDueTime(row, state) > Date.now()) {
       return NextResponse.json({ error: "Campaign intent not approved, paused, expired or not yet due; do not sign a payment" }, { status: 409, headers: noStore });
     }
   }

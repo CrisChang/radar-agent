@@ -3,7 +3,7 @@
 这是一台电脑上的付款客户端。Vercel 继续托管收款接口；不需要另买服务器。
 只适用于当前固定的 Arc 主网活动、原付款钱包和收款地址。第三阶段上限仍为
 900 笔 / 0.209340 USDC，整个活动 1,000 笔 / 0.232600 USDC。
-已经完成的付款不重做。仍按原 24 小时时间表运行，省去逐笔钱包弹窗。
+已经完成的付款不重做。默认按原 24 小时时间表运行，省去逐笔钱包弹窗；v3 可在本人确认后切换为快速续跑。
 
 ## 1. 在原 Chrome 交接
 
@@ -12,23 +12,23 @@
 3. 等已有付款全部链上核实且金额差异为 0。若服务端已暂停，完成核查后点“核查完成后恢复原阶段”。
 4. 刷新页面，找到“macOS 本机自动执行”，勾选同意接管，再点“准备本机接管包”。在钱包签署免费接管消息。
 5. 接管确认后，点击独立的“下载接管文件 radar-local-handoff.json”链接。该文件包含原付款授权，仅保留在本人电脑，不要上传、发给客服或发送到聊天。接管后网页新付款入口被锁住，只读核查保留。重复点击按钮会下载相同原包。
-6. 在同一区域下载 `radar-validation-runner-v2.cjs`，两个文件都放在“下载”目录。若浏览器添加了 `(1)` 等后缀，使用最新原包，通过 `--bundle` 指定其路径。
+6. 在同一区域下载 `radar-validation-runner-v3.cjs`，两个文件都放在“下载”目录。若浏览器添加了 `(1)` 等后缀，使用最新原包，通过 `--bundle` 指定其路径。
 
 ## 2. 在本机终端检查
 
 需要 Node.js 22 或更新版本。如果 `node -v` 显示 command not found，请先从 https://nodejs.org/en/download 安装，重新打开终端。
 
 ```sh
-node ~/Downloads/radar-validation-runner-v2.cjs --check
+node ~/Downloads/radar-validation-runner-v3.cjs --check
 ```
 
 这一步仅校验接管包和服务端绑定，不读取私钥、不付款。下载页另有脚本 SHA-256；可以用
-`shasum -a 256 ~/Downloads/radar-validation-runner-v2.cjs` 与下载页对照。
+`shasum -a 256 ~/Downloads/radar-validation-runner-v3.cjs` 与下载页对照。
 
 ## 3. 本人启动
 
 ```sh
-caffeinate -i node ~/Downloads/radar-validation-runner-v2.cjs --execute
+caffeinate -i node ~/Downloads/radar-validation-runner-v3.cjs --execute
 ```
 
 终端显示固定付款范围后，输入 `RUN`，回车。随后私钥输入不会显示字符，粘贴专用测试钱包私钥后回车。
@@ -69,15 +69,15 @@ v2 会优先使用 `--proxy`，其次 HTTPS_PROXY／HTTP_PROXY 等环境配置�
 原 v1 接管包、账单和签名继续使用，重新下载脚本即可，不需要重新接管。
 
 ```sh
-node ~/Downloads/radar-validation-runner-v2.cjs --network-check
+node ~/Downloads/radar-validation-runner-v3.cjs --network-check
 ```
 
 若代理软件只在浏览器中启用、没有设为系统代理，请从软件设置读取实际 HTTP／混合端口，再传给 `--proxy`。
 例如端口确为 7897 时：
 
 ```sh
-node ~/Downloads/radar-validation-runner-v2.cjs --check --proxy http://127.0.0.1:7897
-caffeinate -i node ~/Downloads/radar-validation-runner-v2.cjs --execute --proxy http://127.0.0.1:7897
+node ~/Downloads/radar-validation-runner-v3.cjs --check --proxy http://127.0.0.1:7897
+caffeinate -i node ~/Downloads/radar-validation-runner-v3.cjs --execute --proxy http://127.0.0.1:7897
 ```
 
 `--network-check` 不读取接管包或私钥；`--check` 只读核实接管。不要关闭 TLS 校验来绕过证书错误。
@@ -87,3 +87,29 @@ caffeinate -i node ~/Downloads/radar-validation-runner-v2.cjs --execute --proxy 
 
 `--network-check` 连续做三次公开状态查询。只读状态请求遇到连接中断或 HTTP 502/503/504 时，最多尝试三次；单次超时 10 秒，间隔 2 秒、4 秒。付款报价和提交不使用该网络重试逻辑，既有场景的原授权重放规则不变。
 执行窗口会显示工作进程使用的代理，以及停止时的意图编号和请求步骤。接管包、本机账单、固定时间和金额限制沿用原值。
+
+
+### v3 快速续跑（可选）
+
+原计划每约 96 秒开放一笔。并开多个进程不能跳过时间门槛，还会触发单进程锁。
+v3 的 `--accelerate` 将后续未预留的付款改为**至少 5 秒间隔、逐笔提交**，
+继续执行原有并发重放、响应丢弃和进程重启场景。请求耗时和批次确认时间不包含在 5 秒内保证中。
+
+1. 在原终端按 Ctrl+C，等脚本退出到命令提示符。保留原接管包、账单目录和代理。
+2. 下载最新 v3 到下载目录；无需重新导出接管包，不要清空或复制记录到新机器。
+3. 用同一份原包检查，再执行：
+
+```bash
+node ~/Downloads/radar-validation-runner-v3.cjs --check --accelerate --proxy http://127.0.0.1:7897
+caffeinate -i node ~/Downloads/radar-validation-runner-v3.cjs --execute --accelerate --proxy http://127.0.0.1:7897
+```
+
+4. 阅读预算和变更说明，输入 `FAST`；私钥仍只在本机隐藏输入。确认后本机签署一份
+5 分钟有效的免费时间计划变更，绑定原执行端、原包哈希和当时预留数量。
+服务端只在没有未决付款且原预算未过期时原子生效；不会增加次数、金额或有效期。
+5. 成功后自动跳过原成功记录。异常仍停止，原样重放规则不变。续跑时继续带 `--accelerate`。
+控制请求网络结果不明时停止，重启会先读取实际状态；不会重复建立变更或重做付款。
+
+网站与最终 JSON 公布变更时间、生效编号、5 秒规则、原计划状态和实际观测时长。
+快速计划完整通过仍需 1,000 笔链上核实、全部场景证据及零原子单位差异；
+它**不代表原 24 小时计划完成**。原金额/场景计划 SHA-256 不变，时间变更另存事件。

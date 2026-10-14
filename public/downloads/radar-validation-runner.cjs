@@ -1,4 +1,4 @@
-// Radar Agent owner-run local runner 2026-10-14-proxy-v2.1. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
+// Radar Agent owner-run local runner 2026-10-14-accelerated-v3. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -33412,9 +33412,49 @@ var stageThreeRows = () => PAYMENT_SCHEDULE.filter((r) => r.stage === 3);
 
 // lib/validation-local-policy.ts
 init_esm2();
+
+// lib/validation-timing.ts
+var FAST_INTERVAL_MS = 5e3;
+function validateTimingAmendment(a, startedAt) {
+  if (!a || a.mode !== "accelerated-5s-v1" || a.intervalMs !== FAST_INTERVAL_MS || !Number.isInteger(a.fromOrdinal) || a.fromOrdinal < 101 || a.fromOrdinal > 1e3 || !Number.isSafeInteger(a.activatedAt) || a.activatedAt < startedAt || a.originalStage3StartedAt !== startedAt || !/^[a-f0-9]{64}$/.test(a.authorizationHash)) throw new Error("Invalid timing amendment");
+  return a;
+}
+function effectiveDueTime(row, state, enforceSpacing = true) {
+  const a = state.timingAmendment;
+  if (!a) return dueTime(row, state.stage3StartedAt);
+  validateTimingAmendment(a, state.stage3StartedAt);
+  if (row.stage !== 3 || row.ordinal < a.fromOrdinal) return dueTime(row, state.stage3StartedAt);
+  return Math.max(
+    a.activatedAt + (row.ordinal - a.fromOrdinal + 1) * a.intervalMs,
+    enforceSpacing && state.lastClaimAt ? state.lastClaimAt + a.intervalMs : 0
+  );
+}
+function accelerationMessage(origin, runnerId, bundleHash, count, timestamp) {
+  if (origin !== RUNNER_ORIGIN || !/^[a-f0-9-]{36}$/i.test(runnerId) || !/^[a-f0-9]{64}$/.test(bundleHash) || !Number.isInteger(count) || count < 100 || count >= 1e3 || !/^\d{10}$/.test(timestamp)) throw new Error("Invalid timing amendment scope");
+  return [
+    "Radar Agent execution timing amendment v1",
+    `Origin: ${origin}`,
+    `Campaign: ${CAMPAIGN_ID}`,
+    `Schedule SHA-256: ${SCHEDULE_SHA256}`,
+    "Network: eip155:5042",
+    `Runner: ${runnerId}`,
+    `Private bundle SHA-256: ${bundleHash}`,
+    `Existing reserved payments: ${count}`,
+    `Accelerate only ordinals ${count + 1} through 1000.`,
+    "Replace the remaining 24-hour timing slots with sequential execution, at least 5 seconds between new claims.",
+    "Keep all original intents, amounts, nonces, receipts, failures and retry rules. One unresolved payment stops new claims.",
+    "Stage 3 cap: 900 payments / 0.209340 USDC. Campaign cap: 1000 payments / 0.232600 USDC.",
+    "No increase in budget or expiry. No deposit, token approval or withdrawal. This message itself makes no payment.",
+    "Publish the timing amendment; do not claim that the original 24-hour plan was completed.",
+    `Issued at: ${timestamp}`,
+    "Expires in: 300 seconds"
+  ].join("\n");
+}
+
+// lib/validation-local-policy.ts
 function localSigningPermit(intent, params, bundle, startedAt, now = Date.now()) {
   const row = plannedPayment(intent), arc2 = getArcConfig({ ARC_NETWORK: "mainnet" });
-  if (row.stage !== 3 || dueTime(row, startedAt) > now || !params || params.primaryType !== "TransferWithAuthorization" || params.domain.name !== "GatewayWalletBatched" || params.domain.version !== "1" || Number(params.domain.chainId) !== 5042 || params.domain.verifyingContract.toLowerCase() !== arc2.gatewayWallet.toLowerCase() || Object.keys(params.types).length !== 1 || JSON.stringify(params.types.TransferWithAuthorization) !== JSON.stringify(CAMPAIGN_AUTH_TYPES.TransferWithAuthorization)) throw new Error("\u672C\u673A\u7B7E\u540D\u8303\u56F4\u4E0D\u7B26\u3002");
+  if (row.stage !== 3 || effectiveDueTime(row, typeof startedAt === "number" ? { stage3StartedAt: startedAt } : startedAt) > now || !params || params.primaryType !== "TransferWithAuthorization" || params.domain.name !== "GatewayWalletBatched" || params.domain.version !== "1" || Number(params.domain.chainId) !== 5042 || params.domain.verifyingContract.toLowerCase() !== arc2.gatewayWallet.toLowerCase() || Object.keys(params.types).length !== 1 || JSON.stringify(params.types.TransferWithAuthorization) !== JSON.stringify(CAMPAIGN_AUTH_TYPES.TransferWithAuthorization)) throw new Error("\u672C\u673A\u7B7E\u540D\u8303\u56F4\u4E0D\u7B26\u3002");
   const m = params.message, a = { from: m.from, to: m.to, value: String(m.value), validAfter: String(m.validAfter), validBefore: String(m.validBefore), nonce: m.nonce };
   const seconds = BigInt(Math.floor(now / 1e3));
   if (Object.keys(m).sort().join() !== "from,nonce,to,validAfter,validBefore,value" || a.from.toLowerCase() !== bundle.payer.toLowerCase() || a.to.toLowerCase() !== bundle.seller.toLowerCase() || a.value !== row.amount_atomic || !/^0x[0-9a-f]{64}$/i.test(a.nonce) || BigInt(a.validAfter) < 0n || BigInt(a.validAfter) > seconds || BigInt(a.validBefore) < seconds + 604800n || BigInt(a.validBefore) > seconds + BigInt(CAMPAIGN_AUTH_WINDOW_SECONDS + 30)) throw new Error("\u672C\u673A\u7B7E\u540D\u91D1\u989D\u3001\u5730\u5740\u6216\u6709\u6548\u671F\u4E0D\u7B26\u3002");
@@ -35207,14 +35247,26 @@ function safeNetworkError(error, choice) {
   if (choice?.proxy) return `\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF08${known}\uFF09\uFF1A\u5DF2\u4F7F\u7528\u6307\u5B9A HTTP \u4EE3\u7406\uFF0C\u4F46\u672C\u6B21\u8FDE\u63A5\u5931\u8D25\u6216\u4E2D\u65AD\u3002\u8BF7\u4FDD\u6301\u4EE3\u7406\u5F00\u542F\u5E76\u68C0\u67E5\u5F53\u524D\u8282\u70B9\uFF1B\u65E0\u9700\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002`;
   return `\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF08${known}\uFF09\uFF1A\u6D4F\u89C8\u5668\u4EE3\u7406\u53EF\u80FD\u6CA1\u6709\u5E94\u7528\u5230\u7EC8\u7AEF\u3002\u8BF7\u5F00\u542F macOS \u7CFB\u7EDF\u4EE3\u7406\uFF0C\u6216\u5728\u547D\u4EE4\u672B\u5C3E\u6DFB\u52A0 --proxy http://127.0.0.1:\u5B9E\u9645HTTP\u7AEF\u53E3\u3002\u65E0\u9700\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002`;
 }
+function isTimingControl(url, input, init) {
+  if (url.pathname !== "/api/validation/control" || url.search || input instanceof Request || init?.method !== "POST" || typeof init.body !== "string" || init.body.length > 4096 || new Headers(init.headers).has("payment-signature")) return false;
+  try {
+    const b = JSON.parse(init.body);
+    if (Object.keys(b).sort().join() !== "action,bundleHash,reservedCount,runnerId,signature,timestamp" || b.action !== "accelerate" || !/^0x[\da-f]{130}$/i.test(b.signature)) return false;
+    accelerationMessage(url.origin, b.runnerId, b.bundleHash, b.reservedCount, b.timestamp);
+    return true;
+  } catch {
+    return false;
+  }
+}
 function createRunnerNetwork(choice, direct = globalThis.fetch) {
   const proxy = choice.proxy ? new URL(checkedProxy(choice.proxy)) : void 0;
   let lastError;
   const fetcher = async (input, init) => {
     const url = new URL(typeof input === "string" || input instanceof URL ? String(input) : input.url);
-    if (url.origin !== RUNNER_ORIGIN || url.username || url.password || url.hash || !["/api/validation/status", "/api/validation/payment"].includes(url.pathname) || init?.method && init.method !== "GET" || init?.body || input instanceof Request && input.method !== "GET") throw new RunnerNetworkError("\u7F51\u7EDC\u8BF7\u6C42\u8D85\u51FA\u56FA\u5B9A\u6D4B\u8BD5\u63A5\u53E3\uFF0C\u5DF2\u62D2\u7EDD\u3002");
+    const timingControl = isTimingControl(url, input, init);
+    if (url.origin !== RUNNER_ORIGIN || url.username || url.password || url.hash || !timingControl && (!["/api/validation/status", "/api/validation/payment"].includes(url.pathname) || init?.method && init.method !== "GET" || init?.body || input instanceof Request && input.method !== "GET")) throw new RunnerNetworkError("\u7F51\u7EDC\u8BF7\u6C42\u8D85\u51FA\u56FA\u5B9A\u6D4B\u8BD5\u63A5\u53E3\uFF0C\u5DF2\u62D2\u7EDD\u3002");
     const requestHeaders = new Headers(init?.headers ?? (input instanceof Request ? input.headers : void 0));
-    const requestLabel = url.pathname.endsWith("/status") ? "\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2" : requestHeaders.has("payment-signature") ? "\u4ED8\u6B3E\u63D0\u4EA4\uFF0F\u539F\u6388\u6743\u91CD\u653E" : "\u672A\u7B7E\u540D\u4ED8\u6B3E\u62A5\u4EF7";
+    const requestLabel = timingControl ? "\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4" : url.pathname.endsWith("/status") ? "\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2" : requestHeaders.has("payment-signature") ? "\u4ED8\u6B3E\u63D0\u4EA4\uFF0F\u539F\u6388\u6743\u91CD\u653E" : "\u672A\u7B7E\u540D\u4ED8\u6B3E\u62A5\u4EF7";
     try {
       const response = !proxy ? await direct(input, { ...init, redirect: "error" }) : await new Promise((resolve2, reject) => {
         const headers = new Headers(requestHeaders);
@@ -35222,7 +35274,7 @@ function createRunnerNetwork(choice, direct = globalThis.fetch) {
         const signal = init?.signal ?? AbortSignal.timeout(3e4);
         const agent = (0, import_https_proxy_agent.default)({ host: proxy.hostname.replace(/^\[|\]$/g, ""), port: Number(proxy.port || (proxy.protocol === "https:" ? 443 : 80)), protocol: proxy.protocol, signal });
         const req = (0, import_node_https.request)(url, {
-          method: "GET",
+          method: timingControl ? "POST" : "GET",
           // agent-base v6 predates the modern Agent type; its addRequest API is supported.
           headers: Object.fromEntries(headers),
           agent,
@@ -35254,7 +35306,7 @@ function createRunnerNetwork(choice, direct = globalThis.fetch) {
           });
         });
         req.on("error", reject);
-        req.end();
+        req.end(timingControl ? init.body : void 0);
       });
       if (response.status >= 300 && response.status < 400) throw new RunnerNetworkError("\u6D4B\u8BD5\u63A5\u53E3\u53D1\u751F\u8DF3\u8F6C\uFF0C\u5DF2\u505C\u6B62\uFF1B\u8BF7\u68C0\u67E5\u4EE3\u7406\u6216\u7F51\u7EDC\u767B\u5F55\u9875\u3002");
       if (response.status === 407) throw new RunnerNetworkError("\u672C\u673A\u4EE3\u7406\u8981\u6C42\u8BA4\u8BC1\u3002\u8BF7\u4F7F\u7528\u65E0\u9700\u5BC6\u7801\u7684\u672C\u673A HTTP\uFF0F\u6DF7\u5408\u7AEF\u53E3\u3002");
@@ -35290,13 +35342,18 @@ async function readRunnerStatus(network2, onRetry = () => {
 }
 
 // scripts/local-validation.mts
-var RUNNER_VERSION = "2026-10-14-proxy-v2.1";
+var RUNNER_VERSION = "2026-10-14-accelerated-v3";
+var accelerated = false;
 var network = createRunnerNetwork({ source: "direct" });
 var LocalRunnerError = class extends Error {
 };
 async function liveState(bundle) {
   const { state } = await readRunnerStatus(network, (message) => console.log(message));
   if (!state || state.stage !== 3 || state.halted || state.expiresAt <= Date.now() || state.executionMode !== "local" || state.runnerId !== bundle.runnerId || state.bundleHash !== await handoffDigest(bundle) || state.handoffCount !== bundle.reservedCount || state.maximumCount !== 1e3 || state.maximumAtomic !== "232600" || !Number.isFinite(state.stage3StartedAt) || state.stage3StartedAt <= 0) throw new LocalRunnerError("\u670D\u52A1\u7AEF\u63A5\u7BA1\u5305\u3001\u9884\u7B97\u6216\u6709\u6548\u671F\u4E0D\u7B26\u3002\u8BF7\u5728\u539F\u7F51\u9875\u6838\u67E5\uFF0C\u7981\u6B62\u76F4\u63A5\u65B0\u5EFA\u4ED8\u6B3E\u3002");
+  if (state.timingAmendment) {
+    validateTimingAmendment(state.timingAmendment, state.stage3StartedAt);
+    if (!accelerated) throw new LocalRunnerError("\u672C\u8F6E\u5DF2\u542F\u7528\u5FEB\u901F\u8BA1\u5212\u3002\u8BF7\u7528 --accelerate \u7EED\u8DD1\u540C\u4E00\u4EFD\u539F\u8BB0\u5F55\uFF0C\u4E0D\u80FD\u56DE\u5230\u65E7\u65F6\u95F4\u89C4\u5219\u3002");
+  }
   return state;
 }
 async function hiddenKey(signal) {
@@ -35366,18 +35423,18 @@ async function worker(bundle, root) {
   let phase = "\u5DE5\u4F5C\u8FDB\u7A0B\u521D\u59CB\u72B6\u6001\u67E5\u8BE2";
   console.log(`\u5DE5\u4F5C\u8FDB\u7A0B\u5DF2\u542F\u52A8\uFF1B${network.description}\u3002\u6B63\u5728\u53EA\u8BFB\u6838\u5BF9\u8FDB\u5EA6\u2026`);
   try {
-    const initial = await liveState(bundle);
+    await liveState(bundle);
     for (const row of stageThreeRows()) {
       const path = (0, import_node_path.join)(root, `${row.planned_intent_id}.json`), existing = await readPrivateJson(path);
       if (existing) {
         validateHandoffBundle({ ...bundle, journals: [existing] });
         if (existing.state === "accepted") continue;
       }
-      const due = dueTime(row, initial.stage3StartedAt);
-      if (due > Date.now()) console.log(`${row.planned_intent_id} \u7B49\u5F85\u8BA1\u5212\u65F6\u95F4 ${new Date(due).toLocaleString()}\uFF08\u81EA\u52A8\u7B49\u5F85\uFF09`);
-      while (due > Date.now()) await new Promise((r) => setTimeout(r, Math.min(3e4, due - Date.now())));
       phase = `${row.planned_intent_id} \u4ED8\u6B3E\u524D\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2`;
-      await liveState(bundle);
+      const current = await liveState(bundle), due = effectiveDueTime(row, current);
+      if (due > Date.now()) console.log(`${row.planned_intent_id} \u7B49\u5F85${current.timingAmendment ? "\u5FEB\u901F\u8BA1\u5212" : "\u539F\u8BA1\u5212"}\u65F6\u95F4 ${new Date(due).toLocaleString()}\uFF08\u81EA\u52A8\u7B49\u5F85\uFF09`);
+      while (due > Date.now()) await new Promise((r) => setTimeout(r, Math.min(3e4, due - Date.now())));
+      if (due > Date.now() - 3e4) await liveState(bundle);
       phase = `${row.planned_intent_id} ${existing?.paymentHeader ? "\u539F\u6388\u6743\u91CD\u653E" : "\u62A5\u4EF7\uFF0F\u7B7E\u540D\uFF0F\u63D0\u4EA4"}`;
       console.log(`\u51C6\u5907 ${row.planned_intent_id} / ${row.amount_usdc} USDC / ${existing?.paymentHeader ? "\u6CBF\u7528\u5DF2\u4FDD\u5B58\u7684\u539F\u6388\u6743" : "\u83B7\u53D6\u62A5\u4EF7\u540E\u6309\u56FA\u5B9A\u9884\u7B97\u7B7E\u540D"}`);
       const result = await runPlannedPayment(row, {
@@ -35433,6 +35490,7 @@ async function main() {
       const m = raw;
       if (m?.type !== "init") process.exit(1);
       try {
+        accelerated = m.accelerated === true;
         network = createRunnerNetwork(m.network ?? { source: "direct" });
         const code = await worker(m.bundle, m.root);
         process.exit(code);
@@ -35448,14 +35506,15 @@ async function main() {
     return;
   }
   if (args.includes("--help")) {
-    console.log("macOS \u672C\u673A\u6267\u884C\uFF1A--check \u53EA\u8BFB\u9884\u68C0\uFF1B--network-check \u4EC5\u6D4B\u8BD5\u8054\u7F51\uFF1B--proxy http://127.0.0.1:\u7AEF\u53E3 \u6307\u5B9A HTTP \u4EE3\u7406\uFF08\u6216 direct \u76F4\u8FDE\uFF09\uFF1B--execute \u672C\u4EBA\u786E\u8BA4\u540E\u542F\u52A8\uFF1B--offline-check \u79BB\u7EBF\u68C0\u67E5\uFF1B--bundle \u8DEF\u5F84 \u6307\u5B9A\u539F\u63A5\u7BA1\u5305\u3002\u79C1\u94A5\u53EA\u80FD\u5728\u6267\u884C\u65F6\u9690\u85CF\u8F93\u5165\u3002\u6309 Ctrl+C \u505C\u6B62\uFF0C\u539F\u8BB0\u5F55\u4FDD\u7559\u3002");
+    console.log("macOS \u672C\u673A\u6267\u884C\uFF1A--check \u53EA\u8BFB\u9884\u68C0\uFF1B--network-check \u4EC5\u6D4B\u8BD5\u8054\u7F51\uFF1B--proxy http://127.0.0.1:\u7AEF\u53E3 \u6307\u5B9A HTTP \u4EE3\u7406\uFF08\u6216 direct \u76F4\u8FDE\uFF09\uFF1B--execute \u672C\u4EBA\u786E\u8BA4\u540E\u542F\u52A8\uFF1B--accelerate \u660E\u786E\u6539\u4E3A\u81F3\u5C11 5 \u79D2\u95F4\u9694\u5FEB\u901F\u7EED\u8DD1\uFF08\u53EA\u6539\u540E\u7EED\u65F6\u95F4\uFF0C\u4E0D\u589E\u52A0\u9884\u7B97\uFF09\uFF1B--offline-check \u79BB\u7EBF\u68C0\u67E5\uFF1B--bundle \u8DEF\u5F84 \u6307\u5B9A\u539F\u63A5\u7BA1\u5305\u3002\u79C1\u94A5\u53EA\u80FD\u5728\u6267\u884C\u65F6\u9690\u85CF\u8F93\u5165\u3002\u6309 Ctrl+C \u505C\u6B62\uFF0C\u539F\u8BB0\u5F55\u4FDD\u7559\u3002");
     return;
   }
-  const allowed = /* @__PURE__ */ new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy"]);
+  const allowed = /* @__PURE__ */ new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy", "--accelerate"]);
   for (let i = 0; i < args.length; i++) {
     if (!allowed.has(args[i])) throw new LocalRunnerError("\u672A\u77E5\u53C2\u6570\uFF0C\u8BF7\u8FD0\u884C --help\uFF1B\u4E0D\u8981\u628A\u79C1\u94A5\u5199\u8FDB\u547D\u4EE4\u3002");
     if (["--bundle", "--proxy"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle \u6216 --proxy \u540E\u9700\u8981\u586B\u5199\u5BF9\u5E94\u8DEF\u5F84\u6216\u4EE3\u7406\u5730\u5740\u3002");
   }
+  accelerated = args.includes("--accelerate");
   const proxyArg = args.indexOf("--proxy");
   const choice = await selectNetwork(proxyArg >= 0 ? args[proxyArg + 1] : void 0);
   network = createRunnerNetwork(choice);
@@ -35493,6 +35552,7 @@ async function main() {
   const state = await liveState(bundle);
   console.log(`\u63A5\u7BA1\u68C0\u67E5\u901A\u8FC7\uFF1AArc 5042\uFF1B\u4ED8\u6B3E ${bundle.payer}\uFF1B\u6536\u6B3E ${bundle.seller}\u3002`);
   console.log(`\u7B2C\u4E09\u9636\u6BB5\u56FA\u5B9A\u4E0A\u9650 900 \u7B14 / 0.209340 USDC\uFF1B\u76EE\u524D\u7D2F\u8BA1\u9884\u7559 ${state.reservedCount} \u7B14\u3002\u539F\u8BA1\u5212\u6700\u665A\u5F00\u653E\u65F6\u95F4 ${new Date(state.stage3StartedAt + 864e5).toLocaleString()}\u3002`);
+  if (accelerated) console.log(`\u5FEB\u901F\u7EED\u8DD1\uFF1A\u540E\u7EED\u65B0\u4ED8\u6B3E\u95F4\u9694\u81F3\u5C11 5 \u79D2\uFF0C\u4FDD\u6301\u5355\u7B14\u672A\u51B3\u4FDD\u62A4\u3002${state.timingAmendment ? "\u5DF2\u542F\u7528\uFF0C\u5C06\u6CBF\u7528\u539F\u53D8\u66F4\u3002" : "\u5C1A\u672A\u542F\u7528\uFF1B\u53EA\u6709 --execute \u4E2D\u672C\u4EBA\u786E\u8BA4\u5E76\u7B7E\u7F72\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\u540E\u624D\u751F\u6548\u3002"} \u4E0D\u518D\u5BA3\u79F0\u5B8C\u6210\u539F 24 \u5C0F\u65F6\u8BA1\u5212\u3002`);
   if (!args.includes("--execute")) {
     console.log("\u53EA\u8BFB\u68C0\u67E5\u5B8C\u6210\uFF0C\u65E0\u4ED8\u6B3E\u3002\u542F\u52A8\u8BF7\u4F7F\u7528 --execute\uFF1B\u79C1\u94A5\u53EA\u5728\u672C\u673A\u9690\u85CF\u8F93\u5165\u3002");
     return;
@@ -35524,11 +35584,11 @@ async function main() {
     const prompt = (0, import_promises3.createInterface)({ input: process.stdin, output: process.stdout });
     let answer;
     try {
-      answer = await prompt.question("\u786E\u8BA4\u7531\u672C\u673A\u6309\u539F\u9884\u7B97\u81EA\u52A8\u7B7E\u540D\u5E76\u4ED8\u6B3E\uFF1F\u8BF7\u8F93\u5165 RUN\uFF1A ", { signal: controller.signal });
+      answer = await prompt.question(accelerated ? "\u786E\u8BA4\u6309\u539F\u9884\u7B97\u5FEB\u901F\u7EED\u8DD1\uFF0C\u5E76\u516C\u5F00\u539F 24 \u5C0F\u65F6\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\uFF1F\u8BF7\u8F93\u5165 FAST\uFF1A " : "\u786E\u8BA4\u7531\u672C\u673A\u6309\u539F\u9884\u7B97\u81EA\u52A8\u7B7E\u540D\u5E76\u4ED8\u6B3E\uFF1F\u8BF7\u8F93\u5165 RUN\uFF1A ", { signal: controller.signal });
     } finally {
       prompt.close();
     }
-    if (answer.trim() !== "RUN" || stopped) throw new LocalRunnerError("\u5DF2\u53D6\u6D88\uFF0C\u6CA1\u6709\u542F\u52A8\u4ED8\u6B3E\u3002");
+    if (answer.trim() !== (accelerated ? "FAST" : "RUN") || stopped) throw new LocalRunnerError("\u5DF2\u53D6\u6D88\uFF0C\u6CA1\u6709\u542F\u52A8\u4ED8\u6B3E\u3002");
     let key = (await hiddenKey(controller.signal)).trim();
     if (/^[0-9a-f]{64}$/i.test(key)) key = `0x${key}`;
     if (!/^0x[0-9a-f]{64}$/i.test(key)) {
@@ -35551,6 +35611,31 @@ async function main() {
       permits = addSigningPermit(permits, { intent: j.intent, digest: hashTypedData2(campaignTypedData(p.payload.authorization, arc2)), authorization: p.payload.authorization });
     }
     await writePrivateJson(guardPath, permits);
+    if (accelerated && !stopped) {
+      const current = await liveState(bundle);
+      if (!current.timingAmendment && current.reservedCount < 1e3) {
+        const timestamp = String(Math.floor(Date.now() / 1e3)), bundleHash = await handoffDigest(bundle);
+        const message = accelerationMessage(bundle.origin, bundle.runnerId, bundleHash, current.reservedCount, timestamp);
+        console.log(`\u786E\u8BA4\u540E\u7EED\u7B2C ${current.reservedCount + 1} \u81F3 1000 \u7B14\u5207\u6362\u81F3\u81F3\u5C11 5 \u79D2\u95F4\u9694\uFF1B\u6B63\u5728\u63D0\u4EA4\u514D\u8D39\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\u7B7E\u540D\u2026`);
+        const signature = await signer.signMessage({ message });
+        if (stopped) throw new LocalRunnerError("\u5DF2\u505C\u6B62\uFF0C\u672A\u63D0\u4EA4\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\u3002");
+        const response = await network.fetcher(`${bundle.origin}/api/validation/control`, {
+          method: "POST",
+          cache: "no-store",
+          redirect: "error",
+          signal: AbortSignal.timeout(3e4),
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "accelerate", runnerId: bundle.runnerId, bundleHash, reservedCount: current.reservedCount, timestamp, signature })
+        });
+        if (!response.ok) throw new LocalRunnerError("\u5FEB\u901F\u8BA1\u5212\u672A\u786E\u8BA4\uFF1B\u8BF7\u53EA\u8BFB\u6838\u67E5\u540E\u6CBF\u7528\u539F\u8BB0\u5F55\uFF0C\u4E0D\u8981\u65B0\u5EFA\u63A5\u7BA1\u5305\u3002");
+      }
+      const amended = await liveState(bundle);
+      if (amended.reservedCount < 1e3 && !amended.timingAmendment) throw new LocalRunnerError("\u5FEB\u901F\u8BA1\u5212\u5C1A\u672A\u751F\u6548\uFF0C\u5DF2\u505C\u6B62\u3002");
+      if (amended.timingAmendment) {
+        await writePrivateJson((0, import_node_path.join)(root, ".timing-amendment.json"), amended.timingAmendment);
+        console.log(`\u5FEB\u901F\u8BA1\u5212\u5DF2\u786E\u8BA4\uFF0C\u4ECE\u7B2C ${amended.timingAmendment.fromOrdinal} \u7B14\u8D77\u751F\u6548\uFF1B\u5DF2\u6210\u529F\u4ED8\u6B3E\u81EA\u52A8\u8DF3\u8FC7\uFF0C\u91D1\u989D\u548C\u539F\u8BB0\u5F55\u4E0D\u53D8\u3002`);
+      }
+    }
     while (!stopped) {
       await liveState(bundle);
       if (stopped) break;
@@ -35563,7 +35648,7 @@ async function main() {
         signQueue = signQueue.then(async () => {
           try {
             if (stopped) throw new LocalRunnerError("Stopped");
-            const current = await liveState(bundle), permit = localSigningPermit(m.intent, m.params, bundle, current.stage3StartedAt);
+            const current = await liveState(bundle), permit = localSigningPermit(m.intent, m.params, bundle, current);
             if (stopped) throw new LocalRunnerError("Stopped");
             const next = addSigningPermit(permits, permit);
             await writePrivateJson(guardPath, next);
@@ -35583,7 +35668,7 @@ async function main() {
         });
         child.once("close", (code2) => resolve2(failed ? 1 : code2 ?? 1));
       });
-      child.send({ type: "init", bundle, root, network: choice });
+      child.send({ type: "init", bundle, root, network: choice, accelerated });
       const code = await closed;
       await signQueue;
       active = void 0;

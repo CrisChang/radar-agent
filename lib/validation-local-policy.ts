@@ -1,12 +1,13 @@
 import { hashTypedData } from "viem";
 import { getArcConfig } from "./arc";
 import { CAMPAIGN_AUTH_TYPES, CAMPAIGN_AUTH_WINDOW_SECONDS, campaignTypedData, type CampaignAuthorization } from "./validation-authorization";
-import { plannedPayment, STAGES, dueTime } from "./validation-plan";
+import { plannedPayment, STAGES } from "./validation-plan";
 import { RUNNER_PAYER, RUNNER_SELLER, type HandoffBundle } from "./validation-handoff";
+import { effectiveDueTime, type TimingState } from "./validation-timing";
 export interface SigningPermit { intent: string; digest: string; authorization: CampaignAuthorization }
-export function localSigningPermit(intent: string, params: ReturnType<typeof campaignTypedData>, bundle: HandoffBundle, startedAt: number, now = Date.now()): SigningPermit {
+export function localSigningPermit(intent: string, params: ReturnType<typeof campaignTypedData>, bundle: HandoffBundle, startedAt: number | TimingState, now = Date.now()): SigningPermit {
   const row = plannedPayment(intent), arc = getArcConfig({ ARC_NETWORK: "mainnet" });
-  if (row.stage !== 3 || dueTime(row, startedAt) > now || !params || params.primaryType !== "TransferWithAuthorization" ||
+  if (row.stage !== 3 || effectiveDueTime(row, typeof startedAt === "number" ? { stage3StartedAt: startedAt } : startedAt) > now || !params || params.primaryType !== "TransferWithAuthorization" ||
       params.domain.name !== "GatewayWalletBatched" || params.domain.version !== "1" || Number(params.domain.chainId) !== 5042 ||
       params.domain.verifyingContract.toLowerCase() !== arc.gatewayWallet.toLowerCase() ||
       Object.keys(params.types).length !== 1 || JSON.stringify(params.types.TransferWithAuthorization) !== JSON.stringify(CAMPAIGN_AUTH_TYPES.TransferWithAuthorization)) throw new Error("本机签名范围不符。");

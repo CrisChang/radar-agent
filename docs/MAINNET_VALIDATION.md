@@ -3,7 +3,7 @@
 Status updated October 14, 2026: the owner-approved campaign is **in progress**
 on [the public validation page](https://radar-agent-ivory.vercel.app/validation).
 The first two stages have been completed and stage three is running under the
-original fixed schedule. The page distinguishes current reservations from the
+original fixed schedule unless the owner explicitly activates the optional timing amendment below. The page distinguishes current reservations from the
 last timestamped reconciliation report. No final 1,000-payment pass or final
 zero-difference result is claimed here.
 
@@ -45,7 +45,9 @@ Each stage needs a fresh owner wallet signature binding the canonical site origi
 
 Claims, count/amount reservations, intent indexes and state events are one atomic Redis operation. Claims allow one new intent in flight. Replays can be concurrent but do not reserve new money. Reservations are never released because of an uncertain result. Unknown or rejected outcomes halt new payments; no fresh nonce replaces them. Funding and signing fail closed without durable storage. Keep Redis eviction disabled; do not delete campaign keys, use a different wallet, or reset a namespace to evade a cap.
 
-Stage 3's 900 intents are spaced over at least 24 hours. The server enforces the earliest time of each intent; speeding up the client cannot bypass it. The browser must stay open for waiting, and a local runner must remain awake; Vercel only handles short requests and does not run the 24-hour client loop. Interrupted work resumes from its private journal.
+The original stage-three schedule spaces 900 intents over 24 hours (about 96 seconds per slot). Client concurrency cannot bypass server timing and single-flight guards. The owner can explicitly activate v3's **accelerated timing amendment** for only the remaining unreserved intents: sequential new claims at least five seconds apart. A separate five-minute owner signature binds the runner, original bundle hash and reservation count. Activation is atomic, requires no in-flight payment and preserves the original expiry, budgets, intent/nonce indexes and journals. It cannot silently revise or erase earlier evidence. Old monetary/scenario schedule hashes remain unchanged; timing changes have their own append-only event and authorization digest.
+
+Default execution continues to follow the original schedule. With an amendment, the site and report disclose its timestamp, first affected ordinal, interval, actual observed duration and `original_24h_plan_followed: false`. An accelerated completion must never be described as completion of the original 24-hour plan. The local runner remains awake and Vercel only handles short requests. Interrupted work resumes from the original private journal; multiple runners remain prohibited.
 
 ## Scenarios and what they prove
 
@@ -120,7 +122,7 @@ If settlement was accepted but an acknowledgement was lost, a single matching co
 
 Per-payment attribution is **provider-mediated** (nonce → transfer → batch). The chain independently proves aggregate wallet deltas, not every individual offchain authorization. Scenario completion is checked against exact-authorization attempt fingerprints and HTTP results. Discard/restart/session labels are client-reported; concurrent overlap uses server timestamps and is not independently attested. Ten distinct spread-session labels are required for the final pass. Public reports label this evidence level and distinguish unique payments, HTTP attempts and distinct batch hashes. No result is a claim of 1,000 unique blockchain transactions.
 
-Money tolerance is **zero atomic units**; rounding is prohibited. A final pass requires all 1,000 payments verified, no unresolved errors or duplicates, exact matching amounts and at least 24 hours elapsed. Partial/pending data has `overall_passed: null`; an unobserved difference is `null`, not zero. Public reports exclude signatures, raw nonces, private request IDs and contact details. All attempts and intermediate transitions remain in the owner's complete event export. Reports and event exports can be hashed for snapshots; this is an operator-controlled database, not a claim of independently immutable logs.
+Money tolerance is **zero atomic units**; rounding is prohibited. A final pass requires all 1,000 payments verified, no unresolved errors or duplicates, exact matching amounts, all required scenario evidence, at least ten observed spread sessions and adherence to the approved timing policy. The original policy additionally requires the final claim to occur at least 24 hours after stage-three approval; an explicitly amended accelerated run is reported separately with its actual duration and does not satisfy the original 24-hour claim. Partial/pending data has `overall_passed: null`; an unobserved difference is `null`, not zero. Public reports exclude signatures, raw nonces, private request IDs and contact details. All attempts and intermediate transitions remain in the owner's complete event export. Reports and event exports can be hashed for snapshots; this is an operator-controlled database, not a claim of independently immutable logs.
 
 ## Validation performed before funding
 
