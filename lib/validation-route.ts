@@ -12,6 +12,7 @@ import { paymentIdentity } from "./payment-store";
 import { CAMPAIGN_AUTH_WINDOW_SECONDS } from "./validation-authorization";
 
 import { replayAcceptedCampaign } from "./validation-replay";
+import { handoffMessage } from "./validation-handoff";
 import { controlMessage } from "./validation-messages";
 const noStore = { "cache-control": "no-store" };
 async function owner(body: Record<string, unknown>, message: string) {
@@ -40,8 +41,12 @@ export async function validationControl(request: NextRequest) {
     const action = String(body.action), timestamp = String(body.timestamp);
     const origin = new URL(getResourceUrl(request)).origin;
     const stage = Number(body.stage);
-    await owner(body, action === "approve" ? approvalMessage(origin, getPilotBuyerAddress(), getSellerAddress(), stage, timestamp) : controlMessage(origin, action, timestamp));
+    await owner(body, action === "approve" ? approvalMessage(origin, getPilotBuyerAddress(), getSellerAddress(), stage, timestamp) : action === "handoff" ? handoffMessage(origin, String(body.runnerId), String(body.bundleHash), Number(body.reservedCount), timestamp) : controlMessage(origin, action, timestamp));
     const store = validationStore(); if (!store) throw new Error("Durable campaign store unavailable");
+    if (action === "handoff") {
+      if (!await store.handoff(String(body.runnerId), String(body.bundleHash), Number(body.reservedCount))) return NextResponse.json({ error: "接管未完成：请停止网页运行，并只读核查全部已有付款；存在未决交易、过期预算或不同接管包时不能切换。" }, { status: 409, headers: noStore });
+      return NextResponse.json({ state: await store.state(), payment_attempted: false }, { headers: noStore });
+    }
     if (action === "approve") {
       if (process.env.RADAR_ACCEPT_PAYMENTS !== "true") throw new Error("Payments disabled");
       const terms = STAGES.find(s => s.stage === stage); if (!terms) throw new Error("Invalid stage");
@@ -90,6 +95,12 @@ export async function validationPayment(request: NextRequest) {
   } catch { return NextResponse.json({ error: "Use a frozen intent and its stable request ID; arbitrary prices are not accepted" }, { status: 400, headers: noStore }); }
   const store = validationStore(); if (!store) return NextResponse.json({ error: "Durable campaign store unavailable" }, { status: 503, headers: noStore });
   const paid = request.headers.get("payment-signature");
+  const runnerId = request.headers.get("x-radar-runner-id") ?? "";
+  const execution = await store.state();
+  if (!replayOnly && ((execution?.executionMode === "local" && runnerId !== execution.runnerId) ||
+      (execution?.executionMode !== "local" && runnerId !== ""))) {
+    return NextResponse.json({ error: "执行端已切换；本入口禁止新付款。请使用已批准的本机接管包。", payment_attempted: false }, { status: 409, headers: noStore });
+  }
   if (!paid && await store.intent(row.planned_intent_id)) return NextResponse.json({ error: "Intent already reserved; resume the original signed journal or reconcile, never create a replacement authorization" }, { status: 409, headers: noStore });
   if (!paid) {
     const state = await store.state();
@@ -124,7 +135,7 @@ export async function validationPayment(request: NextRequest) {
   }
   const handler = withGateway(async () => NextResponse.json({ campaign_id: CAMPAIGN_ID, intent: row.planned_intent_id,
     purpose: "owner_controlled_payment_reliability_test", amount_atomic: row.amount_atomic, scenario: row.scenario }, { headers: noStore }),
-    row.amount_usdc, "/api/validation/payment", { store, campaign: { id: CAMPAIGN_ID, intent: row.planned_intent_id }, authorizationTimeoutSeconds: CAMPAIGN_AUTH_WINDOW_SECONDS });
+    row.amount_usdc, "/api/validation/payment", { store, campaign: { id: CAMPAIGN_ID, intent: row.planned_intent_id, ...(runnerId ? { runnerId } : {}) }, authorizationTimeoutSeconds: CAMPAIGN_AUTH_WINDOW_SECONDS });
   // A supplemental request can ONLY read an exact accepted receipt. There is
   // no fallback to the charging handler even if the original record is absent.
   const response = replayOnly ? await replayAcceptedCampaign(row, replayIdentity!, store) : await handler(request);

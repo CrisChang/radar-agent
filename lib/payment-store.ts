@@ -22,7 +22,7 @@ export interface PaymentRecord {
   authorization?: { payer: string; nonce: string; network: string; gatewayWallet: string };
   terms?: { amountAtomic: string; asset: string; payTo: string };
   response?: SavedResponse;
-  campaign?: { id: string; intent: string };
+  campaign?: { id: string; intent: string; runnerId?: string };
 }
 export interface PaymentStore {
   find(paymentKey: string, requestKey: string): Promise<PaymentRecord | null>;

@@ -7,12 +7,13 @@ import { controlMessage } from "@/lib/validation-messages";
 import { billingMessage } from "@/lib/billing-auth";
 import { runPlannedPayment, type PrivateJournal } from "@/lib/validation-runner";
 import CampaignFunding from "./funding";
+import LocalRunner from "./local-runner";
 import baseline from "@/data/mainnet-batch-baseline.json";
 import { connectedAddress, connectionError, connectionRequest, injectedWallet, type WalletChoice } from "@/lib/wallet-connection";
 import { supplementConcurrentReplay } from "@/lib/validation-replay-client";
 import { renewRejectedAuthorization } from "@/lib/validation-renewal";
 
-interface State { stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
+interface State { executionMode?: "local"; stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
 interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; concurrent_evidence?: string | null; supplemental_replay_attempts?: number; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number; verification_rejections?: number; verification_rejection_reasons?: string[]; same_nonce_renewal_checks?: number }
 interface Report { status: string; completed_payments: number; scenario_verified_payments?: number; attempted_payments: number; http_attempts: number | null; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
 export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig; payer: string; seller: string }) {
@@ -127,6 +128,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
   async function runStage() {
     if (!consent) throw new Error("请核对并勾选本阶段付款预算。");
     const client = await account(), current = await refresh();
+    if (current?.executionMode === "local") throw new Error("已切换到本机脚本，网页不再发起新付款。");
     if (!current || current.halted || current.expiresAt < Date.now()) throw new Error("阶段未批准、已暂停或已过期。");
     if (!navigator.locks) throw new Error("浏览器不支持安全运行锁，请使用当前版本 Chrome。");
     stop.current = false;
@@ -233,10 +235,10 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       <p><label>连接的钱包： <select aria-label="连接的钱包" value={walletChoice} disabled={!clientReady || busy} onChange={e => { setWalletChoice(e.target.value as WalletChoice); setWallet(undefined); setConnectedChain(undefined); setConsent(false); selectedProvider.current = undefined; setMessage("已更换钱包类型，请点击连接。历史付款记录仍保留。"); }}><option value="auto">自动选择（优先 OKX）</option><option value="okx">OKX Wallet</option><option value="ethereum">MetaMask／浏览器 EVM 钱包</option></select></label></p>
       <p className="tool-notice" role="status" aria-live="polite" aria-atomic="true">{message}</p>
       <noscript><p className="tool-notice">页面脚本未启用，钱包按钮无法工作。请在 Chrome 允许本站使用 JavaScript 后刷新。</p></noscript>
-      <div className="tool-actions"><button disabled={!clientReady || busy} onClick={() => void perform(connect)}>{!clientReady ? "连接功能加载中…" : busy ? "处理中，请查看钱包…" : "连接指定钱包"}</button><button disabled={!clientReady || busy} onClick={() => void perform(chooseAccount)}>选择账户</button><button disabled={busy || !wallet} onClick={() => void perform(disconnect)}>断开连接</button><button disabled={!walletReady || busy} onClick={() => void perform(() => control("reconcile"))}>只读核查全部付款与链上批次</button><button disabled={!walletReady || busy || !state} onClick={() => void perform(() => control("pause"))}>暂停服务端新付款</button><button disabled={!walletReady || busy || !state?.halted} onClick={() => void perform(() => control("resume"))}>核查完成后恢复原阶段</button></div>
+      <div className="tool-actions"><button disabled={!clientReady || busy} onClick={() => void perform(connect)}>{!clientReady ? "连接功能加载中…" : busy ? "处理中…" : "连接指定钱包"}</button><button disabled={!clientReady || busy} onClick={() => void perform(chooseAccount)}>选择账户</button><button disabled={busy || !wallet} onClick={() => void perform(disconnect)}>断开连接</button><button disabled={!walletReady || busy} onClick={() => void perform(() => control("reconcile"))}>只读核查全部付款与链上批次</button><button disabled={!walletReady || busy || !state} onClick={() => void perform(() => control("pause"))}>暂停服务端新付款</button><button disabled={!walletReady || busy || !state?.halted} onClick={() => void perform(() => control("resume"))}>核查完成后恢复原阶段</button></div>
       <p><label><input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)}/>我已核对本阶段金额、付款和收款地址，并同意固定计划内的付款及原授权重试。</label></p>
       <div className="tool-actions">{next && <button disabled={!walletReady || busy || !consent || !!state?.halted || !!state && state.verifiedCount !== (current?.cumulativeCount ?? 0)} onClick={() => void perform(() => control("approve", next.stage))}>批准阶段 {next.stage}：{next.count} 笔 / {formatAtomic(next.amountAtomic)} USDC</button>}
-      <button disabled={!walletReady || busy || !consent || !state || state.halted} onClick={() => void perform(runStage)}>运行 / 继续当前阶段</button><button disabled={!busy} onClick={() => { stop.current = true; }}>停止本机后续请求</button></div>
+      <button disabled={!walletReady || busy || !consent || !state || state.halted || state.executionMode === "local"} onClick={() => void perform(runStage)}>运行 / 继续当前阶段</button><button disabled={!busy} onClick={() => { stop.current = true; }}>停止本机后续请求</button></div>
       {pendingReplays.length > 0 && <section className="validation-funding"><h3>补做并发验证（不新增付款）</h3>
         <p>待补测：{pendingReplays.map(r => r.intent).join("、")}。这些付款已完成，本次每笔同时读取原成功账单两次，检验并发重放返回相同内容。它验证付款完成后的账单重放，不代表首次结算并发测试。</p>
         <p>请在原付款的同一 Chrome 中操作，保留本站数据。无需充值、代币授权或新付款签名；历史失败不会删除。补测后仍需只读对账确认实际请求重叠。</p>
@@ -248,6 +250,8 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
         <p><label><input type="checkbox" checked={renewalConsent} disabled={busy} onChange={e => setRenewalConsent(e.target.checked)}/>我同意仅延长这笔原 nonce 授权，金额仍为 {recoveryIntent.amount_usdc} USDC，有效期约七天加一小时，不增加付款预算。</label></p>
         <button disabled={!walletReady || busy || !renewalConsent} onClick={() => void perform(renewOriginal)}>核查并延长原授权（不提交付款）</button>
       </section>}
+      {state?.stage === 3 && <LocalRunner payer={payer} seller={seller} account={account} disabled={!walletReady || busy} onMessage={setMessage} onRefresh={refresh}/> }
+      {state?.executionMode === "local" && <p className="tool-notice">已由本机脚本接管，网页新付款已锁住。付款记录与只读核查仍可使用。</p>}
       <CampaignFunding arc={arc} payer={payer} account={account} disabled={!walletReady || busy} onMessage={setMessage}/>
     </div>
     <div className="tool-card"><h2>逐笔记录 / Results</h2><p>顺序请求、跨会话、串行重放、并发重放、受控丢弃响应及真实客户端重启。失败和重试都保留；未完成项不算成功。</p>

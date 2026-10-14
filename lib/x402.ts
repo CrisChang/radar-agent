@@ -104,7 +104,7 @@ export function withGateway(
   handler: (request: NextRequest) => Promise<NextResponse>,
   priceUsdc: string,
   endpoint: string,
-  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore; campaign?: { id: string; intent: string }; authorizationTimeoutSeconds?: number } = {},
+  dependencies: { facilitator?: Pick<BatchFacilitatorClient, "verify" | "settle">; store?: PaymentStore; campaign?: { id: string; intent: string; runnerId?: string }; authorizationTimeoutSeconds?: number } = {},
 ) {
   return async (request: NextRequest) => {
     const callerId = request.headers.get("x-radar-request-id");

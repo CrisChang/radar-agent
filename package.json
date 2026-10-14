@@ -20,7 +20,8 @@
     "bills:local": "tsx scripts/bills.mts",
     "test:redis": "tsx --test tests/integration/redis.test.ts",
     "validation:plan": "tsx scripts/validation.mts",
-    "validation:run": "tsx scripts/validation.mts"
+    "validation:run": "tsx scripts/validation.mts",
+    "build:local-runner": "node scripts/build-local-runner.mjs"
   },
   "dependencies": {
     "@circle-fin/adapter-circle-wallets": "^1.1.0",
@@ -38,7 +39,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "esbuild": "0.28.1"
   },
   "overrides": {
     "postcss": "^8.5.18",

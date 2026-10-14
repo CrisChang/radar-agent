@@ -71,6 +71,37 @@ test("real Redis campaign: atomic varied-amount budgets, 1,000 complete indexes,
       const s = (await store.state())!; assert.equal(await store.publish(s, { synthetic_reconciliation_fixture: true }, 1, false), true);
       assert.equal((await store.state())!.halted, false); assert.equal(await store.claim(record(2)), true);
     });
+    await t.test("local handoff requires complete reconciliation and atomically locks out old browser claims", async () => {
+      const store = new ValidationStore(options("validation-handoff"));
+      for (const stage of STAGES.slice(0, 2)) {
+        await store.approve(stage.stage);
+        for (const row of PAYMENT_SCHEDULE.filter(r => r.stage === stage.stage)) {
+          const r = record(row.ordinal); assert.equal(await store.claim(r), true);
+          await store.transition(r.paymentKey, "preparing", "settling", response); await store.transition(r.paymentKey, "settling", "accepted", response);
+        }
+        await store.publish((await store.state())!, { completed_payments: stage.cumulativeCount, money_difference_atomic: "0" }, stage.cumulativeCount, false);
+      }
+      const id = "11111111-1111-4111-8111-111111111111", hash = "a".repeat(64);
+      assert.equal(await store.handoff(id, hash, 100), false); // must be stage three
+      await store.approve(3, Date.now() - 86_400_000);
+      const r = record(101); assert.equal(await store.claim(r), true);
+      assert.equal(await store.handoff(id, hash, 101), false); // in-flight
+      await store.transition(r.paymentKey, "preparing", "settling", response); await store.transition(r.paymentKey, "settling", "accepted", response);
+      assert.equal(await store.handoff(id, hash, 101), false); // old report
+      await store.publish((await store.state())!, { completed_payments: 101, money_difference_atomic: "1" }, 101, false);
+      assert.equal(await store.handoff(id, hash, 101), false);
+      await store.publish((await store.state())!, { completed_payments: 101, money_difference_atomic: "0" }, 101, false);
+      assert.equal(await store.handoff(id, hash, 100), false); // count changed during client preparation
+      const before = (await store.state())!;
+      assert.equal(await store.handoff(id, hash, 101), true); assert.equal(await store.handoff(id, hash, 101), true);
+      assert.equal(await store.handoff(id, "b".repeat(64), 101), false);
+      const after = (await store.state())!;
+      for (const k of ["reservedCount", "reservedAtomic", "maximumCount", "maximumAtomic", "expiresAt", "stage3StartedAt"] as const) assert.equal(after[k], before[k]);
+      assert.equal(await store.claim(record(102)), false); // even an already-issued browser quote cannot claim
+      const local = record(102); local.campaign!.runnerId = "wrong"; assert.equal(await store.claim(local), false);
+      local.campaign!.runnerId = id; assert.equal(await store.claim(local), true);
+      assert.equal(await store.handoff(id, hash, 101), true); // a retry is idempotent even after local progress
+    });
     await t.test("all 1,000 varying payments fit exact stage and campaign budgets; exports survive restart", async () => {
       let store = new ValidationStore(options("validation-full"));
       for (const stage of STAGES) {

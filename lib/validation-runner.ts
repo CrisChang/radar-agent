@@ -16,7 +16,7 @@ export interface PrivateJournal {
 }
 type Signer = ConstructorParameters<typeof BatchEvmScheme>[0];
 export interface RunnerDependencies {
-  origin: string; payer: string; seller: string; bootId: string; sessionId?: string; signer: Signer; fetcher?: typeof fetch;
+  origin: string; payer: string; seller: string; bootId: string; sessionId?: string; runnerId?: string; signer: Signer; fetcher?: typeof fetch;
   load(id: string): Promise<PrivateJournal | null>; save(journal: PrivateJournal): Promise<void>;
 }
 function decode(value: string | null) {
@@ -38,6 +38,7 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
   const origin = new URL(deps.origin).origin;
   if (origin !== deps.origin || (new URL(origin).protocol !== "https:" && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))) throw new Error("Pin an HTTPS origin");
   if (deps.signer.address.toLowerCase() !== deps.payer.toLowerCase() || deps.payer.toLowerCase() === deps.seller.toLowerCase()) throw new Error("Wrong payer signer or seller");
+  const executionHeaders: Record<string, string> = deps.runnerId ? { "x-radar-runner-id": deps.runnerId } : {};
   const requestId = intentRequestId(row), url = `${origin}/api/validation/payment?intent=${row.planned_intent_id}`;
   let journal = await deps.load(row.planned_intent_id);
   if (journal && (journal.campaign !== CAMPAIGN_ID || journal.intent !== row.planned_intent_id || journal.requestId !== requestId ||
@@ -50,7 +51,7 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
   if (journal?.state === "restart_required" && journal.bootId === deps.bootId) return { state: "restart_required" as const, journal };
   if (journal && !journal.paymentHeader) throw new Error("Signing outcome unresolved. Do not create a replacement authorization");
   if (!journal) {
-    const response = await fetcher(url, { headers: { "x-radar-request-id": requestId }, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(30_000) });
+    const response = await fetcher(url, { headers: { ...executionHeaders, "x-radar-request-id": requestId }, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(30_000) });
     if (response.status !== 402) throw new Error("Intent unavailable or already reserved; reconcile before signing");
     const raw = decode(response.headers.get("payment-required"));
     const offer = validateOffer(raw, arc, row.amount_atomic, CAMPAIGN_AUTH_WINDOW_SECONDS);
@@ -85,7 +86,7 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
     active.state = "submitted"; await deps.save(active);
     try {
       const response = await fetcher(url, { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(45_000),
-        headers: { "x-radar-request-id": requestId, "payment-signature": active.paymentHeader!, "x-radar-test-session": deps.sessionId ?? deps.bootId, "x-radar-test-boot": deps.bootId,
+        headers: { ...executionHeaders, "x-radar-request-id": requestId, "payment-signature": active.paymentHeader!, "x-radar-test-session": deps.sessionId ?? deps.bootId, "x-radar-test-boot": deps.bootId,
           "x-radar-test-client-action": discard ? "discard_response" : row.scenario === "client_restart" && active.bootId !== deps.bootId ? "restore_after_restart" : "submit" } });
       active.attempts.push({ at: new Date().toISOString(), status: response.status,
         attemptId: response.headers.get("x-radar-attempt-id") ?? undefined, outcome: discard ? "controlled_response_discard" : "http_response" });

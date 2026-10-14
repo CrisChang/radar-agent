@@ -136,3 +136,8 @@ If an accepted/completed payment lacks concurrent-attempt evidence, normal Run/C
 After the two responses match the original digest, click **只读核查全部付款与链上批次** and sign the free five-minute owner control message. The reconciler searches all uniquely matched start/finish pairs, including later attempts, for actual overlap in both server timestamps and durable event order. There is no inserted delay or fabricated overlap marker. Supplemental pairs require two successful cached replies. If requests did not overlap, the scenario stays unverified; no charge or new signature is needed to repeat this receipt-only check. A missing original local journal cannot be replaced by a fresh payment.
 
 Public results distinguish chain-verified payments from payments whose scenarios also pass. Rows label supplemental proof as `settled_receipt_replay`, expose the supplemental attempt count and retain original attempts. This tests concurrent receipt retrieval **after settlement**, not a new settlement race. Stage gates still require every prior payment and its scenario evidence to pass. Supplemental HTTP attempts do not change the unique-payment count, amount or batch hashes.
+
+
+## Owner-run macOS handoff
+
+For stage-three continuation without individual browser prompts, see [the macOS local runner guide](LOCAL_RUNNER_MACOS.md). The owner must prepare the original-browser handoff and personally supply their test-wallet key through hidden local terminal input. The runner preserves existing records, timing, limits and expiry; it does not deposit or approve tokens.

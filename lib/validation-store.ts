@@ -7,7 +7,7 @@ import { CAMPAIGN_ID, SCHEDULE_SHA256, PAYMENT_SCHEDULE, STAGES, plannedPayment,
 export interface CampaignState {
   stage: number; maximumCount: number; maximumAtomic: string; reservedCount: number; reservedAtomic: string;
   expiresAt: number; startedAt: number; stage3StartedAt: number; halted: boolean;
-  verifiedCount: number; reportRevision: number; ownerPaused?: boolean; haltReason?: string;
+  verifiedCount: number; reportRevision: number; executionMode?: "local"; runnerId?: string; bundleHash?: string; handoffCount?: number; ownerPaused?: boolean; haltReason?: string;
 }
 export interface CampaignEvent {
   type: string; at: string; intent?: string; requestId?: string; attemptId?: string; attemptKind?: "settled_receipt_replay";
@@ -17,6 +17,7 @@ const CLAIM = `
 if redis.call('EXISTS', KEYS[1]) == 1 or redis.call('EXISTS', KEYS[2]) == 1 or redis.call('EXISTS', KEYS[6]) == 1 then return 0 end
 local raw = redis.call('GET', KEYS[4]); if not raw then return 0 end
 local s = cjson.decode(raw)
+if (s.executionMode == 'local' and s.runnerId ~= ARGV[9]) or (s.executionMode ~= 'local' and ARGV[9] ~= '') then return 0 end
 if s.halted or s.expiresAt < tonumber(ARGV[3]) or s.stage < tonumber(ARGV[4]) or tonumber(ARGV[5]) > s.maximumCount then return 0 end
 if redis.call('SCARD', KEYS[7]) > 0 then return 0 end
 if tonumber(ARGV[4]) == 3 and tonumber(ARGV[3]) < s.stage3StartedAt + tonumber(ARGV[7]) then return 0 end
@@ -76,6 +77,25 @@ export class ValidationStore extends RedisPaymentStore {
     if (!record || record.campaign?.intent !== id) throw new Error("Missing intent receipt");
     return record;
   }
+  async handoff(runnerId: string, bundleHash: string, reservedCount: number) {
+    if (!/^[a-f0-9-]{36}$/i.test(runnerId) || !/^[a-f0-9]{64}$/.test(bundleHash) || !Number.isInteger(reservedCount) || reservedCount < 100 || reservedCount > 1000) throw new Error("Invalid handoff");
+    const result = await this.command(["EVAL", `
+      local raw = redis.call('GET', KEYS[1]); if not raw then return 0 end
+      local s = cjson.decode(raw)
+      if s.executionMode == 'local' then
+        if s.runnerId == ARGV[1] and s.bundleHash == ARGV[2] and s.handoffCount == tonumber(ARGV[3]) then return 1 end
+        return 0
+      end
+      if s.stage ~= 3 or s.halted or s.expiresAt <= tonumber(ARGV[4]) or s.reservedCount ~= tonumber(ARGV[3]) or redis.call('SCARD', KEYS[3]) ~= 0 then return 0 end
+      local reportRaw = redis.call('GET', KEYS[4]); if not reportRaw then return 0 end
+      local report = cjson.decode(reportRaw)
+      if report.completed_payments ~= s.reservedCount or report.money_difference_atomic ~= '0' then return 0 end
+      s.executionMode = 'local'; s.runnerId = ARGV[1]; s.bundleHash = ARGV[2]; s.handoffCount = s.reservedCount
+      redis.call('SET', KEYS[1], cjson.encode(s)); redis.call('RPUSH', KEYS[2], ARGV[5]); return 1`,
+      4, this.campaignKey("state"), this.campaignKey("events"), this.campaignKey("inflight"), this.campaignKey("report"),
+      runnerId, bundleHash, reservedCount, Date.now(), JSON.stringify({ type: "local_runner_handoff", at: new Date().toISOString(), runnerId, bundleHash, reservedCount })]);
+    return result === 1;
+  }
   async pause() {
     const result = await this.command(["EVAL", `local raw = redis.call('GET', KEYS[1]); if not raw then return 0 end
       local s = cjson.decode(raw); s.halted = true; s.ownerPaused = true; redis.call('SET', KEYS[1], cjson.encode(s));
@@ -107,7 +127,7 @@ export class ValidationStore extends RedisPaymentStore {
       this.key("payer", input.authorization.payer.toLowerCase()), this.campaignKey("state"), this.campaignKey("events"),
       this.campaignKey(`intent:${row.planned_intent_id}`), this.campaignKey("inflight"), JSON.stringify(record), input.paymentKey,
       now, row.stage, row.ordinal, row.amount_atomic, dueTime(row, 0), JSON.stringify({ type: "claimed", at: record.createdAt,
-        intent: row.planned_intent_id, requestId: input.requestId, amountAtomic: row.amount_atomic })]);
+        intent: row.planned_intent_id, requestId: input.requestId, amountAtomic: row.amount_atomic }), meta.runnerId ?? ""]);
     if (result !== 0 && result !== 1) throw new Error("Invalid campaign claim acknowledgement");
     return result === 1;
   }
