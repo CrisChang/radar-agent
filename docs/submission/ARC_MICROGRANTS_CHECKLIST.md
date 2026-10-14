@@ -3,7 +3,8 @@
 - [x] Working Arc Mainnet API, deployed on the public Vercel domain.
 - [x] Public source points to the current `codex/arc-microgrants` branch.
 - [x] Product focus: agent API payments, receipts, recovery and accounting.
-- [x] One canonical integration page and reference command.
+- [x] One canonical integration page and durable reference client; free live quote checked.
+- [x] 150 tests, TypeScript, production build and 20 anonymous production checks passed.
 - [x] Read-only evidence page separates principal variance, scenarios and costs.
 - [x] 1,000 / 1,000 payment confirmations; 0.232600 USDC; 32 shared batches; zero atomic-unit batch wallet difference.
 - [ ] All scenario evidence: dated snapshot 993 / 1,000, seven concurrency cases open.

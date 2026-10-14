@@ -1,0 +1,101 @@
+{
+  "checked_at": "2026-10-14T16:41:46.040925+00:00",
+  "source_commit": "57fd5d8",
+  "deployment_url": "https://radar-agent-5tr2bemfm-chris-6239.vercel.app",
+  "production_url": "https://radar-agent-ivory.vercel.app",
+  "tests": {
+    "passed": 150,
+    "typecheck": "passed",
+    "production_build": "passed"
+  },
+  "anonymous_cloud_checks": [
+    {
+      "name": "/ responds",
+      "passed": true
+    },
+    {
+      "name": "/integrate responds",
+      "passed": true
+    },
+    {
+      "name": "/evidence responds",
+      "passed": true
+    },
+    {
+      "name": "focused homepage",
+      "passed": true
+    },
+    {
+      "name": "operator pages absent from homepage links",
+      "passed": true
+    },
+    {
+      "name": "one canonical integration entry",
+      "passed": true
+    },
+    {
+      "name": "complete public report",
+      "passed": true
+    },
+    {
+      "name": "independent local/provider/chain audit",
+      "passed": true
+    },
+    {
+      "name": "public export excludes private authorization and attribution identifiers",
+      "passed": true
+    },
+    {
+      "name": "audit boundary preserved",
+      "passed": true
+    },
+    {
+      "name": "all CSV rows and exact amount total",
+      "passed": true
+    },
+    {
+      "name": "CSV real batch links",
+      "passed": true
+    },
+    {
+      "name": "operator paths excluded from indexing",
+      "passed": true
+    },
+    {
+      "name": "/pilot has noindex",
+      "passed": true
+    },
+    {
+      "name": "/validation has noindex",
+      "passed": true
+    },
+    {
+      "name": "API contract focuses paid calls",
+      "passed": true
+    },
+    {
+      "name": "feed and durable storage healthy",
+      "passed": true
+    },
+    {
+      "name": "unsigned quote only",
+      "passed": true
+    },
+    {
+      "name": "private billing still requires authentication",
+      "passed": true
+    },
+    {
+      "name": "existing private export still requires authentication",
+      "passed": true
+    }
+  ],
+  "payment_attempted": false,
+  "wallet_signature_created": false,
+  "chain_payments": 1000,
+  "scenario_passes": 993,
+  "money_difference_atomic": "0",
+  "browser_visual_verification": "pending: host locked",
+  "dorahacks_public_copy_saved": false,
+  "private_server_event_export_audit_complete": false
+}
