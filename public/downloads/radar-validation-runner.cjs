@@ -1,4 +1,4 @@
-// Radar Agent owner-run local runner 2026-10-14-accelerated-v3.1. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
+// Radar Agent owner-run local runner 2026-10-14-accelerated-v3.2. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -33107,11 +33107,11 @@ var require_dist = __commonJS({
 });
 
 // scripts/local-validation.mts
-var import_promises3 = require("node:fs/promises");
-var import_node_path2 = require("node:path");
+var import_promises4 = require("node:fs/promises");
+var import_node_path3 = require("node:path");
 var import_node_os = require("node:os");
 var import_node_child_process2 = require("node:child_process");
-var import_promises4 = require("node:readline/promises");
+var import_promises5 = require("node:readline/promises");
 var import_node_crypto = require("node:crypto");
 
 // node_modules/viem/_esm/accounts/privateKeyToAccount.js
@@ -35432,8 +35432,81 @@ async function recoverUnsignedJournal(bundle, root, intent, deps) {
   return { intent, status: "unsigned_interruption_recovered", priorPayments: first.state.reservedCount, payment_attempted: false, private_key_read: false };
 }
 
+// lib/validation-local-continuity.ts
+var import_promises3 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
+init_esm2();
+var LocalContinuityError = class extends Error {
+};
+async function checkLocalContinuity(bundle, root, reservedCount) {
+  validateHandoffBundle(bundle);
+  if (!Number.isInteger(reservedCount) || reservedCount < bundle.reservedCount || reservedCount > 1e3)
+    throw new LocalContinuityError("\u670D\u52A1\u7AEF\u9884\u7559\u6570\u91CF\u4E0E\u539F\u63A5\u7BA1\u8303\u56F4\u4E0D\u7B26\uFF0C\u8BF7\u5148\u53EA\u8BFB\u6838\u67E5\u3002");
+  let exists = true;
+  try {
+    const stat = await (0, import_promises3.lstat)(root);
+    if (!stat.isDirectory() || stat.isSymbolicLink() || stat.mode & 63) throw new LocalContinuityError("\u672C\u673A\u8D26\u5355\u76EE\u5F55\u6743\u9650\u4E0D\u7B26\u6216\u662F\u94FE\u63A5\uFF1B\u8BF7\u5B8C\u6574\u8FC1\u79FB\u539F\u76EE\u5F55\uFF0C\u4E0D\u8986\u76D6\u539F\u8BB0\u5F55\u3002");
+  } catch (error) {
+    if (error.code === "ENOENT") exists = false;
+    else throw error;
+  }
+  const names = exists ? await (0, import_promises3.readdir)(root) : [], rows = stageThreeRows();
+  if (names.some((n) => n.endsWith(".pending"))) throw new LocalContinuityError("\u53D1\u73B0\u672A\u5B8C\u6210\u843D\u76D8\u6587\u4EF6\uFF1B\u8BF7\u4FDD\u7559\u539F\u76EE\u5F55\u6838\u67E5\uFF0C\u4E0D\u80FD\u7EED\u8DD1\u3002");
+  if (names.some((n) => /^planned-.*\.json$/.test(n) && !rows.some((r) => `${r.planned_intent_id}.json` === n)))
+    throw new LocalContinuityError("\u8D26\u5355\u76EE\u5F55\u542B\u8303\u56F4\u5916\u4ED8\u6B3E\u7F16\u53F7\uFF1B\u8BF7\u4FDD\u7559\u539F\u8BB0\u5F55\u6838\u67E5\u3002");
+  let permits;
+  try {
+    const raw = exists ? await readPrivateJson((0, import_node_path2.join)(root, ".signing-permits.json")) : null;
+    permits = raw === null ? null : validateSigningPermits(raw);
+  } catch {
+    throw new LocalContinuityError("\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\u635F\u574F\u6216\u6743\u9650\u4E0D\u7B26\uFF1B\u8BF7\u4ECE\u5DF2\u505C\u6B62\u7684\u65E7\u673A\u5668\u5B8C\u6574\u8FC1\u79FB\uFF0C\u4E0D\u80FD\u91CD\u65B0\u751F\u6210\u3002");
+  }
+  const journals = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const imported = bundle.journals.find((j2) => j2.intent === row.planned_intent_id);
+    let local;
+    try {
+      local = exists ? await readPrivateJson((0, import_node_path2.join)(root, `${row.planned_intent_id}.json`)) : null;
+    } catch {
+      throw new LocalContinuityError(`${row.planned_intent_id} \u672C\u673A\u8BB0\u5F55\u683C\u5F0F\u6216\u6743\u9650\u4E0D\u7B26\uFF1B\u8BF7\u4FDD\u7559\u539F\u6587\u4EF6\u6838\u67E5\u3002`);
+    }
+    const j = local ?? imported;
+    if (!j && row.ordinal <= reservedCount)
+      throw new LocalContinuityError(`\u7F3A\u5C11 ${row.planned_intent_id} \u7684\u672C\u673A\u539F\u8D26\u5355\uFF1B\u540E\u53F0\u5DF2\u9884\u7559 ${reservedCount} \u7B14\uFF0C\u539F\u63A5\u7BA1\u5305\u53EA\u8986\u76D6\u81F3\u7B2C ${bundle.reservedCount} \u7B14\u3002\u8BF7\u505C\u6B62\u65E7\u673A\u5668\u5E76\u8FC1\u79FB\u6574\u4E2A\u8FD0\u884C\u76EE\u5F55\uFF08\u542B\u9690\u85CF\u7684 .signing-permits.json\uFF09\uFF0C\u4E0D\u8981\u91CD\u65B0\u7B7E\u540D\u6216\u91CD\u5EFA\u63A5\u7BA1\u5305\u3002`);
+    if (!j) continue;
+    if (j.state === "signing" && !j.paymentHeader && !j.nonce)
+      throw new LocalContinuityError(`${j.intent} \u672C\u673A\u8D26\u5355\u6821\u9A8C\uFF1A\u505C\u5728\u7B7E\u540D\u4E2D\u4E14\u672A\u4FDD\u5B58\u6388\u6743\uFF1B\u8BF7\u5728\u5B8C\u6574\u539F\u76EE\u5F55\u8FD0\u884C --repair-unsigned ${j.intent}\uFF0C\u4E0D\u80FD\u76F4\u63A5\u7EED\u8DD1\u3002`);
+    try {
+      validateHandoffBundle({ ...bundle, journals: [j] });
+    } catch {
+      throw new LocalContinuityError(`${row.planned_intent_id} \u672C\u673A\u539F\u6388\u6743\u672A\u901A\u8FC7\u6821\u9A8C\uFF1B\u4E0D\u4F1A\u751F\u6210\u66FF\u4EE3\u6388\u6743\u3002`);
+    }
+    if (imported?.paymentHeader && (j.paymentHeader !== imported.paymentHeader || j.nonce !== imported.nonce))
+      throw new LocalContinuityError(`${row.planned_intent_id} \u4E0E\u539F\u63A5\u7BA1\u5305\u6388\u6743\u51B2\u7A81\uFF1B\u4E0D\u8986\u76D6\u5386\u53F2\u8BB0\u5F55\u3002`);
+    if (row.ordinal <= reservedCount && !j.paymentHeader)
+      throw new LocalContinuityError(`${row.planned_intent_id} \u5DF2\u9884\u7559\u4F46\u539F\u6388\u6743\u7F3A\u5931\uFF1B\u8BF7\u8FC1\u79FB\u5B8C\u6574\u539F\u8BB0\u5F55\u3002`);
+    if (j.state === "accepted" && !/^[a-f0-9]{64}$/i.test(j.responseHash ?? ""))
+      throw new LocalContinuityError(`${row.planned_intent_id} \u6210\u529F\u8D26\u5355\u6458\u8981\u7F3A\u5931\uFF1B\u8BF7\u4FDD\u7559\u539F\u8BB0\u5F55\u6838\u67E5\u3002`);
+    const permit = permits?.find((p) => p.intent === j.intent);
+    if (j.paymentHeader) {
+      if (!permit && (row.ordinal > bundle.reservedCount || permits !== null))
+        throw new LocalContinuityError(`${j.intent} \u7F3A\u5C11\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\uFF1B\u8BF7\u5B8C\u6574\u8FC1\u79FB\u9690\u85CF\u6587\u4EF6\uFF0C\u4E0D\u80FD\u91CD\u65B0\u7B7E\u540D\u3002`);
+      if (permit) {
+        const arc2 = getArcConfig({ ARC_NETWORK: "mainnet" });
+        const a = inspectCampaignPayment(j.paymentHeader, row, { arc: arc2, origin: bundle.origin, payer: bundle.payer, seller: bundle.seller }).payload.authorization;
+        if (hashTypedData(campaignTypedData(a, arc2)) !== permit.digest)
+          throw new LocalContinuityError(`${j.intent} \u539F\u6388\u6743\u4E0E\u7B7E\u540D\u4FDD\u7559\u6458\u8981\u4E0D\u4E00\u81F4\uFF1B\u8BF7\u4FDD\u7559\u539F\u6587\u4EF6\u6838\u67E5\u3002`);
+      }
+    } else if (permit) throw new LocalContinuityError(`${j.intent} \u6709\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\u4F46\u6388\u6743\u7F3A\u5931\uFF1B\u4E0D\u80FD\u91CD\u65B0\u7B7E\u540D\u3002`);
+    journals.set(j.intent, j);
+  }
+  if (permits?.some((p) => !journals.get(p.intent)?.paymentHeader))
+    throw new LocalContinuityError("\u7B7E\u540D\u4FDD\u7559\u6587\u4EF6\u4E2D\u5B58\u5728\u6CA1\u6709\u5BF9\u5E94\u539F\u6388\u6743\u7684\u8BB0\u5F55\uFF1B\u8BF7\u8FC1\u79FB\u5B8C\u6574\u76EE\u5F55\u540E\u6838\u67E5\u3002");
+  return { reservedCount, journalCount: journals.size, acceptedCount: [...journals.values()].filter((j) => j.state === "accepted").length };
+}
+
 // scripts/local-validation.mts
-var RUNNER_VERSION = "2026-10-14-accelerated-v3.1";
+var RUNNER_VERSION = "2026-10-14-accelerated-v3.2";
 var accelerated = false;
 var network = createRunnerNetwork({ source: "direct" });
 var LocalRunnerError = class extends Error {
@@ -35491,7 +35564,7 @@ async function hiddenKey(signal) {
 }
 async function importJournals(bundle, root) {
   for (const imported of bundle.journals) {
-    const path = (0, import_node_path2.join)(root, `${imported.intent}.json`), old = await readPrivateJson(path);
+    const path = (0, import_node_path3.join)(root, `${imported.intent}.json`), old = await readPrivateJson(path);
     if (!old) await writePrivateJson(path, imported);
     else if (old.intent !== imported.intent || old.campaign !== imported.campaign || old.origin !== imported.origin || old.payer !== imported.payer || old.seller !== imported.seller || old.amountAtomic !== imported.amountAtomic || imported.paymentHeader && (old.paymentHeader !== imported.paymentHeader || old.nonce !== imported.nonce)) throw new LocalRunnerError("\u63A5\u7BA1\u5305\u4E0E\u672C\u673A\u7EED\u8DD1\u8BB0\u5F55\u51B2\u7A81\uFF1B\u539F\u8BB0\u5F55\u4E0D\u8986\u76D6\u3002");
   }
@@ -35517,7 +35590,7 @@ async function worker(bundle, root) {
     await liveState(bundle);
     for (const row of stageThreeRows()) {
       phase = `${row.planned_intent_id} \u672C\u673A\u8D26\u5355\u8BFB\u53D6`;
-      const path = (0, import_node_path2.join)(root, `${row.planned_intent_id}.json`);
+      const path = (0, import_node_path3.join)(root, `${row.planned_intent_id}.json`);
       let existing;
       try {
         existing = await readPrivateJson(path);
@@ -35537,6 +35610,8 @@ async function worker(bundle, root) {
       }
       phase = `${row.planned_intent_id} \u4ED8\u6B3E\u524D\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2`;
       const current = await liveState(bundle), due = effectiveDueTime(row, current);
+      if (row.ordinal <= current.reservedCount && !existing?.paymentHeader)
+        throw new LocalRunnerError(`${row.planned_intent_id} \u5DF2\u5728\u670D\u52A1\u7AEF\u9884\u7559\uFF0C\u4F46\u672C\u673A\u7F3A\u5C11\u539F\u6388\u6743\uFF1B\u8BF7\u5B8C\u6574\u8FC1\u79FB\u539F\u8D26\u5355\uFF0C\u7981\u6B62\u91CD\u65B0\u7B7E\u540D\u3002`);
       if (due > Date.now()) console.log(`${row.planned_intent_id} \u7B49\u5F85${current.timingAmendment ? "\u5FEB\u901F\u8BA1\u5212" : "\u539F\u8BA1\u5212"}\u65F6\u95F4 ${new Date(due).toLocaleString()}\uFF08\u81EA\u52A8\u7B49\u5F85\uFF09`);
       while (due > Date.now()) await new Promise((r) => setTimeout(r, Math.min(3e4, due - Date.now())));
       if (due > Date.now() - 3e4) await liveState(bundle);
@@ -35637,17 +35712,17 @@ async function main() {
     console.log("\u8054\u7F51\u68C0\u67E5\u901A\u8FC7\uFF1B\u6CA1\u6709\u8BFB\u53D6\u63A5\u7BA1\u5305\u3001\u79C1\u94A5\uFF0C\u4E5F\u6CA1\u6709\u4ED8\u6B3E\u3002");
     return;
   }
-  const fileArg = args.indexOf("--bundle"), file = (0, import_node_path2.resolve)(fileArg >= 0 ? args[fileArg + 1] : (0, import_node_path2.join)((0, import_node_os.homedir)(), "Downloads", "radar-local-handoff.json"));
+  const fileArg = args.indexOf("--bundle"), file = (0, import_node_path3.resolve)(fileArg >= 0 ? args[fileArg + 1] : (0, import_node_path3.join)((0, import_node_os.homedir)(), "Downloads", "radar-local-handoff.json"));
   let stat;
   try {
-    stat = await (0, import_promises3.lstat)(file);
+    stat = await (0, import_promises4.lstat)(file);
   } catch {
     throw new LocalRunnerError("\u672A\u627E\u5230\u63A5\u7BA1\u5305\u3002\u8BF7\u5728\u539F Chrome \u4E0B\u8F7D radar-local-handoff.json \u5230\u4E0B\u8F7D\u76EE\u5F55\uFF0C\u6216\u7528 --bundle \u6307\u5B9A\u539F\u6587\u4EF6\u8DEF\u5F84\u3002");
   }
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16777216) throw new LocalRunnerError("\u63A5\u7BA1\u6587\u4EF6\u683C\u5F0F\u4E0D\u7B26\u3002");
   let bundle;
   try {
-    bundle = validateHandoffBundle(JSON.parse(await (0, import_promises3.readFile)(file, "utf8")));
+    bundle = validateHandoffBundle(JSON.parse(await (0, import_promises4.readFile)(file, "utf8")));
   } catch {
     throw new LocalRunnerError("\u63A5\u7BA1\u5305\u6821\u9A8C\u4E0D\u901A\u8FC7\u3002\u8BF7\u5728\u539F Chrome \u5B8C\u6210\u53EA\u8BFB\u6838\u67E5\u540E\u91CD\u65B0\u4E0B\u8F7D\u539F\u5305\uFF0C\u4E0D\u8981\u4FEE\u6539\u6216\u5220\u9664\u539F\u8BB0\u5F55\u3002");
   }
@@ -35662,12 +35737,12 @@ async function main() {
   console.log(`\u7B2C\u4E09\u9636\u6BB5\u56FA\u5B9A\u4E0A\u9650 900 \u7B14 / 0.209340 USDC\uFF1B\u76EE\u524D\u7D2F\u8BA1\u9884\u7559 ${state.reservedCount} \u7B14\u3002\u539F\u8BA1\u5212\u6700\u665A\u5F00\u653E\u65F6\u95F4 ${new Date(state.stage3StartedAt + 864e5).toLocaleString()}\u3002`);
   if (accelerated) console.log(`\u5FEB\u901F\u7EED\u8DD1\uFF1A\u540E\u7EED\u65B0\u4ED8\u6B3E\u95F4\u9694\u81F3\u5C11 5 \u79D2\uFF0C\u4FDD\u6301\u5355\u7B14\u672A\u51B3\u4FDD\u62A4\u3002${state.timingAmendment ? "\u5DF2\u542F\u7528\uFF0C\u5C06\u6CBF\u7528\u539F\u53D8\u66F4\u3002" : "\u5C1A\u672A\u542F\u7528\uFF1B\u53EA\u6709 --execute \u4E2D\u672C\u4EBA\u786E\u8BA4\u5E76\u7B7E\u7F72\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\u540E\u624D\u751F\u6548\u3002"} \u4E0D\u518D\u5BA3\u79F0\u5B8C\u6210\u539F 24 \u5C0F\u65F6\u8BA1\u5212\u3002`);
   if (repairArg >= 0) {
-    const parent2 = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".radar-agent-local"), root2 = (0, import_node_path2.join)(parent2, bundle.runnerId);
+    const parent2 = (0, import_node_path3.join)((0, import_node_os.homedir)(), ".radar-agent-local"), root2 = (0, import_node_path3.join)(parent2, bundle.runnerId);
     await privateDirectory(parent2);
     await privateDirectory(root2);
-    const lock2 = (0, import_node_path2.join)(root2, ".runner-lock");
+    const lock2 = (0, import_node_path3.join)(root2, ".runner-lock");
     try {
-      await (0, import_promises3.mkdir)(lock2, { mode: 448 });
+      await (0, import_promises4.mkdir)(lock2, { mode: 448 });
     } catch {
       throw new LocalRunnerError("\u811A\u672C\u4ECD\u5728\u8FD0\u884C\u6216\u5B58\u5728\u672A\u6838\u67E5\u7684\u6267\u884C\u9501\uFF1B\u5148\u505C\u6B62\u65E7\u8FDB\u7A0B\uFF0C\u4E0D\u80FD\u5220\u9664\u8BB0\u5F55\u3002");
     }
@@ -35677,22 +35752,24 @@ async function main() {
       console.log(`${result.intent} \u5DF2\u786E\u8BA4\u4ECE\u672A\u7531\u672C\u673A\u7B7E\u540D\u7A0B\u5E8F\u751F\u6210\u6388\u6743\uFF1B\u539F\u8BB0\u5F55\u5DF2\u5907\u4EFD\u3002\u524D ${result.priorPayments} \u7B14\u8BB0\u5F55\u4FDD\u7559\u3002`);
       console.log("\u672A\u63D0\u4EA4\u4EFB\u4F55\u4ED8\u6B3E\u3002\u73B0\u5728\u53EF\u7528\u539F --execute --accelerate \u547D\u4EE4\u7EED\u8DD1\u3002");
     } finally {
-      await (0, import_promises3.rmdir)(lock2);
+      await (0, import_promises4.rmdir)(lock2);
     }
     return;
   }
+  const continuity = await checkLocalContinuity(bundle, (0, import_node_path3.join)((0, import_node_os.homedir)(), ".radar-agent-local", bundle.runnerId), state.reservedCount);
+  console.log(`\u672C\u673A\u8BB0\u5F55\u5B8C\u6574\u6027\u68C0\u67E5\u901A\u8FC7\uFF1A${continuity.journalCount} \u6761\u7B2C\u4E09\u9636\u6BB5\u539F\u8D26\u5355\uFF0C\u540E\u53F0\u7D2F\u8BA1\u9884\u7559 ${continuity.reservedCount} \u7B14\u3002`);
   if (!args.includes("--execute")) {
     console.log("\u53EA\u8BFB\u68C0\u67E5\u5B8C\u6210\uFF0C\u65E0\u4ED8\u6B3E\u3002\u542F\u52A8\u8BF7\u4F7F\u7528 --execute\uFF1B\u79C1\u94A5\u53EA\u5728\u672C\u673A\u9690\u85CF\u8F93\u5165\u3002");
     return;
   }
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new LocalRunnerError("\u53EA\u80FD\u7531\u672C\u4EBA\u5728\u672C\u673A\u4EA4\u4E92\u7EC8\u7AEF\u542F\u52A8\u3002");
-  const parent = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".radar-agent-local");
+  const parent = (0, import_node_path3.join)((0, import_node_os.homedir)(), ".radar-agent-local");
   await privateDirectory(parent);
-  const root = (0, import_node_path2.join)(parent, bundle.runnerId);
+  const root = (0, import_node_path3.join)(parent, bundle.runnerId);
   await privateDirectory(root);
-  const lock = (0, import_node_path2.join)(root, ".runner-lock");
+  const lock = (0, import_node_path3.join)(root, ".runner-lock");
   try {
-    await (0, import_promises3.mkdir)(lock, { mode: 448 });
+    await (0, import_promises4.mkdir)(lock, { mode: 448 });
   } catch {
     throw new LocalRunnerError("\u5DF2\u6709\u8FD0\u884C\u8FDB\u7A0B\u6216\u4E0A\u6B21\u610F\u5916\u4E2D\u65AD\u7559\u4E0B\u6267\u884C\u9501\u3002\u5148\u6838\u67E5\uFF0C\u4E0D\u80FD\u5220\u9664\u4ED8\u6B3E\u8BB0\u5F55\u91CD\u6765\u3002");
   }
@@ -35706,10 +35783,11 @@ async function main() {
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
   try {
-    await (0, import_promises3.chmod)(file, 384);
+    await checkLocalContinuity(bundle, root, (await liveState(bundle)).reservedCount);
+    await (0, import_promises4.chmod)(file, 384);
     await importJournals(bundle, root);
     console.log(`\u672C\u673A\u8D26\u5355\u6587\u4EF6\u4FDD\u5B58\u5728 ${root}\uFF1B\u4ED8\u6B3E\u65F6\u53EA\u5411\u56FA\u5B9A\u6D4B\u8BD5\u63A5\u53E3\u53D1\u9001\u8BE5\u7B14\u6388\u6743\u3002\u7A0B\u5E8F\u4E0D\u5145\u503C\u3001\u4E0D\u6388\u6743\u4EE3\u5E01\uFF1B\u7ED3\u679C\u4E0D\u786E\u5B9A\u5373\u505C\u6B62\u3002`);
-    const prompt = (0, import_promises4.createInterface)({ input: process.stdin, output: process.stdout });
+    const prompt = (0, import_promises5.createInterface)({ input: process.stdin, output: process.stdout });
     let answer;
     try {
       answer = await prompt.question(accelerated ? "\u786E\u8BA4\u6309\u539F\u9884\u7B97\u5FEB\u901F\u7EED\u8DD1\uFF0C\u5E76\u516C\u5F00\u539F 24 \u5C0F\u65F6\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\uFF1F\u8BF7\u8F93\u5165 FAST\uFF1A " : "\u786E\u8BA4\u7531\u672C\u673A\u6309\u539F\u9884\u7B97\u81EA\u52A8\u7B7E\u540D\u5E76\u4ED8\u6B3E\uFF1F\u8BF7\u8F93\u5165 RUN\uFF1A ", { signal: controller.signal });
@@ -35730,7 +35808,7 @@ async function main() {
       key = "";
     }
     if (signer.address.toLowerCase() !== bundle.payer.toLowerCase()) throw new LocalRunnerError("\u79C1\u94A5\u5BF9\u5E94\u7684\u8D26\u6237\u4E0D\u662F\u6307\u5B9A\u4ED8\u6B3E\u94B1\u5305\uFF0C\u5DF2\u505C\u6B62\u3002");
-    const guardPath = (0, import_node_path2.join)(root, ".signing-permits.json");
+    const guardPath = (0, import_node_path3.join)(root, ".signing-permits.json");
     let permits = validateSigningPermits(await readPrivateJson(guardPath) ?? []);
     const arc2 = getArcConfig({ ARC_NETWORK: "mainnet" });
     for (const j of bundle.journals.filter((j2) => j2.paymentHeader)) {
@@ -35760,7 +35838,7 @@ async function main() {
       const amended = await liveState(bundle);
       if (amended.reservedCount < 1e3 && !amended.timingAmendment) throw new LocalRunnerError("\u5FEB\u901F\u8BA1\u5212\u5C1A\u672A\u751F\u6548\uFF0C\u5DF2\u505C\u6B62\u3002");
       if (amended.timingAmendment) {
-        await writePrivateJson((0, import_node_path2.join)(root, ".timing-amendment.json"), amended.timingAmendment);
+        await writePrivateJson((0, import_node_path3.join)(root, ".timing-amendment.json"), amended.timingAmendment);
         console.log(`\u5FEB\u901F\u8BA1\u5212\u5DF2\u786E\u8BA4\uFF0C\u4ECE\u7B2C ${amended.timingAmendment.fromOrdinal} \u7B14\u8D77\u751F\u6548\uFF1B\u5DF2\u6210\u529F\u4ED8\u6B3E\u81EA\u52A8\u8DF3\u8FC7\uFF0C\u91D1\u989D\u548C\u539F\u8BB0\u5F55\u4E0D\u53D8\u3002`);
       }
     }
@@ -35817,11 +35895,11 @@ async function main() {
     }
     process.off("SIGINT", stop);
     process.off("SIGTERM", stop);
-    await (0, import_promises3.rmdir)(lock);
+    await (0, import_promises4.rmdir)(lock);
   }
 }
 main().catch((error) => {
-  console.error(error instanceof LocalRunnerError || error instanceof RunnerNetworkError || error instanceof LocalRecoveryError ? error.message : "\u51C6\u5907\u6216\u6267\u884C\u672A\u5B8C\u6210\uFF1A\u7F51\u7EDC\u3001\u6743\u9650\u6216\u539F\u8BB0\u5F55\u68C0\u67E5\u5931\u8D25\u3002\u8BF7\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u53EA\u8BFB\u6838\u67E5\uFF1B\u4E0D\u8981\u53D1\u9001\u79C1\u94A5\u6216\u63A5\u7BA1\u5305\u3002");
+  console.error(error instanceof LocalRunnerError || error instanceof RunnerNetworkError || error instanceof LocalRecoveryError || error instanceof LocalContinuityError ? error.message : "\u51C6\u5907\u6216\u6267\u884C\u672A\u5B8C\u6210\uFF1A\u7F51\u7EDC\u3001\u6743\u9650\u6216\u539F\u8BB0\u5F55\u68C0\u67E5\u5931\u8D25\u3002\u8BF7\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u53EA\u8BFB\u6838\u67E5\uFF1B\u4E0D\u8981\u53D1\u9001\u79C1\u94A5\u6216\u63A5\u7BA1\u5305\u3002");
   process.exitCode = 1;
 });
 /*! Bundled license information:

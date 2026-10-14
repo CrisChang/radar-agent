@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm, chmod, symlink, stat, readFile, writeFile } from "node:fs/promises";
-import { fork } from "node:child_process";
+import { fork, execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { checkLocalContinuity } from "../lib/validation-local-continuity";
 import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
 import { hashTypedData } from "viem";
@@ -165,4 +167,78 @@ globalThis.fetch = async (input,init) => {
     assert.equal(sent.length, 2); assert.equal(sent[0].header, sent[1].header); assert.notEqual(sent[0].boot, sent[1].boot);
     assert.equal(sent[1].action, "restore_after_restart");
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+
+test("continuity accepts the original handoff and complete transferred journals without mutation", async () => {
+ const root = await mkdtemp("/private/tmp/radar-continuity-"), b = bundle(), j = journal();
+ try {
+  const imported = { ...b, reservedCount: 101, journals: [j] };
+  assert.equal((await checkLocalContinuity(imported, `${root}/not-created`, 101)).journalCount, 1);
+  const permits = [localSigningPermit(j.intent, campaignTypedData(authorization(), arc), b, startedAt)];
+  await writePrivateJson(`${root}/${j.intent}.json`, j); await writePrivateJson(`${root}/.signing-permits.json`, permits);
+  const before = await readFile(`${root}/${j.intent}.json`);
+  assert.equal((await checkLocalContinuity(b, root, 101)).acceptedCount, 1);
+  assert.deepEqual(await readFile(`${root}/${j.intent}.json`), before);
+  // Unknown outcomes retain the exact saved authorization for replay, not a new signature.
+  await writePrivateJson(`${root}/${j.intent}.json`, { ...j, state: "unknown" });
+  assert.equal((await checkLocalContinuity(b, root, 101)).journalCount, 1);
+ } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("continuity rejects stale-machine gaps, lost or conflicting guards and unfinished files", async () => {
+ for (const issue of ["missing_journal", "missing_guard", "wrong_digest", "orphan_permit", "pending", "bad_mode", "signing", "missing_receipt"]) {
+  const root = await mkdtemp("/private/tmp/radar-continuity-negative-"), b = bundle(), j = journal();
+  try {
+   const permits = [localSigningPermit(j.intent, campaignTypedData(authorization(), arc), b, startedAt)];
+   if (issue !== "missing_journal") await writePrivateJson(`${root}/${j.intent}.json`, j);
+   if (issue === "wrong_digest") permits[0] = localSigningPermit(j.intent, campaignTypedData({ ...authorization(), nonce: `0x${"ff".repeat(32)}` }, arc), b, startedAt);
+   if (issue === "orphan_permit") permits.push(localSigningPermit("planned-0102", campaignTypedData(authorization(102), arc), b, startedAt));
+   if (issue !== "missing_guard") await writePrivateJson(`${root}/.signing-permits.json`, permits);
+   if (issue === "pending") await writeFile(`${root}/.signing-permits.json.pending`, "synthetic", { mode: 0o600 });
+   if (issue === "bad_mode") await chmod(root, 0o755);
+   if (issue === "signing") await writePrivateJson(`${root}/${j.intent}.json`, { ...j, state: "signing", paymentHeader: undefined, nonce: undefined });
+   if (issue === "missing_receipt") await writePrivateJson(`${root}/${j.intent}.json`, { ...j, responseHash: undefined });
+   await assert.rejects(checkLocalContinuity(b, root, 101), issue);
+  } finally { await rm(root, { recursive: true, force: true }); }
+ }
+});
+
+for (const mode of ["--check", "--execute"]) test(`downloaded ${mode} rejects missing migrated records before private-key input or any payment`, async () => {
+ const root = await mkdtemp("/private/tmp/radar-migration-cli-"), b = bundle();
+ try {
+  const state = { stage: 3, halted: false, expiresAt: Date.now() + 86400000, stage3StartedAt: startedAt,
+    maximumCount: 1000, maximumAtomic: "232600", reservedCount: 101, executionMode: "local", runnerId: b.runnerId,
+    bundleHash: await handoffDigest(b), handoffCount: 100 };
+  await writePrivateJson(`${root}/bundle.json`, b); await writePrivateJson(`${root}/status.json`, { state });
+  const preload = `${root}/stub.mjs`;
+  await writeFile(preload, `import os from "node:os";import{syncBuiltinESMExports}from"node:module";import{readFile}from"node:fs/promises";
+    os.homedir=()=>${JSON.stringify(root)};syncBuiltinESMExports();
+    const s=JSON.parse(await readFile(new URL("./status.json",import.meta.url),"utf8"));
+    globalThis.fetch=async(u,init)=>{if(String(u)!=="${RUNNER_ORIGIN}/api/validation/status"||init?.body)throw Error("non-read request blocked");return Response.json(s);};`);
+  await assert.rejects(promisify(execFile)(process.execPath, ["--import", preload,
+    fileURLToPath(new URL("../public/downloads/radar-validation-runner-v3.cjs", import.meta.url)), mode,
+    "--bundle", `${root}/bundle.json`, "--proxy", "direct"], { timeout: 15000 }), (error: unknown) => {
+     const e = error as { stderr: string; stdout: string };
+     assert.match(e.stderr, /缺少 planned-0101/); assert.ok(!e.stdout.includes("请输入专用测试钱包私钥"));
+     return true;
+    });
+ } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("downloaded worker refuses a reserved intent with missing local authorization before requesting a quote", async () => {
+ const root = await mkdtemp("/private/tmp/radar-migration-worker-"), b = bundle();
+ try {
+  const state = { stage: 3, halted: false, expiresAt: Date.now() + 86400000, stage3StartedAt: startedAt,
+    maximumCount: 1000, maximumAtomic: "232600", reservedCount: 101, executionMode: "local", runnerId: b.runnerId,
+    bundleHash: await handoffDigest(b), handoffCount: 100 };
+  await writePrivateJson(`${root}/status.json`, { state }); const preload = `${root}/stub.mjs`;
+  await writeFile(preload, `import{readFile}from"node:fs/promises";const s=JSON.parse(await readFile(new URL("./status.json",import.meta.url),"utf8"));globalThis.fetch=async(u)=>{if(String(u)!=="${RUNNER_ORIGIN}/api/validation/status")throw Error("quote blocked");return Response.json(s);};`);
+  const child = fork(fileURLToPath(new URL("../public/downloads/radar-validation-runner-v3.cjs", import.meta.url)), ["--worker"],
+    { execArgv: ["--import", preload], stdio: ["ignore", "pipe", "pipe", "ipc"], serialization: "advanced", env: { ...process.env, NODE_OPTIONS: "" } });
+  let output = "", signs = 0; child.stderr?.on("data", c => { output += c; }); child.on("message", () => { signs++; });
+  const done = new Promise<number | null>((resolve, reject) => { const timer=setTimeout(()=>{child.kill();reject(new Error("timeout"));},10000); child.once("error",reject); child.once("close",c=>{clearTimeout(timer);resolve(c);}); });
+  child.send({ type: "init", bundle: b, root }); assert.equal(await done, 1); assert.equal(signs, 0);
+  assert.match(output, /planned-0101 已在服务端预留/);
+ } finally { await rm(root, { recursive: true, force: true }); }
 });

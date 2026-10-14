@@ -15,7 +15,8 @@ import { campaignTypedData, inspectCampaignPayment } from "../lib/validation-aut
 import { getArcConfig } from "../lib/arc";
 import { selectNetwork, createRunnerNetwork, RunnerNetworkError, readRunnerStatus, type NetworkChoice } from "../lib/validation-local-network";
 import { recoverUnsignedJournal, LocalRecoveryError, type RecoveryStatus } from "../lib/validation-local-recovery";
-const RUNNER_VERSION = "2026-10-14-accelerated-v3.1";
+import { checkLocalContinuity, LocalContinuityError } from "../lib/validation-local-continuity";
+const RUNNER_VERSION = "2026-10-14-accelerated-v3.2";
 let accelerated = false;
 let network = createRunnerNetwork({ source: "direct" });
 
@@ -93,6 +94,8 @@ async function worker(bundle: HandoffBundle, root: string) {
       }
       phase = `${row.planned_intent_id} 付款前只读状态查询`;
       const current = await liveState(bundle), due = effectiveDueTime(row, current);
+      if (row.ordinal <= current.reservedCount && !existing?.paymentHeader)
+        throw new LocalRunnerError(`${row.planned_intent_id} 已在服务端预留，但本机缺少原授权；请完整迁移原账单，禁止重新签名。`);
       if (due > Date.now()) console.log(`${row.planned_intent_id} 等待${current.timingAmendment ? "快速计划" : "原计划"}时间 ${new Date(due).toLocaleString()}（自动等待）`);
       while (due > Date.now()) await new Promise(r => setTimeout(r, Math.min(30_000, due - Date.now())));
       if (due > Date.now() - 30_000) await liveState(bundle);
@@ -181,6 +184,8 @@ async function main() {
     } finally { await rmdir(lock); }
     return;
   }
+  const continuity = await checkLocalContinuity(bundle, join(homedir(), ".radar-agent-local", bundle.runnerId), state.reservedCount);
+  console.log(`本机记录完整性检查通过：${continuity.journalCount} 条第三阶段原账单，后台累计预留 ${continuity.reservedCount} 笔。`);
   if (!args.includes("--execute")) { console.log("只读检查完成，无付款。启动请使用 --execute；私钥只在本机隐藏输入。"); return; }
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new LocalRunnerError("只能由本人在本机交互终端启动。");
   const parent = join(homedir(), ".radar-agent-local"); await privateDirectory(parent);
@@ -192,6 +197,7 @@ async function main() {
   const stop = () => { stopped = true; controller.abort(); active?.kill("SIGTERM"); };
   process.on("SIGINT", stop); process.on("SIGTERM", stop);
   try {
+    await checkLocalContinuity(bundle, root, (await liveState(bundle)).reservedCount);
     await chmod(file, 0o600); await importJournals(bundle, root);
     console.log(`本机账单文件保存在 ${root}；付款时只向固定测试接口发送该笔授权。程序不充值、不授权代币；结果不确定即停止。`);
     const prompt = createInterface({ input: process.stdin, output: process.stdout });
@@ -272,6 +278,6 @@ async function main() {
   }
 }
 main().catch(error => {
-  console.error((error instanceof LocalRunnerError || error instanceof RunnerNetworkError || error instanceof LocalRecoveryError) ? error.message : "准备或执行未完成：网络、权限或原记录检查失败。请保留记录，到网页只读核查；不要发送私钥或接管包。");
+  console.error((error instanceof LocalRunnerError || error instanceof RunnerNetworkError || error instanceof LocalRecoveryError || error instanceof LocalContinuityError) ? error.message : "准备或执行未完成：网络、权限或原记录检查失败。请保留记录，到网页只读核查；不要发送私钥或接管包。");
   process.exitCode = 1;
 });

@@ -84,6 +84,7 @@ export default function LocalRunner({ payer, seller, disabled, disabledReason, h
     <p>可选快速续跑：先在旧终端按 Ctrl+C 停止并等到命令提示符，下载 v3，保留原接管包和账单目录。下面命令会要求输入 FAST，然后在本机隐藏输入同一测试钱包私钥。它只缩短后续等待，不增加预算；网站会公开记录时间计划变更。不要同时开多个执行进程。</p>
     <pre>caffeinate -i node ~/Downloads/radar-validation-runner-v3.cjs --execute --accelerate --proxy http://127.0.0.1:7897</pre>
     <p>v3.1 支持恢复确认未签名的中断。若提示某笔“签名中且未保存授权”，按终端显示的 --repair-unsigned 编号先核查；它不读取私钥、不付款，已有签名或未决付款不会重置。</p>
+      <p>v3.2 会在输入私钥前检查本机账单完整性。换电脑时须先停止旧脚本，完整迁移运行目录及隐藏文件；仅复制接管包不足以续跑。</p>
     <p>示例代理端口为 7897；直连可省略 --proxy 参数。快速模式一笔结果不确定即停止，HTTP accepted 仍需等待 Gateway 批次并只读核查。</p>
     <p>两个文件均放在“下载”目录。先检查：</p><pre>node ~/Downloads/radar-validation-runner-v3.cjs --check</pre>
     <p>v3 会读取 macOS 系统 HTTP 代理。若仍连接失败，可使用 --network-check 单独检查联网，或用 --proxy 指定代理软件的实际 HTTP／混合端口。接管包继续用原文件。</p>
