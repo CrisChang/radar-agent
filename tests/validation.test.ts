@@ -99,7 +99,7 @@ test("a paid receipt alone cannot pass a retry, restart or discarded-response sc
   const second = { ...start, at: "2026-10-13T00:00:01Z", attemptId: "two", clientBootId: "boot-two", clientAction: "restore_after_restart" };
   const replay = { ...finish, at: "2026-10-13T00:00:03Z", attemptId: "two", state: "replayed" };
   assert.equal(scenarioEvidence("client_restart", r, [start, finish, second, replay]), true);
-  assert.equal(scenarioEvidence("concurrent_same_authorization_replay", r, [start, finish, second, replay]), true);
+  assert.equal(scenarioEvidence("concurrent_same_authorization_replay", r, [start, second, finish, replay]), true);
   assert.equal(scenarioEvidence("serial_same_authorization_replay", r, [start, finish, { ...second, fingerprint: "different" }, replay]), false);
 });
 

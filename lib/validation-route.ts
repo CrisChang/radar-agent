@@ -11,6 +11,7 @@ import { billFromRecord } from "./billing";
 import { paymentIdentity } from "./payment-store";
 import { CAMPAIGN_AUTH_WINDOW_SECONDS } from "./validation-authorization";
 
+import { replayAcceptedCampaign } from "./validation-replay";
 import { controlMessage } from "./validation-messages";
 const noStore = { "cache-control": "no-store" };
 async function owner(body: Record<string, unknown>, message: string) {
@@ -78,9 +79,12 @@ export async function validationControl(request: NextRequest) {
 }
 export async function validationPayment(request: NextRequest) {
   let row;
+  const replayOnly = request.headers.has("x-radar-replay-only");
   try {
     if (getArcConfig().mode !== "mainnet" || [...request.nextUrl.searchParams.keys()].some(k => k !== "intent")) throw new Error("Invalid campaign endpoint");
     row = plannedPayment(request.nextUrl.searchParams.get("intent") ?? "");
+    if (replayOnly && (request.headers.get("x-radar-replay-only") !== "true" || !request.headers.get("payment-signature") ||
+        row.scenario !== "concurrent_same_authorization_replay")) throw new Error("Invalid replay-only request");
     if (request.headers.has("x-radar-request-id") && request.headers.get("x-radar-request-id") !== intentRequestId(row)) throw new Error("Intent request ID changed");
     if (request.headers.has("payment-signature") && request.headers.get("x-radar-request-id") !== intentRequestId(row)) throw new Error("Stable intent request ID required");
   } catch { return NextResponse.json({ error: "Use a frozen intent and its stable request ID; arbitrary prices are not accepted" }, { status: 400, headers: noStore }); }
@@ -94,6 +98,7 @@ export async function validationPayment(request: NextRequest) {
     }
   }
   const attempt = randomUUID();
+  let replayIdentity: ReturnType<typeof paymentIdentity> | undefined;
   if (paid) {
     try {
       if (paid.length > 16_384) throw new Error("Payload too large");
@@ -110,7 +115,9 @@ export async function validationPayment(request: NextRequest) {
         message: { from: a.from, to: a.to, value: BigInt(a.value), validAfter: BigInt(a.validAfter), validBefore: BigInt(a.validBefore), nonce: a.nonce }, signature: p.payload.signature })) throw new Error("Invalid campaign signature");
       const query = new URLSearchParams(request.nextUrl.searchParams); query.sort();
       const identity = paymentIdentity(p, arc.network, arc.gatewayWallet, intentRequestId(row), `${request.method}:${request.nextUrl.pathname}?${query.toString()}`);
+      replayIdentity = identity;
       await store.appendEvent({ type: "attempt_started", paymentKey: identity.paymentKey, fingerprint: identity.fingerprint,
+        ...(replayOnly ? { attemptKind: "settled_receipt_replay" } : {}),
         clientBootId: /^[a-f0-9-]{36}$/i.test(request.headers.get("x-radar-test-boot") ?? "") ? request.headers.get("x-radar-test-boot")! : undefined,
         clientAction: ["submit", "discard_response", "restore_after_restart"].includes(request.headers.get("x-radar-test-client-action") ?? "") ? request.headers.get("x-radar-test-client-action")! : undefined, at: new Date().toISOString(), intent: row.planned_intent_id, sessionId: /^[a-f0-9-]{36}$/i.test(request.headers.get("x-radar-test-session") ?? "") ? request.headers.get("x-radar-test-session")! : undefined, attemptId: attempt, requestId: intentRequestId(row) });
     } catch { return NextResponse.json({ error: "Invalid owner payment authorization; no settlement attempted" }, { status: 400, headers: noStore }); }
@@ -118,7 +125,9 @@ export async function validationPayment(request: NextRequest) {
   const handler = withGateway(async () => NextResponse.json({ campaign_id: CAMPAIGN_ID, intent: row.planned_intent_id,
     purpose: "owner_controlled_payment_reliability_test", amount_atomic: row.amount_atomic, scenario: row.scenario }, { headers: noStore }),
     row.amount_usdc, "/api/validation/payment", { store, campaign: { id: CAMPAIGN_ID, intent: row.planned_intent_id }, authorizationTimeoutSeconds: CAMPAIGN_AUTH_WINDOW_SECONDS });
-  const response = await handler(request);
+  // A supplemental request can ONLY read an exact accepted receipt. There is
+  // no fallback to the charging handler even if the original record is absent.
+  const response = replayOnly ? await replayAcceptedCampaign(row, replayIdentity!, store) : await handler(request);
   if (paid) {
     try {
       let reason: string | undefined;

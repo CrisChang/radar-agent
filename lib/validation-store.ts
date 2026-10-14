@@ -10,7 +10,7 @@ export interface CampaignState {
   verifiedCount: number; reportRevision: number; ownerPaused?: boolean; haltReason?: string;
 }
 export interface CampaignEvent {
-  type: string; at: string; intent?: string; requestId?: string; attemptId?: string;
+  type: string; at: string; intent?: string; requestId?: string; attemptId?: string; attemptKind?: "settled_receipt_replay";
   status?: number; state?: string; sessionId?: string; clientBootId?: string; clientAction?: string; paymentKey?: string; fingerprint?: string; amountAtomic?: string; reason?: string;
 }
 const CLAIM = `

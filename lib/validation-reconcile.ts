@@ -112,6 +112,29 @@ export async function verifyBatch(hash: Hex, transfers: GatewayTransfer[]) {
     buyer, seller, passed: buyer.difference === "0" && seller.difference === "0",
     attribution: "Gateway nonce-to-transfer-to-batch; independently decoded aggregate wallet deltas" };
 }
+/** Later overlapping attempts may complete a scenario; earlier failures remain.
+ * Both the append-only ledger order and finite server intervals must overlap.
+ * Supplemental receipt reads additionally require two successful cached responses. */
+export function concurrentEvidence(record: PaymentRecord, events: CampaignEvent[]) {
+  const pairs = events.flatMap((start, index) => {
+    if (start.type !== "attempt_started" || !start.attemptId || start.intent !== record.campaign?.intent || start.fingerprint !== record.fingerprint) return [];
+    if (events.filter(e => e.type === "attempt_started" && e.attemptId === start.attemptId).length !== 1) return [];
+    const ends = events.map((end, endIndex) => ({ end, endIndex })).filter(({ end }) => end.type === "attempt_finished" && end.attemptId === start.attemptId);
+    if (ends.length !== 1) return [];
+    const { end, endIndex } = ends[0], from = Date.parse(start.at), to = Date.parse(end.at);
+    if (endIndex <= index || !Number.isFinite(from) || !Number.isFinite(to) || from >= to) return [];
+    return [{ start, end, index, endIndex, from, to }];
+  });
+  for (let i = 0; i < pairs.length; i++) for (let j = i + 1; j < pairs.length; j++) {
+    const a = pairs[i], b = pairs[j];
+    if (Math.max(a.index, b.index) >= Math.min(a.endIndex, b.endIndex) || Math.max(a.from, b.from) >= Math.min(a.to, b.to) ||
+        ![a.end.status, b.end.status].includes(200)) continue;
+    const supplemental = a.start.attemptKind === "settled_receipt_replay" || b.start.attemptKind === "settled_receipt_replay";
+    if (supplemental && ![a, b].every(p => p.start.attemptKind === "settled_receipt_replay" && p.end.status === 200 && p.end.state === "replayed")) continue;
+    return supplemental ? "settled_receipt_replay" : "payment_endpoint_attempts";
+  }
+  return null;
+}
 export function scenarioEvidence(scenario: string, record: PaymentRecord, events: CampaignEvent[]) {
   const starts = events.filter(e => e.type === "attempt_started" && e.intent === record.campaign?.intent && e.fingerprint === record.fingerprint);
   const finishes = events.filter(e => e.type === "attempt_finished" && starts.some(s => s.attemptId === e.attemptId));
@@ -120,8 +143,7 @@ export function scenarioEvidence(scenario: string, record: PaymentRecord, events
   if (scenario === "sequential" || scenario === "spread_sessions") return success >= 1;
   if (scenario === "serial_same_authorization_replay") return success >= 2 && observedReplay;
   if (scenario === "concurrent_same_authorization_replay") {
-    const firstFinish = finishes.map(e => Date.parse(e.at)).sort((a, b) => a - b)[0];
-    return success >= 1 && starts.filter(e => Date.parse(e.at) <= firstFinish).length >= 2 && finishes.length >= 2;
+    return concurrentEvidence(record, events) !== null;
   }
   if (scenario === "response_loss_after_submit") return starts.length >= 2 && success >= 1 && observedReplay && starts.some(e => e.clientAction === "discard_response");
   if (scenario === "client_restart") return starts.length >= 2 && success >= 1 && observedReplay && new Set(starts.map(e => e.clientBootId).filter(Boolean)).size >= 2 && starts.some(e => e.clientAction === "restore_after_restart");
@@ -178,6 +200,8 @@ export async function reconcileCampaign(store: ValidationStore, state: CampaignS
       same_nonce_renewal_checks: allEvents.filter(e => e.type === "validity_renewal_prepared" && e.intent === plan.planned_intent_id).length,
       transfer_status: item?.transfer?.status ?? null, batch_hash: item?.transfer?.txHash ?? null,
       scenario_passed: scenarioPassed,
+      concurrent_evidence: item && plan.scenario === "concurrent_same_authorization_replay" ? concurrentEvidence(item.record, allEvents) : null,
+      supplemental_replay_attempts: allEvents.filter(e => e.type === "attempt_started" && e.intent === plan.planned_intent_id && e.attemptKind === "settled_receipt_replay").length,
       proof: verified ? "provider_attribution_and_chain_aggregate_verified" : item ? "pending_or_unverified" : hadAttempt ? "no_settlement_receipt_reserved" : "not_run",
       money_difference_atomic: verified ? "0" : null, response_sha256: item?.record.state === "accepted" ? item.record.response?.headers["x-radar-response-sha256"] ?? null : null };
   });
@@ -188,7 +212,7 @@ export async function reconcileCampaign(store: ValidationStore, state: CampaignS
   const maximumDifference = batches.flatMap(b => [b.buyer.difference, b.seller.difference]).map(x => { const n = BigInt(x); return n < 0n ? -n : n; }).reduce((a, b) => a > b ? a : b, 0n);
   const report = { ...emptyReport(), status: issues ? "failed_or_requires_review" : passed ? "passed" : "in_progress",
     scenario_verified_payments: scenarioCompleted, spread_sessions_observed: spreadSessions,
-    scenario_evidence_note: "Server-observed exact-authorization attempts and results; response discard, boot and session labels are client-reported. Concurrent overlap uses server timestamps, not an independent clock attestation.",
+    scenario_evidence_note: "Server-observed exact-authorization attempts and results; response discard, boot and session labels are client-reported. Concurrent overlap requires matched server intervals and ledger event order, not an independent clock attestation. Supplemental settled_receipt_replay tests concurrent cached receipt retrieval after payment; it does not test an initial settlement race.",
     completed_payments: completed, attempted_payments: records.length, http_attempts: attempts,
     batch_transactions: batches.length, money_difference_atomic: maximumDifference > 0n ? maximumDifference.toString() : completed === records.length && records.length > 0 && !issues ? "0" : null,
     money_difference_measure: "maximum_absolute_wallet_difference_per_batch",

@@ -9,11 +9,12 @@ import { runPlannedPayment, type PrivateJournal } from "@/lib/validation-runner"
 import CampaignFunding from "./funding";
 import baseline from "@/data/mainnet-batch-baseline.json";
 import { connectedAddress, connectionError, connectionRequest, injectedWallet, type WalletChoice } from "@/lib/wallet-connection";
+import { supplementConcurrentReplay } from "@/lib/validation-replay-client";
 import { renewRejectedAuthorization } from "@/lib/validation-renewal";
 
 interface State { stage: number; reservedCount: number; reservedAtomic: string; expiresAt: number; halted: boolean; verifiedCount: number; stage3StartedAt: number }
-interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number; verification_rejections?: number; verification_rejection_reasons?: string[]; same_nonce_renewal_checks?: number }
-interface Report { status: string; completed_payments: number; attempted_payments: number; http_attempts: number | null; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
+interface Row { intent: string; stage: number; scenario: string; amount_usdc: string; amount_atomic: string; scenario_passed: boolean | null; concurrent_evidence?: string | null; supplemental_replay_attempts?: number; money_difference_atomic: string | null; local_state: string; transfer_status: string | null; batch_hash: string | null; proof: string; http_attempts: number; verification_rejections?: number; verification_rejection_reasons?: string[]; same_nonce_renewal_checks?: number }
+interface Report { status: string; completed_payments: number; scenario_verified_payments?: number; attempted_payments: number; http_attempts: number | null; batch_transactions: number; money_difference_atomic: string | null; overall_passed: boolean | null; generated_at: string | null; conclusion: string; rows: Row[] }
 export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig; payer: string; seller: string }) {
   const [wallet, setWallet] = useState<string>(), [state, setState] = useState<State | null>(null), [report, setReport] = useState<Report>(),
     [message, setMessage] = useState("钱包连接功能加载中…若一直停在这里，请强制刷新页面，并允许本站运行 JavaScript。"), [busy, setBusy] = useState(false),
@@ -21,6 +22,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
   const [walletChoice, setWalletChoice] = useState<WalletChoice>("auto"), [connectedChain, setConnectedChain] = useState<number>();
   const [clientReady, setClientReady] = useState(false);
   const [recoveryIntent, setRecoveryIntent] = useState<PlannedPayment>(), [renewalConsent, setRenewalConsent] = useState(false);
+  const [replayConsent, setReplayConsent] = useState(false);
   const selectedProvider = useRef<EIP1193Provider | undefined>(undefined);
   const walletReady = wallet?.toLowerCase() === payer.toLowerCase() && connectedChain === 5042;
   const stop = useRef(false), bootId = useRef("");
@@ -152,6 +154,25 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       setMessage("本阶段请求已完成。请点击只读对账，等待批次上链核实后再进入下一阶段。");
     });
   }
+  async function supplementReplays() {
+    if (!replayConsent || !pendingReplays.length) throw new Error("请勾选仅复用原成功账单的补测确认。");
+    if (!navigator.locks) throw new Error("请使用支持安全运行锁的 Chrome。");
+    await account(); stop.current = false;
+    await navigator.locks.request(`${CAMPAIGN_ID}:${payer}`, { ifAvailable: true }, async lock => {
+      if (!lock) throw new Error("另一个标签页正在运行，请不要同时补测。");
+      for (const evidence of pendingReplays) {
+        if (stop.current) { setMessage("补测已停止，原付款不变。请只读核查已有结果。"); return; }
+        await account();
+        const row = PAYMENT_SCHEDULE.find(r => r.planned_intent_id === evidence.intent)!;
+        setMessage(`正在补测 ${row.planned_intent_id}：同时读取原账单两次，无新付款、无需付款签名。`);
+        await supplementConcurrentReplay(row, { origin: location.origin, payer, seller, bootId: bootId.current,
+          async load(id) { const raw = localStorage.getItem(journalKey(id)); return raw ? JSON.parse(raw) as PrivateJournal : null; },
+          async save(saved) { localStorage.setItem(journalKey(saved.intent), JSON.stringify(saved)); } });
+      }
+      setMessage("补测响应与原账单一致。下一步点击“只读核查全部付款与链上批次”，签署免费核查消息；服务端确认真实重叠后才会计为场景通过。");
+    });
+    setReplayConsent(false);
+  }
   async function renewOriginal() {
     const row = recoveryIntent;
     if (!row || !renewalConsent) throw new Error("请核对并勾选仅延长原 nonce 的授权。");
@@ -189,13 +210,15 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
   }
   const next = STAGES.find(s => s.stage === (state?.stage ?? 0) + 1), current = STAGES.find(s => s.stage === state?.stage);
   const rows = report?.rows ?? [], visible = rows.slice(page * 50, page * 50 + 50);
+  const pendingReplays = rows.filter(r => r.scenario === "concurrent_same_authorization_replay" && r.scenario_passed === false &&
+    r.local_state === "accepted" && r.transfer_status === "completed" && r.money_difference_atomic === "0");
   return <main className="tool-shell">
     <div className="tool-actions"><a href="/">Radar Agent</a><a href="/pilot">原单笔测试</a><a href="/billing">钱包账单</a><a href="/api/validation/status">公开 JSON 记录</a></div>
     <p className="eyebrow">ARC MAINNET · OWNER-CONTROLLED RELIABILITY TEST</p>
     <h1>逐笔付款，逐笔核查。</h1>
     <p className="lede">1,000 笔独立付款，10 档金额，至少 24 小时。每笔关联 Gateway 的真实结算批次，核对链上净余额变化。原先的一笔测试不计入本轮。</p>
     <div className="tool-card"><h2>真实进度 / Evidence</h2>
-      <div className="validation-metrics"><p>链上核实付款<strong>{report?.completed_payments ?? "—"} / 1,000</strong></p><p>已保留付款意图<strong>{report ? state?.reservedCount ?? 0 : "—"}</strong></p><p>独立批次哈希<strong>{report?.batch_transactions ?? "—"}</strong></p><p>最大金额差异（原子单位）<strong>{report?.money_difference_atomic ?? "待核查"}</strong></p></div>
+      <div className="validation-metrics"><p>链上核实付款<strong>{report?.completed_payments ?? "—"} / 1,000</strong></p><p>付款及场景均通过<strong>{report?.scenario_verified_payments ?? "—"} / 1,000</strong></p><p>已保留付款意图<strong>{report ? state?.reservedCount ?? 0 : "—"}</strong></p><p>独立批次哈希<strong>{report?.batch_transactions ?? "—"}</strong></p><p>最大金额差异（原子单位）<strong>{report?.money_difference_atomic ?? "待核查"}</strong></p></div>
       <p>状态：{report?.status ?? "读取中"} · 最终结论：{report?.overall_passed === true ? "通过" : report?.overall_passed === false ? "失败或需复核" : "尚无最终结论"}</p>
       <p>{report?.conclusion}</p><p>最近对账：{report?.generated_at ?? "尚未对账"}。1 个 USDC 原子单位 = 0.000001 USDC，金额差异容许值为 0。</p>
       <p>同一控制人的两个钱包进行功能测试，不代表客户数、营收或项目采用量。批次哈希可能被多笔付款共用；逐笔归属依赖 Gateway 记录，链上独立核实的是批次内钱包净变动。</p>
@@ -214,6 +237,12 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       <p><label><input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)}/>我已核对本阶段金额、付款和收款地址，并同意固定计划内的付款及原授权重试。</label></p>
       <div className="tool-actions">{next && <button disabled={!walletReady || busy || !consent || !!state?.halted || !!state && state.verifiedCount !== (current?.cumulativeCount ?? 0)} onClick={() => void perform(() => control("approve", next.stage))}>批准阶段 {next.stage}：{next.count} 笔 / {formatAtomic(next.amountAtomic)} USDC</button>}
       <button disabled={!walletReady || busy || !consent || !state || state.halted} onClick={() => void perform(runStage)}>运行 / 继续当前阶段</button><button disabled={!busy} onClick={() => { stop.current = true; }}>停止本机后续请求</button></div>
+      {pendingReplays.length > 0 && <section className="validation-funding"><h3>补做并发验证（不新增付款）</h3>
+        <p>待补测：{pendingReplays.map(r => r.intent).join("、")}。这些付款已完成，本次每笔同时读取原成功账单两次，检验并发重放返回相同内容。它验证付款完成后的账单重放，不代表首次结算并发测试。</p>
+        <p>请在原付款的同一 Chrome 中操作，保留本站数据。无需充值、代币授权或新付款签名；历史失败不会删除。补测后仍需只读对账确认实际请求重叠。</p>
+        <p><label><input type="checkbox" checked={replayConsent} disabled={busy} onChange={e => setReplayConsent(e.target.checked)}/>仅复用本机原授权读取已成功账单，不新增付款。</label></p>
+        <button disabled={!walletReady || busy || !replayConsent} onClick={() => void perform(supplementReplays)}>补做并发验证（不新增付款）</button>
+      </section>}
       {recoveryIntent && <section className="validation-funding"><h3>恢复原授权：{recoveryIntent.planned_intent_id}</h3>
         <p>先只读核实原授权被 Gateway 明确以有效期不足拒绝，且原 nonce 没有转账或服务端预留。通过后才能亲自续签；金额、付款编号、双方地址和 nonce 均保留，历史授权与失败记录也保留。其他失败不允许使用此入口。</p>
         <p><label><input type="checkbox" checked={renewalConsent} disabled={busy} onChange={e => setRenewalConsent(e.target.checked)}/>我同意仅延长这笔原 nonce 授权，金额仍为 {recoveryIntent.amount_usdc} USDC，有效期约七天加一小时，不增加付款预算。</label></p>
@@ -223,10 +252,10 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     </div>
     <div className="tool-card"><h2>逐笔记录 / Results</h2><p>顺序请求、跨会话、串行重放、并发重放、受控丢弃响应及真实客户端重启。失败和重试都保留；未完成项不算成功。</p>
       <div className="tool-actions"><button disabled={!report} onClick={() => download(`${CAMPAIGN_ID}-public.json`, JSON.stringify(report, null, 2), "application/json")}>下载公开结果 JSON</button>
-      <button disabled={!report} onClick={() => { const cols = ["intent", "stage", "scenario", "amount_usdc", "amount_atomic", "money_difference_atomic", "scenario_passed", "local_state", "transfer_status", "batch_hash", "proof", "http_attempts", "verification_rejections", "verification_rejection_reasons", "same_nonce_renewal_checks"] as const;
+      <button disabled={!report} onClick={() => { const cols = ["intent", "stage", "scenario", "amount_usdc", "amount_atomic", "money_difference_atomic", "scenario_passed", "local_state", "transfer_status", "batch_hash", "proof", "http_attempts", "verification_rejections", "verification_rejection_reasons", "same_nonce_renewal_checks", "supplemental_replay_attempts", "concurrent_evidence"] as const;
         const csv = [cols.join(","), ...rows.map(row => cols.map(k => `"${String(row[k] ?? "").replaceAll('"', '""')}"`).join(","))].join("\r\n"); download(`${CAMPAIGN_ID}-public.csv`, csv, "text/csv"); }}>下载全部结果 CSV</button>
       <button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("receipts"))}>签名导出全部私有账单</button><button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("events"))}>签名导出全部尝试和状态事件</button></div>
-      <div className="table-scroll"><table><thead><tr><th>意图 / 金额</th><th>场景 / 请求次数</th><th>服务端 / Gateway</th><th>批次 / 核查</th></tr></thead><tbody>{visible.map(row => <tr key={row.intent}><td>{row.intent}<br/>{row.amount_usdc} USDC</td><td>{row.scenario}<br/>{row.http_attempts}</td><td>{row.local_state}<br/>{row.transfer_status ?? "待核查"}</td><td>{row.batch_hash ? <a href={`${arc.explorerUrl}/tx/${row.batch_hash}`} target="_blank" rel="noreferrer">{row.batch_hash.slice(0, 12)}…</a> : "尚无批次哈希"}<br/>{row.proof}</td></tr>)}</tbody></table></div>
+      <div className="table-scroll"><table><thead><tr><th>意图 / 金额</th><th>场景 / 请求次数</th><th>服务端 / Gateway</th><th>批次 / 核查</th></tr></thead><tbody>{visible.map(row => <tr key={row.intent}><td>{row.intent}<br/>{row.amount_usdc} USDC</td><td>{row.scenario}<br/>{row.http_attempts} 次请求<br/>场景：{row.scenario_passed === true ? "通过" : row.scenario_passed === false ? "待补证据" : "未运行"}{row.concurrent_evidence === "settled_receipt_replay" && <><br/>已结算账单并发补测</>}</td><td>{row.local_state}<br/>{row.transfer_status ?? "待核查"}</td><td>{row.batch_hash ? <a href={`${arc.explorerUrl}/tx/${row.batch_hash}`} target="_blank" rel="noreferrer">{row.batch_hash.slice(0, 12)}…</a> : "尚无批次哈希"}<br/>{row.proof}</td></tr>)}</tbody></table></div>
       {!rows.length && <p>本轮尚无已核查结果。没有用示例数据填充成功记录。</p>}
       <div className="tool-actions"><button disabled={page === 0} onClick={() => setPage(p => p - 1)}>上一页</button><span>{page + 1} / {Math.max(1, Math.ceil(rows.length / 50))}</span><button disabled={(page + 1) * 50 >= rows.length} onClick={() => setPage(p => p + 1)}>下一页</button></div>
     </div>
