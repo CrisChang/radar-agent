@@ -13,19 +13,15 @@ import { runPlannedPayment, type PrivateJournal } from "../lib/validation-runner
 import { dueTime } from "../lib/validation-plan";
 import { campaignTypedData, inspectCampaignPayment } from "../lib/validation-authorization";
 import { getArcConfig } from "../lib/arc";
-import { selectNetwork, createRunnerNetwork, RunnerNetworkError, type NetworkChoice } from "../lib/validation-local-network";
-const RUNNER_VERSION = "2026-10-14-proxy-v2";
+import { selectNetwork, createRunnerNetwork, RunnerNetworkError, readRunnerStatus, type NetworkChoice } from "../lib/validation-local-network";
+const RUNNER_VERSION = "2026-10-14-proxy-v2.1";
 let network = createRunnerNetwork({ source: "direct" });
 
 class LocalRunnerError extends Error {}
 type StageState = { stage: number; halted: boolean; expiresAt: number; stage3StartedAt: number; executionMode?: string; runnerId?: string;
   bundleHash?: string; handoffCount?: number; reservedCount: number; maximumCount: number; maximumAtomic: string };
 async function liveState(bundle: HandoffBundle): Promise<StageState> {
-  const response = await network.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new LocalRunnerError(`进度接口返回 HTTP ${response.status}，请稍后重试只读检查。`);
-  let state: StageState;
-  try { ({ state } = await response.json() as { state: StageState }); }
-  catch { throw new LocalRunnerError("进度接口没有返回 JSON，请检查代理或网络登录页；不要重新生成接管包。"); }
+  const { state } = await readRunnerStatus(network, message => console.log(message)) as { state: StageState };
   if (!state || state.stage !== 3 || state.halted || state.expiresAt <= Date.now() || state.executionMode !== "local" ||
       state.runnerId !== bundle.runnerId || state.bundleHash !== await handoffDigest(bundle) || state.handoffCount !== bundle.reservedCount ||
       state.maximumCount !== 1000 || state.maximumAtomic !== "232600" || !Number.isFinite(state.stage3StartedAt) || state.stage3StartedAt <= 0) throw new LocalRunnerError("服务端接管包、预算或有效期不符。请在原网页核查，禁止直接新建付款。");
@@ -70,6 +66,8 @@ async function worker(bundle: HandoffBundle, root: string) {
   });
   process.on("disconnect", () => process.exit(1));
   let saveQueue = Promise.resolve();
+  let phase = "工作进程初始状态查询";
+  console.log(`工作进程已启动；${network.description}。正在只读核对进度…`);
   try {
     const initial = await liveState(bundle);
     for (const row of stageThreeRows()) {
@@ -82,7 +80,10 @@ async function worker(bundle: HandoffBundle, root: string) {
       const due = dueTime(row, initial.stage3StartedAt);
       if (due > Date.now()) console.log(`${row.planned_intent_id} 等待计划时间 ${new Date(due).toLocaleString()}（自动等待）`);
       while (due > Date.now()) await new Promise(r => setTimeout(r, Math.min(30_000, due - Date.now())));
+      phase = `${row.planned_intent_id} 付款前只读状态查询`;
       await liveState(bundle);
+      phase = `${row.planned_intent_id} ${existing?.paymentHeader ? "原授权重放" : "报价／签名／提交"}`;
+      console.log(`准备 ${row.planned_intent_id} / ${row.amount_usdc} USDC / ${existing?.paymentHeader ? "沿用已保存的原授权" : "获取报价后按固定预算签名"}`);
       const result = await runPlannedPayment(row, { origin: bundle.origin, payer: bundle.payer, seller: bundle.seller, bootId, runnerId: bundle.runnerId, fetcher: network.fetcher,
         signer: { address: bundle.payer as `0x${string}`, async signTypedData(params) {
           const id = randomUUID();
@@ -97,8 +98,10 @@ async function worker(bundle: HandoffBundle, root: string) {
       if (["restart_required", "session_checkpoint"].includes(result.state)) { await saveQueue; return 75; }
     }
     await saveQueue; return 0;
-  } catch {
-    if (network.lastError()) console.error(network.lastError());
+  } catch (error) {
+    console.error(`停止步骤：${phase}`);
+    if (error instanceof RunnerNetworkError || error instanceof LocalRunnerError) console.error(error.message);
+    else if (network.lastError()) console.error(network.lastError());
     console.error("执行已停止：请保留接管包和本机记录，到网页做只读核查。未知付款不会自动换 nonce 或重签。");
     return 1;
   } finally { for (const p of pending.values()) clearTimeout(p.timer); }
@@ -124,10 +127,11 @@ async function main() {
   console.log(`Radar 本机脚本 ${RUNNER_VERSION}；Node ${process.versions.node}；${network.description}`);
   if (args.includes("--network-check")) {
     if (args.includes("--execute")) throw new LocalRunnerError("仅联网检查不能同时执行付款。");
-    const response = await network.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { signal: AbortSignal.timeout(20_000) });
-    if (!response.ok) throw new LocalRunnerError(`联网检查返回 HTTP ${response.status}。`);
-    let data; try { data = await response.json(); } catch { throw new LocalRunnerError("网络没有返回测试接口 JSON，请检查代理设置。"); }
-    if (data.storage_status !== "available") throw new LocalRunnerError("已连接网站，但服务端存储状态尚未就绪。");
+    for (let n = 1; n <= 3; n++) {
+      const data = await readRunnerStatus(network, message => console.log(message));
+      if (data.storage_status !== "available") throw new LocalRunnerError("已连接网站，但服务端存储状态尚未就绪。");
+      console.log(`只读联网检查 ${n}/3 通过。`);
+    }
     console.log("联网检查通过；没有读取接管包、私钥，也没有付款。"); return;
   }
   const fileArg = args.indexOf("--bundle"), file = resolve(fileArg >= 0 ? args[fileArg + 1] : join(homedir(), "Downloads", "radar-local-handoff.json"));

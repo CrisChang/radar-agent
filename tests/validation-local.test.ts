@@ -127,8 +127,9 @@ test("downloaded worker restarts as a new process and replays the saved header w
     await writeFile(`${root}/fixture.json`, JSON.stringify(config));
     await writeFile(preload, `import {readFile,appendFile} from "node:fs/promises"; import {createHash} from "node:crypto";
 const c = JSON.parse(await readFile(new URL("./fixture.json",import.meta.url),"utf8"));
+let resetInitialStatus = true;
 globalThis.fetch = async (input,init) => {
- const url=String(input); if(url===c.bundle.origin+"/api/validation/status") return Response.json({state:c.state});
+ const url=String(input); if(url===c.bundle.origin+"/api/validation/status") { if(resetInitialStatus) {resetInitialStatus=false;throw Object.assign(new Error("synthetic reset"),{code:"ECONNRESET"});} return Response.json({state:c.state}); }
  if(url!==c.bundle.origin+"/api/validation/payment?intent="+c.row.planned_intent_id) throw Error("unexpected request blocked");
  const h=new Headers(init?.headers); if(h.get("x-radar-runner-id")!==c.bundle.runnerId) throw Error("runner binding missing");
  const encode=v=>Buffer.from(JSON.stringify(v)).toString("base64");

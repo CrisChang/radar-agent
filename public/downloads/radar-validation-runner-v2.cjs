@@ -1,4 +1,4 @@
-// Radar Agent owner-run local runner 2026-10-14-proxy-v2. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
+// Radar Agent owner-run local runner 2026-10-14-proxy-v2.1. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -35138,6 +35138,11 @@ var import_node_util = require("node:util");
 var import_node_https = require("node:https");
 var import_https_proxy_agent = __toESM(require_dist(), 1);
 var RunnerNetworkError = class extends Error {
+  constructor(message, retryable = false) {
+    super(message);
+    this.retryable = retryable;
+  }
+  retryable;
 };
 function checkedProxy(value) {
   try {
@@ -35182,7 +35187,7 @@ async function selectNetwork(explicit, options = {}) {
   }
   return { source: "direct" };
 }
-function safeNetworkError(error) {
+function networkCode(error) {
   let current = error;
   const codes = [];
   for (let n = 0; n < 6 && current && typeof current === "object"; n++) {
@@ -35191,8 +35196,15 @@ function safeNetworkError(error) {
     if (typeof e.name === "string") codes.push(e.name);
     current = e.cause;
   }
-  const known = codes.find((c) => ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "DEPTH_ZERO_SELF_SIGNED_CERT", "ERR_TLS_CERT_ALTNAME_INVALID", "TimeoutError", "AbortError", "ABORT_ERR"].includes(c)) ?? "NETWORK_ERROR";
+  return codes.find((c) => ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "DEPTH_ZERO_SELF_SIGNED_CERT", "ERR_TLS_CERT_ALTNAME_INVALID", "TimeoutError", "AbortError", "ABORT_ERR"].includes(c)) ?? "NETWORK_ERROR";
+}
+function transientNetworkError(error) {
+  return ["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "TimeoutError", "AbortError", "ABORT_ERR"].includes(networkCode(error));
+}
+function safeNetworkError(error, choice) {
+  const known = networkCode(error);
   if (/CERT|TLS|VERIFY/.test(known)) return `\u7F51\u7EDC\u68C0\u67E5\u5931\u8D25\uFF08${known}\uFF09\uFF1AHTTPS \u8BC1\u4E66\u6821\u9A8C\u5931\u8D25\uFF1B\u8BF7\u68C0\u67E5\u7CFB\u7EDF\u65F6\u95F4\u548C\u4EE3\u7406\u8BC1\u4E66\u8BBE\u7F6E\uFF0C\u4E0D\u8981\u5173\u95ED\u8BC1\u4E66\u6821\u9A8C\u3002`;
+  if (choice?.proxy) return `\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF08${known}\uFF09\uFF1A\u5DF2\u4F7F\u7528\u6307\u5B9A HTTP \u4EE3\u7406\uFF0C\u4F46\u672C\u6B21\u8FDE\u63A5\u5931\u8D25\u6216\u4E2D\u65AD\u3002\u8BF7\u4FDD\u6301\u4EE3\u7406\u5F00\u542F\u5E76\u68C0\u67E5\u5F53\u524D\u8282\u70B9\uFF1B\u65E0\u9700\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002`;
   return `\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF08${known}\uFF09\uFF1A\u6D4F\u89C8\u5668\u4EE3\u7406\u53EF\u80FD\u6CA1\u6709\u5E94\u7528\u5230\u7EC8\u7AEF\u3002\u8BF7\u5F00\u542F macOS \u7CFB\u7EDF\u4EE3\u7406\uFF0C\u6216\u5728\u547D\u4EE4\u672B\u5C3E\u6DFB\u52A0 --proxy http://127.0.0.1:\u5B9E\u9645HTTP\u7AEF\u53E3\u3002\u65E0\u9700\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002`;
 }
 function createRunnerNetwork(choice, direct = globalThis.fetch) {
@@ -35201,9 +35213,11 @@ function createRunnerNetwork(choice, direct = globalThis.fetch) {
   const fetcher = async (input, init) => {
     const url = new URL(typeof input === "string" || input instanceof URL ? String(input) : input.url);
     if (url.origin !== RUNNER_ORIGIN || url.username || url.password || url.hash || !["/api/validation/status", "/api/validation/payment"].includes(url.pathname) || init?.method && init.method !== "GET" || init?.body || input instanceof Request && input.method !== "GET") throw new RunnerNetworkError("\u7F51\u7EDC\u8BF7\u6C42\u8D85\u51FA\u56FA\u5B9A\u6D4B\u8BD5\u63A5\u53E3\uFF0C\u5DF2\u62D2\u7EDD\u3002");
+    const requestHeaders = new Headers(init?.headers ?? (input instanceof Request ? input.headers : void 0));
+    const requestLabel = url.pathname.endsWith("/status") ? "\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2" : requestHeaders.has("payment-signature") ? "\u4ED8\u6B3E\u63D0\u4EA4\uFF0F\u539F\u6388\u6743\u91CD\u653E" : "\u672A\u7B7E\u540D\u4ED8\u6B3E\u62A5\u4EF7";
     try {
       const response = !proxy ? await direct(input, { ...init, redirect: "error" }) : await new Promise((resolve2, reject) => {
-        const headers = new Headers(init?.headers);
+        const headers = new Headers(requestHeaders);
         headers.set("accept-encoding", "identity");
         const signal = init?.signal ?? AbortSignal.timeout(3e4);
         const agent = (0, import_https_proxy_agent.default)({ host: proxy.hostname.replace(/^\[|\]$/g, ""), port: Number(proxy.port || (proxy.protocol === "https:" ? 443 : 80)), protocol: proxy.protocol, signal });
@@ -35247,27 +35261,41 @@ function createRunnerNetwork(choice, direct = globalThis.fetch) {
       lastError = void 0;
       return response;
     } catch (e) {
-      lastError = e instanceof RunnerNetworkError ? e.message : safeNetworkError(e);
-      throw new RunnerNetworkError(lastError);
+      const error = e instanceof RunnerNetworkError ? e : new RunnerNetworkError(`${requestLabel}\uFF1A${safeNetworkError(e, choice)}`, transientNetworkError(e));
+      lastError = error.message;
+      throw error;
     }
   };
   return { fetcher, lastError: () => lastError, description: proxy ? `${choice.source} HTTP \u4EE3\u7406 ${proxy}` : "\u76F4\u8FDE\uFF08\u672A\u68C0\u6D4B\u5230 HTTP \u7CFB\u7EDF\uFF0F\u73AF\u5883\u4EE3\u7406\uFF09" };
 }
+async function readRunnerStatus(network2, onRetry = () => {
+}, wait2 = (ms) => new Promise((resolve2) => setTimeout(resolve2, ms))) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await network2.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { method: "GET", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(1e4) });
+      if (!response.ok) throw new RunnerNetworkError(`\u53EA\u8BFB\u8FDB\u5EA6\u63A5\u53E3\u8FD4\u56DE HTTP ${response.status}\u3002`, [502, 503, 504].includes(response.status));
+      try {
+        return await response.json();
+      } catch (error) {
+        if (transientNetworkError(error)) throw new RunnerNetworkError(`\u53EA\u8BFB\u72B6\u6001\u54CD\u5E94\u4E2D\u65AD\uFF08${networkCode(error)}\uFF09\u3002`, true);
+        throw new RunnerNetworkError("\u53EA\u8BFB\u8FDB\u5EA6\u63A5\u53E3\u6CA1\u6709\u8FD4\u56DE\u6709\u6548 JSON\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u6216\u7F51\u7EDC\u767B\u5F55\u9875\uFF1B\u4E0D\u8981\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002");
+      }
+    } catch (error) {
+      if (!(error instanceof RunnerNetworkError) || !error.retryable || attempt === 3) throw error;
+      onRetry(`\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2\u6682\u65F6\u5931\u8D25\uFF0C\u5C06\u5728 ${attempt * 2} \u79D2\u540E\u91CD\u8BD5\uFF08${attempt + 1}/3\uFF09\uFF1B\u4E0D\u4F1A\u63D0\u4EA4\u4ED8\u6B3E\u3002`);
+      await wait2(attempt * 2e3);
+    }
+  }
+  throw new RunnerNetworkError("\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2\u672A\u5B8C\u6210\u3002");
+}
 
 // scripts/local-validation.mts
-var RUNNER_VERSION = "2026-10-14-proxy-v2";
+var RUNNER_VERSION = "2026-10-14-proxy-v2.1";
 var network = createRunnerNetwork({ source: "direct" });
 var LocalRunnerError = class extends Error {
 };
 async function liveState(bundle) {
-  const response = await network.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(3e4) });
-  if (!response.ok) throw new LocalRunnerError(`\u8FDB\u5EA6\u63A5\u53E3\u8FD4\u56DE HTTP ${response.status}\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u53EA\u8BFB\u68C0\u67E5\u3002`);
-  let state;
-  try {
-    ({ state } = await response.json());
-  } catch {
-    throw new LocalRunnerError("\u8FDB\u5EA6\u63A5\u53E3\u6CA1\u6709\u8FD4\u56DE JSON\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u6216\u7F51\u7EDC\u767B\u5F55\u9875\uFF1B\u4E0D\u8981\u91CD\u65B0\u751F\u6210\u63A5\u7BA1\u5305\u3002");
-  }
+  const { state } = await readRunnerStatus(network, (message) => console.log(message));
   if (!state || state.stage !== 3 || state.halted || state.expiresAt <= Date.now() || state.executionMode !== "local" || state.runnerId !== bundle.runnerId || state.bundleHash !== await handoffDigest(bundle) || state.handoffCount !== bundle.reservedCount || state.maximumCount !== 1e3 || state.maximumAtomic !== "232600" || !Number.isFinite(state.stage3StartedAt) || state.stage3StartedAt <= 0) throw new LocalRunnerError("\u670D\u52A1\u7AEF\u63A5\u7BA1\u5305\u3001\u9884\u7B97\u6216\u6709\u6548\u671F\u4E0D\u7B26\u3002\u8BF7\u5728\u539F\u7F51\u9875\u6838\u67E5\uFF0C\u7981\u6B62\u76F4\u63A5\u65B0\u5EFA\u4ED8\u6B3E\u3002");
   return state;
 }
@@ -35335,6 +35363,8 @@ async function worker(bundle, root) {
   });
   process.on("disconnect", () => process.exit(1));
   let saveQueue = Promise.resolve();
+  let phase = "\u5DE5\u4F5C\u8FDB\u7A0B\u521D\u59CB\u72B6\u6001\u67E5\u8BE2";
+  console.log(`\u5DE5\u4F5C\u8FDB\u7A0B\u5DF2\u542F\u52A8\uFF1B${network.description}\u3002\u6B63\u5728\u53EA\u8BFB\u6838\u5BF9\u8FDB\u5EA6\u2026`);
   try {
     const initial = await liveState(bundle);
     for (const row of stageThreeRows()) {
@@ -35346,7 +35376,10 @@ async function worker(bundle, root) {
       const due = dueTime(row, initial.stage3StartedAt);
       if (due > Date.now()) console.log(`${row.planned_intent_id} \u7B49\u5F85\u8BA1\u5212\u65F6\u95F4 ${new Date(due).toLocaleString()}\uFF08\u81EA\u52A8\u7B49\u5F85\uFF09`);
       while (due > Date.now()) await new Promise((r) => setTimeout(r, Math.min(3e4, due - Date.now())));
+      phase = `${row.planned_intent_id} \u4ED8\u6B3E\u524D\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2`;
       await liveState(bundle);
+      phase = `${row.planned_intent_id} ${existing?.paymentHeader ? "\u539F\u6388\u6743\u91CD\u653E" : "\u62A5\u4EF7\uFF0F\u7B7E\u540D\uFF0F\u63D0\u4EA4"}`;
+      console.log(`\u51C6\u5907 ${row.planned_intent_id} / ${row.amount_usdc} USDC / ${existing?.paymentHeader ? "\u6CBF\u7528\u5DF2\u4FDD\u5B58\u7684\u539F\u6388\u6743" : "\u83B7\u53D6\u62A5\u4EF7\u540E\u6309\u56FA\u5B9A\u9884\u7B97\u7B7E\u540D"}`);
       const result = await runPlannedPayment(row, {
         origin: bundle.origin,
         payer: bundle.payer,
@@ -35382,8 +35415,10 @@ async function worker(bundle, root) {
     }
     await saveQueue;
     return 0;
-  } catch {
-    if (network.lastError()) console.error(network.lastError());
+  } catch (error) {
+    console.error(`\u505C\u6B62\u6B65\u9AA4\uFF1A${phase}`);
+    if (error instanceof RunnerNetworkError || error instanceof LocalRunnerError) console.error(error.message);
+    else if (network.lastError()) console.error(network.lastError());
     console.error("\u6267\u884C\u5DF2\u505C\u6B62\uFF1A\u8BF7\u4FDD\u7559\u63A5\u7BA1\u5305\u548C\u672C\u673A\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u505A\u53EA\u8BFB\u6838\u67E5\u3002\u672A\u77E5\u4ED8\u6B3E\u4E0D\u4F1A\u81EA\u52A8\u6362 nonce \u6216\u91CD\u7B7E\u3002");
     return 1;
   } finally {
@@ -35427,15 +35462,11 @@ async function main() {
   console.log(`Radar \u672C\u673A\u811A\u672C ${RUNNER_VERSION}\uFF1BNode ${process.versions.node}\uFF1B${network.description}`);
   if (args.includes("--network-check")) {
     if (args.includes("--execute")) throw new LocalRunnerError("\u4EC5\u8054\u7F51\u68C0\u67E5\u4E0D\u80FD\u540C\u65F6\u6267\u884C\u4ED8\u6B3E\u3002");
-    const response = await network.fetcher(`${RUNNER_ORIGIN}/api/validation/status`, { signal: AbortSignal.timeout(2e4) });
-    if (!response.ok) throw new LocalRunnerError(`\u8054\u7F51\u68C0\u67E5\u8FD4\u56DE HTTP ${response.status}\u3002`);
-    let data;
-    try {
-      data = await response.json();
-    } catch {
-      throw new LocalRunnerError("\u7F51\u7EDC\u6CA1\u6709\u8FD4\u56DE\u6D4B\u8BD5\u63A5\u53E3 JSON\uFF0C\u8BF7\u68C0\u67E5\u4EE3\u7406\u8BBE\u7F6E\u3002");
+    for (let n = 1; n <= 3; n++) {
+      const data = await readRunnerStatus(network, (message) => console.log(message));
+      if (data.storage_status !== "available") throw new LocalRunnerError("\u5DF2\u8FDE\u63A5\u7F51\u7AD9\uFF0C\u4F46\u670D\u52A1\u7AEF\u5B58\u50A8\u72B6\u6001\u5C1A\u672A\u5C31\u7EEA\u3002");
+      console.log(`\u53EA\u8BFB\u8054\u7F51\u68C0\u67E5 ${n}/3 \u901A\u8FC7\u3002`);
     }
-    if (data.storage_status !== "available") throw new LocalRunnerError("\u5DF2\u8FDE\u63A5\u7F51\u7AD9\uFF0C\u4F46\u670D\u52A1\u7AEF\u5B58\u50A8\u72B6\u6001\u5C1A\u672A\u5C31\u7EEA\u3002");
     console.log("\u8054\u7F51\u68C0\u67E5\u901A\u8FC7\uFF1B\u6CA1\u6709\u8BFB\u53D6\u63A5\u7BA1\u5305\u3001\u79C1\u94A5\uFF0C\u4E5F\u6CA1\u6709\u4ED8\u6B3E\u3002");
     return;
   }
