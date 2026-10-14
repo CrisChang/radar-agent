@@ -7,7 +7,7 @@ import { CAMPAIGN_AUTH_WINDOW_SECONDS, type CampaignAuthorization } from "./vali
 
 export interface PrivateJournal {
   campaign: string; intent: string; requestId: string; amountAtomic: string; origin: string; payer: string; seller: string;
-  state: "signature_rejected" | "signing" | "signed" | "submitted" | "restart_required" | "accepted" | "unknown" | "renewing";
+  state: "unsigned_interrupted" | "signature_rejected" | "signing" | "signed" | "submitted" | "restart_required" | "accepted" | "unknown" | "renewing";
   paymentHeader?: string; nonce?: string; bootId: string; responseHash?: string;
   pendingRenewal?: CampaignAuthorization;
   renewals?: { at: string; reason: string; originalPaymentHeader: string; renewedValidBefore: string }[];
@@ -44,8 +44,9 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
   if (journal && (journal.campaign !== CAMPAIGN_ID || journal.intent !== row.planned_intent_id || journal.requestId !== requestId ||
       journal.amountAtomic !== row.amount_atomic || journal.origin !== origin || journal.payer.toLowerCase() !== deps.payer.toLowerCase() ||
       journal.seller.toLowerCase() !== deps.seller.toLowerCase())) throw new Error("Private journal scope conflict");
-  const rejectedAttempts = journal?.state === "signature_rejected" ? journal.attempts : [];
-  if (journal?.state === "signature_rejected") journal = null;
+  const unsigned = journal?.state === "signature_rejected" || journal?.state === "unsigned_interrupted";
+  const rejectedAttempts = unsigned && journal ? journal.attempts : [];
+  if (unsigned) journal = null;
   if (journal?.state === "accepted") return { state: "accepted" as const, journal };
   if (journal?.state === "renewing" || journal?.pendingRenewal) throw new Error("续签结果未确认；禁止提交旧授权或创建新付款，请保留记录并核查。");
   if (journal?.state === "restart_required" && journal.bootId === deps.bootId) return { state: "restart_required" as const, journal };
@@ -109,7 +110,7 @@ export async function runPlannedPayment(row: PlannedPayment, deps: RunnerDepende
       active.state = "unknown"; await deps.save(active); return null;
     }
   }
-  const firstAttempt = active.attempts.every(a => a.outcome === "wallet_rejected_before_signature");
+  const firstAttempt = active.attempts.every(a => ["wallet_rejected_before_signature", "local_signer_not_issued_after_interruption"].includes(a.outcome));
   let result: string | null;
   if (row.scenario === "concurrent_same_authorization_replay") {
     const both = await Promise.all([submit(), submit()]); result = both.find(Boolean) ?? await submit();

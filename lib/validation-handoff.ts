@@ -20,13 +20,13 @@ export function validateHandoffBundle(b: HandoffBundle) {
     if (ids.has(j.intent) || row.stage !== 3 || j.campaign !== b.campaign || j.requestId !== intentRequestId(row) || j.origin !== b.origin ||
         j.payer.toLowerCase() !== b.payer.toLowerCase() || j.seller.toLowerCase() !== b.seller.toLowerCase() || j.amountAtomic !== row.amount_atomic ||
         !Array.isArray(j.attempts) || j.pendingRenewal || ["signing", "renewing"].includes(j.state) ||
-        !["signature_rejected", "signed", "submitted", "restart_required", "accepted", "unknown"].includes(j.state)) throw new Error("原记录不完整或签名结果不确定；请保留原浏览器并核查。");
+        !["unsigned_interrupted", "signature_rejected", "signed", "submitted", "restart_required", "accepted", "unknown"].includes(j.state)) throw new Error("原记录不完整或签名结果不确定；请保留原浏览器并核查。");
     ids.add(j.intent);
-    if (j.state === "signature_rejected" && (j.paymentHeader || j.nonce)) throw new Error("拒签记录包含付款授权，必须先核查。");
+    if (["signature_rejected", "unsigned_interrupted"].includes(j.state) && (j.paymentHeader || j.nonce)) throw new Error("拒签记录包含付款授权，必须先核查。");
     if (j.paymentHeader) {
       const p = inspectCampaignPayment(j.paymentHeader, row, { arc: getArcConfig({ ARC_NETWORK: "mainnet" }), origin: b.origin, payer: b.payer, seller: b.seller });
       if (j.nonce !== p.payload.authorization.nonce) throw new Error("原 nonce 不一致。");
-    } else if (j.state !== "signature_rejected") throw new Error("原付款签名缺失；不可用新签名替代。");
+    } else if (!["signature_rejected", "unsigned_interrupted"].includes(j.state)) throw new Error("原付款签名缺失；不可用新签名替代。");
   }
   return b;
 }

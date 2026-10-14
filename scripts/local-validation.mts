@@ -14,7 +14,8 @@ import { effectiveDueTime, validateTimingAmendment, accelerationMessage, type Ti
 import { campaignTypedData, inspectCampaignPayment } from "../lib/validation-authorization";
 import { getArcConfig } from "../lib/arc";
 import { selectNetwork, createRunnerNetwork, RunnerNetworkError, readRunnerStatus, type NetworkChoice } from "../lib/validation-local-network";
-const RUNNER_VERSION = "2026-10-14-accelerated-v3";
+import { recoverUnsignedJournal, LocalRecoveryError, type RecoveryStatus } from "../lib/validation-local-recovery";
+const RUNNER_VERSION = "2026-10-14-accelerated-v3.1";
 let accelerated = false;
 let network = createRunnerNetwork({ source: "direct" });
 
@@ -76,10 +77,18 @@ async function worker(bundle: HandoffBundle, root: string) {
   try {
     await liveState(bundle);
     for (const row of stageThreeRows()) {
-      const path = join(root, `${row.planned_intent_id}.json`), existing = await readPrivateJson<PrivateJournal>(path);
+      phase = `${row.planned_intent_id} 本机账单读取`;
+      const path = join(root, `${row.planned_intent_id}.json`);
+      let existing: PrivateJournal | null;
+      try { existing = await readPrivateJson<PrivateJournal>(path); }
+      catch { throw new LocalRunnerError("本机账单读取失败（格式、权限或文件状态异常）；原文件保留，请只读核查。"); }
       if (existing) {
         // Validate immutable scope and authorization before skipping accepted work.
-        validateHandoffBundle({ ...bundle, journals: [existing] });
+        phase = `${row.planned_intent_id} 本机账单校验`;
+        if (existing.state === "signing" && !existing.paymentHeader && !existing.nonce)
+          throw new LocalRunnerError(`本机 ${row.planned_intent_id} 停在签名中且未保存授权。请先运行 --repair-unsigned ${row.planned_intent_id}；恢复检查不读取私钥、不付款。`);
+        try { validateHandoffBundle({ ...bundle, journals: [existing] }); }
+        catch { throw new LocalRunnerError("本机原账单范围或授权记录不完整；不创建替代授权，请保留记录核查。"); }
         if (existing.state === "accepted") continue;
       }
       phase = `${row.planned_intent_id} 付款前只读状态查询`;
@@ -107,6 +116,7 @@ async function worker(bundle: HandoffBundle, root: string) {
     console.error(`停止步骤：${phase}`);
     if (error instanceof RunnerNetworkError || error instanceof LocalRunnerError) console.error(error.message);
     else if (network.lastError()) console.error(network.lastError());
+    else console.error("本机记录或执行校验未通过；未输出原授权内容，请按上方编号核查。");
     console.error("执行已停止：请保留接管包和本机记录，到网页做只读核查。未知付款不会自动换 nonce 或重签。");
     return 1;
   } finally { for (const p of pending.values()) clearTimeout(p.timer); }
@@ -123,9 +133,11 @@ async function main() {
   }
   if (Number(process.versions.node.split(".")[0]) < 22) throw new LocalRunnerError("请先安装 Node.js 22 或更新版本：https://nodejs.org/en/download");
   if (args.includes("--version")) { console.log(RUNNER_VERSION); return; }
-  if (args.includes("--help")) { console.log("macOS 本机执行：--check 只读预检；--network-check 仅测试联网；--proxy http://127.0.0.1:端口 指定 HTTP 代理（或 direct 直连）；--execute 本人确认后启动；--accelerate 明确改为至少 5 秒间隔快速续跑（只改后续时间，不增加预算）；--offline-check 离线检查；--bundle 路径 指定原接管包。私钥只能在执行时隐藏输入。按 Ctrl+C 停止，原记录保留。"); return; }
-  const allowed = new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy", "--accelerate"]);
-  for (let i = 0; i < args.length; i++) { if (!allowed.has(args[i])) throw new LocalRunnerError("未知参数，请运行 --help；不要把私钥写进命令。"); if (["--bundle", "--proxy"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle 或 --proxy 后需要填写对应路径或代理地址。"); }
+  if (args.includes("--help")) { console.log("macOS 本机执行：--check 只读预检；--network-check 仅测试联网；--proxy http://127.0.0.1:端口 指定 HTTP 代理（或 direct 直连）；--execute 本人确认后启动；--accelerate 明确改为至少 5 秒间隔快速续跑（只改后续时间，不增加预算）；--repair-unsigned planned-编号 只读核实后恢复确定未签名的中断（不读取私钥、不付款）；--offline-check 离线检查；--bundle 路径 指定原接管包。私钥只能在执行时隐藏输入。按 Ctrl+C 停止，原记录保留。"); return; }
+  const allowed = new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy", "--accelerate", "--repair-unsigned"]);
+  for (let i = 0; i < args.length; i++) { if (!allowed.has(args[i])) throw new LocalRunnerError("未知参数，请运行 --help；不要把私钥写进命令。"); if (["--bundle", "--proxy", "--repair-unsigned"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle 或 --proxy 后需要填写对应路径或代理地址。"); }
+  const repairArg = args.indexOf("--repair-unsigned");
+  if (repairArg >= 0 && args.some(a => ["--execute", "--worker", "--network-check", "--offline-check"].includes(a))) throw new LocalRunnerError("恢复检查不能与付款执行或其他检查模式同时运行。");
   accelerated = args.includes("--accelerate");
   const proxyArg = args.indexOf("--proxy");
   const choice = await selectNetwork(proxyArg >= 0 ? args[proxyArg + 1] : undefined);
@@ -156,6 +168,19 @@ async function main() {
   console.log(`接管检查通过：Arc 5042；付款 ${bundle.payer}；收款 ${bundle.seller}。`);
   console.log(`第三阶段固定上限 900 笔 / 0.209340 USDC；目前累计预留 ${state.reservedCount} 笔。原计划最晚开放时间 ${new Date(state.stage3StartedAt + 86_400_000).toLocaleString()}。`);
   if (accelerated) console.log(`快速续跑：后续新付款间隔至少 5 秒，保持单笔未决保护。${state.timingAmendment ? "已启用，将沿用原变更。" : "尚未启用；只有 --execute 中本人确认并签署时间计划变更后才生效。"} 不再宣称完成原 24 小时计划。`);
+  if (repairArg >= 0) {
+    const parent = join(homedir(), ".radar-agent-local"), root = join(parent, bundle.runnerId);
+    await privateDirectory(parent); await privateDirectory(root);
+    const lock = join(root, ".runner-lock");
+    try { await mkdir(lock, { mode: 0o700 }); } catch { throw new LocalRunnerError("脚本仍在运行或存在未核查的执行锁；先停止旧进程，不能删除记录。"); }
+    try {
+      console.log("正在核对签名保留记录、全部已有账单和服务端链上结果；不读取私钥、不付款…");
+      const result = await recoverUnsignedJournal(bundle, root, args[repairArg + 1], { status: async () => await readRunnerStatus(network, m => console.log(m)) as RecoveryStatus });
+      console.log(`${result.intent} 已确认从未由本机签名程序生成授权；原记录已备份。前 ${result.priorPayments} 笔记录保留。`);
+      console.log("未提交任何付款。现在可用原 --execute --accelerate 命令续跑。");
+    } finally { await rmdir(lock); }
+    return;
+  }
   if (!args.includes("--execute")) { console.log("只读检查完成，无付款。启动请使用 --execute；私钥只在本机隐藏输入。"); return; }
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new LocalRunnerError("只能由本人在本机交互终端启动。");
   const parent = join(homedir(), ".radar-agent-local"); await privateDirectory(parent);
@@ -247,6 +272,6 @@ async function main() {
   }
 }
 main().catch(error => {
-  console.error((error instanceof LocalRunnerError || error instanceof RunnerNetworkError) ? error.message : "准备或执行未完成：网络、权限或原记录检查失败。请保留记录，到网页只读核查；不要发送私钥或接管包。");
+  console.error((error instanceof LocalRunnerError || error instanceof RunnerNetworkError || error instanceof LocalRecoveryError) ? error.message : "准备或执行未完成：网络、权限或原记录检查失败。请保留记录，到网页只读核查；不要发送私钥或接管包。");
   process.exitCode = 1;
 });

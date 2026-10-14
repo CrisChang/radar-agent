@@ -1,4 +1,4 @@
-// Radar Agent owner-run local runner 2026-10-14-accelerated-v3. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
+// Radar Agent owner-run local runner 2026-10-14-accelerated-v3.1. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants.
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -33107,11 +33107,11 @@ var require_dist = __commonJS({
 });
 
 // scripts/local-validation.mts
-var import_promises2 = require("node:fs/promises");
-var import_node_path = require("node:path");
+var import_promises3 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
 var import_node_os = require("node:os");
 var import_node_child_process2 = require("node:child_process");
-var import_promises3 = require("node:readline/promises");
+var import_promises4 = require("node:readline/promises");
 var import_node_crypto = require("node:crypto");
 
 // node_modules/viem/_esm/accounts/privateKeyToAccount.js
@@ -33394,13 +33394,13 @@ function validateHandoffBundle(b) {
   const ids = /* @__PURE__ */ new Set();
   for (const j of b.journals) {
     const row = plannedPayment(j.intent);
-    if (ids.has(j.intent) || row.stage !== 3 || j.campaign !== b.campaign || j.requestId !== intentRequestId(row) || j.origin !== b.origin || j.payer.toLowerCase() !== b.payer.toLowerCase() || j.seller.toLowerCase() !== b.seller.toLowerCase() || j.amountAtomic !== row.amount_atomic || !Array.isArray(j.attempts) || j.pendingRenewal || ["signing", "renewing"].includes(j.state) || !["signature_rejected", "signed", "submitted", "restart_required", "accepted", "unknown"].includes(j.state)) throw new Error("\u539F\u8BB0\u5F55\u4E0D\u5B8C\u6574\u6216\u7B7E\u540D\u7ED3\u679C\u4E0D\u786E\u5B9A\uFF1B\u8BF7\u4FDD\u7559\u539F\u6D4F\u89C8\u5668\u5E76\u6838\u67E5\u3002");
+    if (ids.has(j.intent) || row.stage !== 3 || j.campaign !== b.campaign || j.requestId !== intentRequestId(row) || j.origin !== b.origin || j.payer.toLowerCase() !== b.payer.toLowerCase() || j.seller.toLowerCase() !== b.seller.toLowerCase() || j.amountAtomic !== row.amount_atomic || !Array.isArray(j.attempts) || j.pendingRenewal || ["signing", "renewing"].includes(j.state) || !["unsigned_interrupted", "signature_rejected", "signed", "submitted", "restart_required", "accepted", "unknown"].includes(j.state)) throw new Error("\u539F\u8BB0\u5F55\u4E0D\u5B8C\u6574\u6216\u7B7E\u540D\u7ED3\u679C\u4E0D\u786E\u5B9A\uFF1B\u8BF7\u4FDD\u7559\u539F\u6D4F\u89C8\u5668\u5E76\u6838\u67E5\u3002");
     ids.add(j.intent);
-    if (j.state === "signature_rejected" && (j.paymentHeader || j.nonce)) throw new Error("\u62D2\u7B7E\u8BB0\u5F55\u5305\u542B\u4ED8\u6B3E\u6388\u6743\uFF0C\u5FC5\u987B\u5148\u6838\u67E5\u3002");
+    if (["signature_rejected", "unsigned_interrupted"].includes(j.state) && (j.paymentHeader || j.nonce)) throw new Error("\u62D2\u7B7E\u8BB0\u5F55\u5305\u542B\u4ED8\u6B3E\u6388\u6743\uFF0C\u5FC5\u987B\u5148\u6838\u67E5\u3002");
     if (j.paymentHeader) {
       const p = inspectCampaignPayment(j.paymentHeader, row, { arc: getArcConfig({ ARC_NETWORK: "mainnet" }), origin: b.origin, payer: b.payer, seller: b.seller });
       if (j.nonce !== p.payload.authorization.nonce) throw new Error("\u539F nonce \u4E0D\u4E00\u81F4\u3002");
-    } else if (j.state !== "signature_rejected") throw new Error("\u539F\u4ED8\u6B3E\u7B7E\u540D\u7F3A\u5931\uFF1B\u4E0D\u53EF\u7528\u65B0\u7B7E\u540D\u66FF\u4EE3\u3002");
+    } else if (!["signature_rejected", "unsigned_interrupted"].includes(j.state)) throw new Error("\u539F\u4ED8\u6B3E\u7B7E\u540D\u7F3A\u5931\uFF1B\u4E0D\u53EF\u7528\u65B0\u7B7E\u540D\u66FF\u4EE3\u3002");
   }
   return b;
 }
@@ -35037,8 +35037,9 @@ async function runPlannedPayment(row, deps) {
   const requestId = intentRequestId(row), url = `${origin}/api/validation/payment?intent=${row.planned_intent_id}`;
   let journal = await deps.load(row.planned_intent_id);
   if (journal && (journal.campaign !== CAMPAIGN_ID || journal.intent !== row.planned_intent_id || journal.requestId !== requestId || journal.amountAtomic !== row.amount_atomic || journal.origin !== origin || journal.payer.toLowerCase() !== deps.payer.toLowerCase() || journal.seller.toLowerCase() !== deps.seller.toLowerCase())) throw new Error("Private journal scope conflict");
-  const rejectedAttempts = journal?.state === "signature_rejected" ? journal.attempts : [];
-  if (journal?.state === "signature_rejected") journal = null;
+  const unsigned = journal?.state === "signature_rejected" || journal?.state === "unsigned_interrupted";
+  const rejectedAttempts = unsigned && journal ? journal.attempts : [];
+  if (unsigned) journal = null;
   if (journal?.state === "accepted") return { state: "accepted", journal };
   if (journal?.state === "renewing" || journal?.pendingRenewal) throw new Error("\u7EED\u7B7E\u7ED3\u679C\u672A\u786E\u8BA4\uFF1B\u7981\u6B62\u63D0\u4EA4\u65E7\u6388\u6743\u6216\u521B\u5EFA\u65B0\u4ED8\u6B3E\uFF0C\u8BF7\u4FDD\u7559\u8BB0\u5F55\u5E76\u6838\u67E5\u3002");
   if (journal?.state === "restart_required" && journal.bootId === deps.bootId) return { state: "restart_required", journal };
@@ -35143,7 +35144,7 @@ async function runPlannedPayment(row, deps) {
       return null;
     }
   }
-  const firstAttempt = active.attempts.every((a) => a.outcome === "wallet_rejected_before_signature");
+  const firstAttempt = active.attempts.every((a) => ["wallet_rejected_before_signature", "local_signer_not_issued_after_interruption"].includes(a.outcome));
   let result;
   if (row.scenario === "concurrent_same_authorization_replay") {
     const both = await Promise.all([submit(), submit()]);
@@ -35341,8 +35342,98 @@ async function readRunnerStatus(network2, onRetry = () => {
   throw new RunnerNetworkError("\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2\u672A\u5B8C\u6210\u3002");
 }
 
+// lib/validation-local-recovery.ts
+var import_promises2 = require("node:fs/promises");
+var import_node_path = require("node:path");
+init_esm2();
+var LocalRecoveryError = class extends Error {
+};
+async function recoverUnsignedJournal(bundle, root, intent, deps) {
+  const now = deps.now ?? Date.now, row = plannedPayment(intent), path = (0, import_node_path.join)(root, `${intent}.json`);
+  validateHandoffBundle(bundle);
+  if (row.stage !== 3) throw new LocalRecoveryError("\u53EA\u80FD\u6838\u67E5\u672C\u673A\u63A5\u7BA1\u540E\u7684\u7B2C\u4E09\u9636\u6BB5\u672A\u7B7E\u540D\u8BB0\u5F55\u3002");
+  const names = await (0, import_promises2.readdir)(root);
+  if (names.some((n) => n.endsWith(".pending"))) throw new LocalRecoveryError("\u5B58\u5728\u672A\u5B8C\u6210\u843D\u76D8\u6587\u4EF6\uFF1B\u65E0\u6CD5\u8BC1\u660E\u7B7E\u540D\u672A\u751F\u6210\u3002\u539F\u6587\u4EF6\u4FDD\u7559\uFF0C\u8BF7\u5148\u6838\u67E5\u3002");
+  if (names.some((n) => /^planned-.*\.json$/.test(n) && !stageThreeRows().some((p) => `${p.planned_intent_id}.json` === n))) throw new LocalRecoveryError("\u672C\u673A\u76EE\u5F55\u5B58\u5728\u8303\u56F4\u5916\u8D26\u5355\uFF1B\u4FDD\u7559\u539F\u6587\u4EF6\u6838\u67E5\u3002");
+  const original = await readPrivateJson(path);
+  if (!original || original.state !== "signing" || original.paymentHeader !== void 0 || original.nonce !== void 0 || original.responseHash !== void 0 || original.pendingRenewal !== void 0 || original.renewals?.length || original.lastFailure !== void 0 || !Array.isArray(original.attempts) || original.attempts.some((a) => a.outcome !== "wallet_rejected_before_signature"))
+    throw new LocalRecoveryError("\u8BE5\u8BB0\u5F55\u4E0D\u5C5E\u4E8E\u5DF2\u8BC1\u660E\u672A\u63D0\u4EA4\u7684\u7B7E\u540D\u4E2D\u65AD\uFF1B\u4E0D\u4F1A\u91CD\u7F6E\u6216\u8865\u7B7E\uFF0C\u8BF7\u4FDD\u7559\u539F\u6388\u6743\u6838\u67E5\u3002");
+  try {
+    validateHandoffBundle({ ...bundle, journals: [{ ...original, state: "unsigned_interrupted" }] });
+  } catch {
+    throw new LocalRecoveryError("\u4E2D\u65AD\u8BB0\u5F55\u7684\u539F\u4ED8\u6B3E\u7F16\u53F7\u3001\u91D1\u989D\u6216\u53CC\u65B9\u5730\u5740\u4E0D\u7B26\uFF1B\u65E0\u6CD5\u6062\u590D\u3002");
+  }
+  const permitsPath = (0, import_node_path.join)(root, ".signing-permits.json");
+  let permits;
+  try {
+    const raw = await readPrivateJson(permitsPath);
+    if (!raw) throw new Error();
+    permits = validateSigningPermits(raw);
+  } catch {
+    throw new LocalRecoveryError("\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\u7F3A\u5931\u3001\u635F\u574F\u6216\u6743\u9650\u4E0D\u7B26\uFF1B\u4E0D\u80FD\u6839\u636E\u7F3A\u5931\u6587\u4EF6\u8BA4\u5B9A\u672A\u7B7E\u540D\u3002");
+  }
+  if (permits.some((p) => p.intent === intent)) throw new LocalRecoveryError("\u8FD9\u7B14\u5DF2\u6709\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5373\u4F7F\u8D26\u5355\u6CA1\u6709\u7B7E\u540D\u4E5F\u4E0D\u80FD\u91CD\u65B0\u5F00\u59CB\u3002\u9700\u6309\u539F\u6388\u6743\u8FDB\u4E00\u6B65\u6838\u67E5\u3002");
+  const bundleHash = await handoffDigest(bundle);
+  function inspect(status) {
+    const s = status.state, report = status.report;
+    if (!s || s.stage !== 3 || s.executionMode !== "local" || s.runnerId !== bundle.runnerId || s.bundleHash !== bundleHash || s.handoffCount !== bundle.reservedCount || s.halted || s.expiresAt <= now() || s.maximumCount !== 1e3 || s.maximumAtomic !== "232600" || s.reservedCount !== row.ordinal - 1 || s.reservedCount < bundle.reservedCount)
+      throw new LocalRecoveryError("\u670D\u52A1\u7AEF\u9884\u7559\u3001\u6267\u884C\u7AEF\u6216\u9884\u7B97\u4E0D\u7B26\uFF1B\u8BF7\u5148\u505A\u53EA\u8BFB\u6838\u67E5\uFF0C\u4E0D\u80FD\u91CD\u65B0\u5F00\u59CB\u8FD9\u7B14\u3002");
+    if (s.timingAmendment) validateTimingAmendment(s.timingAmendment, s.stage3StartedAt);
+    if (!report || report.completed_payments !== s.reservedCount || report.attempted_payments !== s.reservedCount || report.money_difference_atomic !== "0" || !Array.isArray(report.rows) || report.rows.length !== 1e3 || !Number.isFinite(Date.parse(report.generated_at ?? ""))) throw new LocalRecoveryError("\u5DF2\u6709\u4ED8\u6B3E\u5C1A\u672A\u5B8C\u6574\u94FE\u4E0A\u6838\u5B9E\u4E3A\u96F6\u5DEE\u5F02\uFF1B\u8BF7\u5148\u53EA\u8BFB\u6838\u67E5\u3002");
+    const rows = report.rows, ids = new Set(rows.map((r) => r.intent));
+    if (ids.size !== 1e3 || PAYMENT_SCHEDULE.some((p) => !ids.has(p.planned_intent_id)))
+      throw new LocalRecoveryError("\u670D\u52A1\u7AEF\u62A5\u544A\u7F16\u53F7\u4E0D\u5B8C\u6574\uFF1B\u65E0\u6CD5\u6062\u590D\u3002");
+    for (const p of stageThreeRows()) {
+      const observed = rows.find((r) => r.intent === p.planned_intent_id);
+      if (!observed || observed.stage !== 3) throw new LocalRecoveryError("\u670D\u52A1\u7AEF\u62A5\u544A\u7F16\u53F7\u4E0D\u5B8C\u6574\uFF1B\u65E0\u6CD5\u6062\u590D\u3002");
+      if (p.ordinal >= row.ordinal && (observed.local_state !== "not_run" || observed.http_attempts !== 0 || observed.response_sha256))
+        throw new LocalRecoveryError("\u8FD9\u7B14\u6216\u540E\u7EED\u5DF2\u6709\u8BF7\u6C42/\u4ED8\u6B3E\u75D5\u8FF9\uFF1B\u4E0D\u80FD\u4F5C\u4E3A\u672A\u7B7E\u540D\u8BB0\u5F55\u91CD\u7F6E\u3002");
+    }
+    return { state: s, rows };
+  }
+  const first = inspect(await deps.status()), scope = JSON.stringify(first.state);
+  const arc2 = getArcConfig({ ARC_NETWORK: "mainnet" });
+  const prior = stageThreeRows().filter((p) => p.ordinal < row.ordinal);
+  if (permits.length !== prior.length) throw new LocalRecoveryError("\u7B7E\u540D\u4FDD\u7559\u6570\u91CF\u4E0E\u65E2\u6709\u8BB0\u5F55\u4E0D\u4E00\u81F4\uFF1B\u4E0D\u80FD\u8BC1\u660E\u8FD9\u7B14\u5C1A\u672A\u7B7E\u540D\u3002");
+  for (const p of stageThreeRows()) {
+    const j = await readPrivateJson((0, import_node_path.join)(root, `${p.planned_intent_id}.json`));
+    if (p.ordinal > row.ordinal && j) throw new LocalRecoveryError("\u540E\u7EED\u5B58\u5728\u672C\u673A\u8BB0\u5F55\uFF1B\u8BF7\u5148\u6838\u67E5\uFF0C\u4E0D\u8986\u76D6\u5386\u53F2\u3002");
+    if (p.ordinal >= row.ordinal) continue;
+    const observed = first.rows.find((r) => r.intent === p.planned_intent_id), permit = permits.find((x) => x.intent === p.planned_intent_id);
+    if (!j || j.state !== "accepted" || !j.paymentHeader || !permit || observed?.local_state !== "accepted" || observed.transfer_status !== "completed" || observed.money_difference_atomic !== "0" || !j.responseHash || j.responseHash !== observed.response_sha256)
+      throw new LocalRecoveryError("\u5DF2\u6709\u8D26\u5355\u3001\u94FE\u4E0A\u6838\u67E5\u6216\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\u4E0D\u4E00\u81F4\uFF1B\u539F\u6587\u4EF6\u4FDD\u7559\u3002");
+    try {
+      validateHandoffBundle({ ...bundle, journals: [j] });
+      const auth = inspectCampaignPayment(j.paymentHeader, p, { arc: arc2, origin: bundle.origin, payer: bundle.payer, seller: bundle.seller }).payload.authorization;
+      if (hashTypedData(campaignTypedData(auth, arc2)) !== permit.digest) throw new Error();
+    } catch {
+      throw new LocalRecoveryError("\u5DF2\u6709\u539F\u6388\u6743\u4E0E\u7B7E\u540D\u4FDD\u7559\u6458\u8981\u4E0D\u7B26\uFF1B\u4E0D\u80FD\u6062\u590D\u65B0\u4ED8\u6B3E\u3002");
+    }
+  }
+  if (JSON.stringify(inspect(await deps.status()).state) !== scope) throw new LocalRecoveryError("\u6838\u67E5\u671F\u95F4\u670D\u52A1\u7AEF\u72B6\u6001\u53D8\u5316\uFF1B\u8BF7\u91CD\u65B0\u53EA\u8BFB\u6838\u67E5\uFF0C\u4E0D\u91CD\u53D1\u4ED8\u6B3E\u3002");
+  if ((await (0, import_promises2.readdir)(root)).some((n) => n.endsWith(".pending")) || JSON.stringify(await readPrivateJson(path)) !== JSON.stringify(original) || JSON.stringify(await readPrivateJson(permitsPath)) !== JSON.stringify(permits)) throw new LocalRecoveryError("\u6838\u67E5\u671F\u95F4\u672C\u673A\u6587\u4EF6\u53D8\u5316\uFF1B\u5DF2\u505C\u6B62\uFF0C\u539F\u6587\u4EF6\u4FDD\u7559\u3002");
+  const backupPath = (0, import_node_path.join)(root, `.unsigned-recovery-${intent}.json`), backup = {
+    schema: "radar-unsigned-recovery-v1",
+    campaign: CAMPAIGN_ID,
+    intent,
+    checkedAt: new Date(now()).toISOString(),
+    serverReservedCount: first.state.reservedCount,
+    signingPermitAbsent: true,
+    original
+  };
+  const existingBackup = await readPrivateJson(backupPath);
+  if (existingBackup && (existingBackup.schema !== backup.schema || existingBackup.intent !== intent || JSON.stringify(existingBackup.original) !== JSON.stringify(original))) throw new LocalRecoveryError("\u539F\u6062\u590D\u5907\u4EFD\u51B2\u7A81\uFF1B\u4E0D\u4F1A\u8986\u76D6\u3002");
+  if (!existingBackup) await writePrivateJson(backupPath, backup);
+  await writePrivateJson(path, {
+    ...original,
+    state: "unsigned_interrupted",
+    attempts: [...original.attempts, { at: new Date(now()).toISOString(), outcome: "local_signer_not_issued_after_interruption" }]
+  });
+  return { intent, status: "unsigned_interruption_recovered", priorPayments: first.state.reservedCount, payment_attempted: false, private_key_read: false };
+}
+
 // scripts/local-validation.mts
-var RUNNER_VERSION = "2026-10-14-accelerated-v3";
+var RUNNER_VERSION = "2026-10-14-accelerated-v3.1";
 var accelerated = false;
 var network = createRunnerNetwork({ source: "direct" });
 var LocalRunnerError = class extends Error {
@@ -35400,7 +35491,7 @@ async function hiddenKey(signal) {
 }
 async function importJournals(bundle, root) {
   for (const imported of bundle.journals) {
-    const path = (0, import_node_path.join)(root, `${imported.intent}.json`), old = await readPrivateJson(path);
+    const path = (0, import_node_path2.join)(root, `${imported.intent}.json`), old = await readPrivateJson(path);
     if (!old) await writePrivateJson(path, imported);
     else if (old.intent !== imported.intent || old.campaign !== imported.campaign || old.origin !== imported.origin || old.payer !== imported.payer || old.seller !== imported.seller || old.amountAtomic !== imported.amountAtomic || imported.paymentHeader && (old.paymentHeader !== imported.paymentHeader || old.nonce !== imported.nonce)) throw new LocalRunnerError("\u63A5\u7BA1\u5305\u4E0E\u672C\u673A\u7EED\u8DD1\u8BB0\u5F55\u51B2\u7A81\uFF1B\u539F\u8BB0\u5F55\u4E0D\u8986\u76D6\u3002");
   }
@@ -35425,9 +35516,23 @@ async function worker(bundle, root) {
   try {
     await liveState(bundle);
     for (const row of stageThreeRows()) {
-      const path = (0, import_node_path.join)(root, `${row.planned_intent_id}.json`), existing = await readPrivateJson(path);
+      phase = `${row.planned_intent_id} \u672C\u673A\u8D26\u5355\u8BFB\u53D6`;
+      const path = (0, import_node_path2.join)(root, `${row.planned_intent_id}.json`);
+      let existing;
+      try {
+        existing = await readPrivateJson(path);
+      } catch {
+        throw new LocalRunnerError("\u672C\u673A\u8D26\u5355\u8BFB\u53D6\u5931\u8D25\uFF08\u683C\u5F0F\u3001\u6743\u9650\u6216\u6587\u4EF6\u72B6\u6001\u5F02\u5E38\uFF09\uFF1B\u539F\u6587\u4EF6\u4FDD\u7559\uFF0C\u8BF7\u53EA\u8BFB\u6838\u67E5\u3002");
+      }
       if (existing) {
-        validateHandoffBundle({ ...bundle, journals: [existing] });
+        phase = `${row.planned_intent_id} \u672C\u673A\u8D26\u5355\u6821\u9A8C`;
+        if (existing.state === "signing" && !existing.paymentHeader && !existing.nonce)
+          throw new LocalRunnerError(`\u672C\u673A ${row.planned_intent_id} \u505C\u5728\u7B7E\u540D\u4E2D\u4E14\u672A\u4FDD\u5B58\u6388\u6743\u3002\u8BF7\u5148\u8FD0\u884C --repair-unsigned ${row.planned_intent_id}\uFF1B\u6062\u590D\u68C0\u67E5\u4E0D\u8BFB\u53D6\u79C1\u94A5\u3001\u4E0D\u4ED8\u6B3E\u3002`);
+        try {
+          validateHandoffBundle({ ...bundle, journals: [existing] });
+        } catch {
+          throw new LocalRunnerError("\u672C\u673A\u539F\u8D26\u5355\u8303\u56F4\u6216\u6388\u6743\u8BB0\u5F55\u4E0D\u5B8C\u6574\uFF1B\u4E0D\u521B\u5EFA\u66FF\u4EE3\u6388\u6743\uFF0C\u8BF7\u4FDD\u7559\u8BB0\u5F55\u6838\u67E5\u3002");
+        }
         if (existing.state === "accepted") continue;
       }
       phase = `${row.planned_intent_id} \u4ED8\u6B3E\u524D\u53EA\u8BFB\u72B6\u6001\u67E5\u8BE2`;
@@ -35476,6 +35581,7 @@ async function worker(bundle, root) {
     console.error(`\u505C\u6B62\u6B65\u9AA4\uFF1A${phase}`);
     if (error instanceof RunnerNetworkError || error instanceof LocalRunnerError) console.error(error.message);
     else if (network.lastError()) console.error(network.lastError());
+    else console.error("\u672C\u673A\u8BB0\u5F55\u6216\u6267\u884C\u6821\u9A8C\u672A\u901A\u8FC7\uFF1B\u672A\u8F93\u51FA\u539F\u6388\u6743\u5185\u5BB9\uFF0C\u8BF7\u6309\u4E0A\u65B9\u7F16\u53F7\u6838\u67E5\u3002");
     console.error("\u6267\u884C\u5DF2\u505C\u6B62\uFF1A\u8BF7\u4FDD\u7559\u63A5\u7BA1\u5305\u548C\u672C\u673A\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u505A\u53EA\u8BFB\u6838\u67E5\u3002\u672A\u77E5\u4ED8\u6B3E\u4E0D\u4F1A\u81EA\u52A8\u6362 nonce \u6216\u91CD\u7B7E\u3002");
     return 1;
   } finally {
@@ -35506,14 +35612,16 @@ async function main() {
     return;
   }
   if (args.includes("--help")) {
-    console.log("macOS \u672C\u673A\u6267\u884C\uFF1A--check \u53EA\u8BFB\u9884\u68C0\uFF1B--network-check \u4EC5\u6D4B\u8BD5\u8054\u7F51\uFF1B--proxy http://127.0.0.1:\u7AEF\u53E3 \u6307\u5B9A HTTP \u4EE3\u7406\uFF08\u6216 direct \u76F4\u8FDE\uFF09\uFF1B--execute \u672C\u4EBA\u786E\u8BA4\u540E\u542F\u52A8\uFF1B--accelerate \u660E\u786E\u6539\u4E3A\u81F3\u5C11 5 \u79D2\u95F4\u9694\u5FEB\u901F\u7EED\u8DD1\uFF08\u53EA\u6539\u540E\u7EED\u65F6\u95F4\uFF0C\u4E0D\u589E\u52A0\u9884\u7B97\uFF09\uFF1B--offline-check \u79BB\u7EBF\u68C0\u67E5\uFF1B--bundle \u8DEF\u5F84 \u6307\u5B9A\u539F\u63A5\u7BA1\u5305\u3002\u79C1\u94A5\u53EA\u80FD\u5728\u6267\u884C\u65F6\u9690\u85CF\u8F93\u5165\u3002\u6309 Ctrl+C \u505C\u6B62\uFF0C\u539F\u8BB0\u5F55\u4FDD\u7559\u3002");
+    console.log("macOS \u672C\u673A\u6267\u884C\uFF1A--check \u53EA\u8BFB\u9884\u68C0\uFF1B--network-check \u4EC5\u6D4B\u8BD5\u8054\u7F51\uFF1B--proxy http://127.0.0.1:\u7AEF\u53E3 \u6307\u5B9A HTTP \u4EE3\u7406\uFF08\u6216 direct \u76F4\u8FDE\uFF09\uFF1B--execute \u672C\u4EBA\u786E\u8BA4\u540E\u542F\u52A8\uFF1B--accelerate \u660E\u786E\u6539\u4E3A\u81F3\u5C11 5 \u79D2\u95F4\u9694\u5FEB\u901F\u7EED\u8DD1\uFF08\u53EA\u6539\u540E\u7EED\u65F6\u95F4\uFF0C\u4E0D\u589E\u52A0\u9884\u7B97\uFF09\uFF1B--repair-unsigned planned-\u7F16\u53F7 \u53EA\u8BFB\u6838\u5B9E\u540E\u6062\u590D\u786E\u5B9A\u672A\u7B7E\u540D\u7684\u4E2D\u65AD\uFF08\u4E0D\u8BFB\u53D6\u79C1\u94A5\u3001\u4E0D\u4ED8\u6B3E\uFF09\uFF1B--offline-check \u79BB\u7EBF\u68C0\u67E5\uFF1B--bundle \u8DEF\u5F84 \u6307\u5B9A\u539F\u63A5\u7BA1\u5305\u3002\u79C1\u94A5\u53EA\u80FD\u5728\u6267\u884C\u65F6\u9690\u85CF\u8F93\u5165\u3002\u6309 Ctrl+C \u505C\u6B62\uFF0C\u539F\u8BB0\u5F55\u4FDD\u7559\u3002");
     return;
   }
-  const allowed = /* @__PURE__ */ new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy", "--accelerate"]);
+  const allowed = /* @__PURE__ */ new Set(["--check", "--execute", "--offline-check", "--bundle", "--network-check", "--proxy", "--accelerate", "--repair-unsigned"]);
   for (let i = 0; i < args.length; i++) {
     if (!allowed.has(args[i])) throw new LocalRunnerError("\u672A\u77E5\u53C2\u6570\uFF0C\u8BF7\u8FD0\u884C --help\uFF1B\u4E0D\u8981\u628A\u79C1\u94A5\u5199\u8FDB\u547D\u4EE4\u3002");
-    if (["--bundle", "--proxy"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle \u6216 --proxy \u540E\u9700\u8981\u586B\u5199\u5BF9\u5E94\u8DEF\u5F84\u6216\u4EE3\u7406\u5730\u5740\u3002");
+    if (["--bundle", "--proxy", "--repair-unsigned"].includes(args[i]) && !args[++i]) throw new LocalRunnerError("--bundle \u6216 --proxy \u540E\u9700\u8981\u586B\u5199\u5BF9\u5E94\u8DEF\u5F84\u6216\u4EE3\u7406\u5730\u5740\u3002");
   }
+  const repairArg = args.indexOf("--repair-unsigned");
+  if (repairArg >= 0 && args.some((a) => ["--execute", "--worker", "--network-check", "--offline-check"].includes(a))) throw new LocalRunnerError("\u6062\u590D\u68C0\u67E5\u4E0D\u80FD\u4E0E\u4ED8\u6B3E\u6267\u884C\u6216\u5176\u4ED6\u68C0\u67E5\u6A21\u5F0F\u540C\u65F6\u8FD0\u884C\u3002");
   accelerated = args.includes("--accelerate");
   const proxyArg = args.indexOf("--proxy");
   const choice = await selectNetwork(proxyArg >= 0 ? args[proxyArg + 1] : void 0);
@@ -35529,17 +35637,17 @@ async function main() {
     console.log("\u8054\u7F51\u68C0\u67E5\u901A\u8FC7\uFF1B\u6CA1\u6709\u8BFB\u53D6\u63A5\u7BA1\u5305\u3001\u79C1\u94A5\uFF0C\u4E5F\u6CA1\u6709\u4ED8\u6B3E\u3002");
     return;
   }
-  const fileArg = args.indexOf("--bundle"), file = (0, import_node_path.resolve)(fileArg >= 0 ? args[fileArg + 1] : (0, import_node_path.join)((0, import_node_os.homedir)(), "Downloads", "radar-local-handoff.json"));
+  const fileArg = args.indexOf("--bundle"), file = (0, import_node_path2.resolve)(fileArg >= 0 ? args[fileArg + 1] : (0, import_node_path2.join)((0, import_node_os.homedir)(), "Downloads", "radar-local-handoff.json"));
   let stat;
   try {
-    stat = await (0, import_promises2.lstat)(file);
+    stat = await (0, import_promises3.lstat)(file);
   } catch {
     throw new LocalRunnerError("\u672A\u627E\u5230\u63A5\u7BA1\u5305\u3002\u8BF7\u5728\u539F Chrome \u4E0B\u8F7D radar-local-handoff.json \u5230\u4E0B\u8F7D\u76EE\u5F55\uFF0C\u6216\u7528 --bundle \u6307\u5B9A\u539F\u6587\u4EF6\u8DEF\u5F84\u3002");
   }
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16777216) throw new LocalRunnerError("\u63A5\u7BA1\u6587\u4EF6\u683C\u5F0F\u4E0D\u7B26\u3002");
   let bundle;
   try {
-    bundle = validateHandoffBundle(JSON.parse(await (0, import_promises2.readFile)(file, "utf8")));
+    bundle = validateHandoffBundle(JSON.parse(await (0, import_promises3.readFile)(file, "utf8")));
   } catch {
     throw new LocalRunnerError("\u63A5\u7BA1\u5305\u6821\u9A8C\u4E0D\u901A\u8FC7\u3002\u8BF7\u5728\u539F Chrome \u5B8C\u6210\u53EA\u8BFB\u6838\u67E5\u540E\u91CD\u65B0\u4E0B\u8F7D\u539F\u5305\uFF0C\u4E0D\u8981\u4FEE\u6539\u6216\u5220\u9664\u539F\u8BB0\u5F55\u3002");
   }
@@ -35553,18 +35661,38 @@ async function main() {
   console.log(`\u63A5\u7BA1\u68C0\u67E5\u901A\u8FC7\uFF1AArc 5042\uFF1B\u4ED8\u6B3E ${bundle.payer}\uFF1B\u6536\u6B3E ${bundle.seller}\u3002`);
   console.log(`\u7B2C\u4E09\u9636\u6BB5\u56FA\u5B9A\u4E0A\u9650 900 \u7B14 / 0.209340 USDC\uFF1B\u76EE\u524D\u7D2F\u8BA1\u9884\u7559 ${state.reservedCount} \u7B14\u3002\u539F\u8BA1\u5212\u6700\u665A\u5F00\u653E\u65F6\u95F4 ${new Date(state.stage3StartedAt + 864e5).toLocaleString()}\u3002`);
   if (accelerated) console.log(`\u5FEB\u901F\u7EED\u8DD1\uFF1A\u540E\u7EED\u65B0\u4ED8\u6B3E\u95F4\u9694\u81F3\u5C11 5 \u79D2\uFF0C\u4FDD\u6301\u5355\u7B14\u672A\u51B3\u4FDD\u62A4\u3002${state.timingAmendment ? "\u5DF2\u542F\u7528\uFF0C\u5C06\u6CBF\u7528\u539F\u53D8\u66F4\u3002" : "\u5C1A\u672A\u542F\u7528\uFF1B\u53EA\u6709 --execute \u4E2D\u672C\u4EBA\u786E\u8BA4\u5E76\u7B7E\u7F72\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\u540E\u624D\u751F\u6548\u3002"} \u4E0D\u518D\u5BA3\u79F0\u5B8C\u6210\u539F 24 \u5C0F\u65F6\u8BA1\u5212\u3002`);
+  if (repairArg >= 0) {
+    const parent2 = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".radar-agent-local"), root2 = (0, import_node_path2.join)(parent2, bundle.runnerId);
+    await privateDirectory(parent2);
+    await privateDirectory(root2);
+    const lock2 = (0, import_node_path2.join)(root2, ".runner-lock");
+    try {
+      await (0, import_promises3.mkdir)(lock2, { mode: 448 });
+    } catch {
+      throw new LocalRunnerError("\u811A\u672C\u4ECD\u5728\u8FD0\u884C\u6216\u5B58\u5728\u672A\u6838\u67E5\u7684\u6267\u884C\u9501\uFF1B\u5148\u505C\u6B62\u65E7\u8FDB\u7A0B\uFF0C\u4E0D\u80FD\u5220\u9664\u8BB0\u5F55\u3002");
+    }
+    try {
+      console.log("\u6B63\u5728\u6838\u5BF9\u7B7E\u540D\u4FDD\u7559\u8BB0\u5F55\u3001\u5168\u90E8\u5DF2\u6709\u8D26\u5355\u548C\u670D\u52A1\u7AEF\u94FE\u4E0A\u7ED3\u679C\uFF1B\u4E0D\u8BFB\u53D6\u79C1\u94A5\u3001\u4E0D\u4ED8\u6B3E\u2026");
+      const result = await recoverUnsignedJournal(bundle, root2, args[repairArg + 1], { status: async () => await readRunnerStatus(network, (m) => console.log(m)) });
+      console.log(`${result.intent} \u5DF2\u786E\u8BA4\u4ECE\u672A\u7531\u672C\u673A\u7B7E\u540D\u7A0B\u5E8F\u751F\u6210\u6388\u6743\uFF1B\u539F\u8BB0\u5F55\u5DF2\u5907\u4EFD\u3002\u524D ${result.priorPayments} \u7B14\u8BB0\u5F55\u4FDD\u7559\u3002`);
+      console.log("\u672A\u63D0\u4EA4\u4EFB\u4F55\u4ED8\u6B3E\u3002\u73B0\u5728\u53EF\u7528\u539F --execute --accelerate \u547D\u4EE4\u7EED\u8DD1\u3002");
+    } finally {
+      await (0, import_promises3.rmdir)(lock2);
+    }
+    return;
+  }
   if (!args.includes("--execute")) {
     console.log("\u53EA\u8BFB\u68C0\u67E5\u5B8C\u6210\uFF0C\u65E0\u4ED8\u6B3E\u3002\u542F\u52A8\u8BF7\u4F7F\u7528 --execute\uFF1B\u79C1\u94A5\u53EA\u5728\u672C\u673A\u9690\u85CF\u8F93\u5165\u3002");
     return;
   }
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new LocalRunnerError("\u53EA\u80FD\u7531\u672C\u4EBA\u5728\u672C\u673A\u4EA4\u4E92\u7EC8\u7AEF\u542F\u52A8\u3002");
-  const parent = (0, import_node_path.join)((0, import_node_os.homedir)(), ".radar-agent-local");
+  const parent = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".radar-agent-local");
   await privateDirectory(parent);
-  const root = (0, import_node_path.join)(parent, bundle.runnerId);
+  const root = (0, import_node_path2.join)(parent, bundle.runnerId);
   await privateDirectory(root);
-  const lock = (0, import_node_path.join)(root, ".runner-lock");
+  const lock = (0, import_node_path2.join)(root, ".runner-lock");
   try {
-    await (0, import_promises2.mkdir)(lock, { mode: 448 });
+    await (0, import_promises3.mkdir)(lock, { mode: 448 });
   } catch {
     throw new LocalRunnerError("\u5DF2\u6709\u8FD0\u884C\u8FDB\u7A0B\u6216\u4E0A\u6B21\u610F\u5916\u4E2D\u65AD\u7559\u4E0B\u6267\u884C\u9501\u3002\u5148\u6838\u67E5\uFF0C\u4E0D\u80FD\u5220\u9664\u4ED8\u6B3E\u8BB0\u5F55\u91CD\u6765\u3002");
   }
@@ -35578,10 +35706,10 @@ async function main() {
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
   try {
-    await (0, import_promises2.chmod)(file, 384);
+    await (0, import_promises3.chmod)(file, 384);
     await importJournals(bundle, root);
     console.log(`\u672C\u673A\u8D26\u5355\u6587\u4EF6\u4FDD\u5B58\u5728 ${root}\uFF1B\u4ED8\u6B3E\u65F6\u53EA\u5411\u56FA\u5B9A\u6D4B\u8BD5\u63A5\u53E3\u53D1\u9001\u8BE5\u7B14\u6388\u6743\u3002\u7A0B\u5E8F\u4E0D\u5145\u503C\u3001\u4E0D\u6388\u6743\u4EE3\u5E01\uFF1B\u7ED3\u679C\u4E0D\u786E\u5B9A\u5373\u505C\u6B62\u3002`);
-    const prompt = (0, import_promises3.createInterface)({ input: process.stdin, output: process.stdout });
+    const prompt = (0, import_promises4.createInterface)({ input: process.stdin, output: process.stdout });
     let answer;
     try {
       answer = await prompt.question(accelerated ? "\u786E\u8BA4\u6309\u539F\u9884\u7B97\u5FEB\u901F\u7EED\u8DD1\uFF0C\u5E76\u516C\u5F00\u539F 24 \u5C0F\u65F6\u65F6\u95F4\u8BA1\u5212\u53D8\u66F4\uFF1F\u8BF7\u8F93\u5165 FAST\uFF1A " : "\u786E\u8BA4\u7531\u672C\u673A\u6309\u539F\u9884\u7B97\u81EA\u52A8\u7B7E\u540D\u5E76\u4ED8\u6B3E\uFF1F\u8BF7\u8F93\u5165 RUN\uFF1A ", { signal: controller.signal });
@@ -35602,7 +35730,7 @@ async function main() {
       key = "";
     }
     if (signer.address.toLowerCase() !== bundle.payer.toLowerCase()) throw new LocalRunnerError("\u79C1\u94A5\u5BF9\u5E94\u7684\u8D26\u6237\u4E0D\u662F\u6307\u5B9A\u4ED8\u6B3E\u94B1\u5305\uFF0C\u5DF2\u505C\u6B62\u3002");
-    const guardPath = (0, import_node_path.join)(root, ".signing-permits.json");
+    const guardPath = (0, import_node_path2.join)(root, ".signing-permits.json");
     let permits = validateSigningPermits(await readPrivateJson(guardPath) ?? []);
     const arc2 = getArcConfig({ ARC_NETWORK: "mainnet" });
     for (const j of bundle.journals.filter((j2) => j2.paymentHeader)) {
@@ -35632,7 +35760,7 @@ async function main() {
       const amended = await liveState(bundle);
       if (amended.reservedCount < 1e3 && !amended.timingAmendment) throw new LocalRunnerError("\u5FEB\u901F\u8BA1\u5212\u5C1A\u672A\u751F\u6548\uFF0C\u5DF2\u505C\u6B62\u3002");
       if (amended.timingAmendment) {
-        await writePrivateJson((0, import_node_path.join)(root, ".timing-amendment.json"), amended.timingAmendment);
+        await writePrivateJson((0, import_node_path2.join)(root, ".timing-amendment.json"), amended.timingAmendment);
         console.log(`\u5FEB\u901F\u8BA1\u5212\u5DF2\u786E\u8BA4\uFF0C\u4ECE\u7B2C ${amended.timingAmendment.fromOrdinal} \u7B14\u8D77\u751F\u6548\uFF1B\u5DF2\u6210\u529F\u4ED8\u6B3E\u81EA\u52A8\u8DF3\u8FC7\uFF0C\u91D1\u989D\u548C\u539F\u8BB0\u5F55\u4E0D\u53D8\u3002`);
       }
     }
@@ -35689,11 +35817,11 @@ async function main() {
     }
     process.off("SIGINT", stop);
     process.off("SIGTERM", stop);
-    await (0, import_promises2.rmdir)(lock);
+    await (0, import_promises3.rmdir)(lock);
   }
 }
 main().catch((error) => {
-  console.error(error instanceof LocalRunnerError || error instanceof RunnerNetworkError ? error.message : "\u51C6\u5907\u6216\u6267\u884C\u672A\u5B8C\u6210\uFF1A\u7F51\u7EDC\u3001\u6743\u9650\u6216\u539F\u8BB0\u5F55\u68C0\u67E5\u5931\u8D25\u3002\u8BF7\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u53EA\u8BFB\u6838\u67E5\uFF1B\u4E0D\u8981\u53D1\u9001\u79C1\u94A5\u6216\u63A5\u7BA1\u5305\u3002");
+  console.error(error instanceof LocalRunnerError || error instanceof RunnerNetworkError || error instanceof LocalRecoveryError ? error.message : "\u51C6\u5907\u6216\u6267\u884C\u672A\u5B8C\u6210\uFF1A\u7F51\u7EDC\u3001\u6743\u9650\u6216\u539F\u8BB0\u5F55\u68C0\u67E5\u5931\u8D25\u3002\u8BF7\u4FDD\u7559\u8BB0\u5F55\uFF0C\u5230\u7F51\u9875\u53EA\u8BFB\u6838\u67E5\uFF1B\u4E0D\u8981\u53D1\u9001\u79C1\u94A5\u6216\u63A5\u7BA1\u5305\u3002");
   process.exitCode = 1;
 });
 /*! Bundled license information:

@@ -6,7 +6,7 @@ await mkdir(directory, { recursive: true });
 const file = new URL("radar-validation-runner.cjs", directory);
 await build({ entryPoints: [new URL("local-validation.mts", import.meta.url).pathname], outfile: file.pathname,
   bundle: true, platform: "node", target: "node22", format: "cjs", sourcemap: false, minify: false,
-  banner: { js: "// Radar Agent owner-run local runner 2026-10-14-accelerated-v3. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants." } });
+  banner: { js: "// Radar Agent owner-run local runner 2026-10-14-accelerated-v3.1. No keys are included. Source: CrisChang/radar-agent, codex/arc-microgrants." } });
 const sha = createHash("sha256").update(await readFile(file)).digest("hex");
 await writeFile(new URL("radar-validation-runner.sha256", directory), `${sha}  radar-validation-runner.cjs\n`);
 await writeFile(new URL("radar-validation-runner-v2.cjs", directory), await readFile(file));
