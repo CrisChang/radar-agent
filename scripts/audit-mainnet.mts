@@ -1,3 +1,4 @@
+import { mergeEventExport } from '../lib/mainnet-audit-tail';
 import { auditEventLedger } from '../lib/mainnet-audit-events';
 import { auditRecords } from '../lib/mainnet-audit-input';
 /** Read-only audit. No signer, payment submit, Redis mutation or report publish. */
@@ -62,7 +63,8 @@ async function main(){
  if(arc.chainId!==5042)throw Error('mainnet only');
  const receiptFile=process.argv.includes('--receipts')?process.argv[process.argv.indexOf('--receipts')+1]:join(homedir(),'Downloads',`${CAMPAIGN_ID}-receipts-private.json`);
  const eventFile=process.argv.includes('--events')?process.argv[process.argv.indexOf('--events')+1]:join(homedir(),'Downloads',`${CAMPAIGN_ID}-events-private.json`);
- const exported=JSON.parse(await readFile(receiptFile,'utf8')), eventExport=JSON.parse(await readFile(eventFile,'utf8'));
+ const exported=JSON.parse(await readFile(receiptFile,'utf8'));let eventExport=JSON.parse(await readFile(eventFile,'utf8'));
+ if(process.argv.includes('--events-tail'))eventExport=mergeEventExport(eventExport,JSON.parse(await readFile(process.argv[process.argv.indexOf('--events-tail')+1],'utf8')));
  const parsed=auditRecords(exported,eventExport,arc,getPilotBuyerAddress(),getSellerAddress());
  const source=await readPublicStatus();
  const recordsFromExport=parsed.records;

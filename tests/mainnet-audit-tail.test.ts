@@ -1,0 +1,4 @@
+import test from "node:test";import assert from "node:assert/strict";import { mergeEventExport } from "../lib/mainnet-audit-tail";import { CAMPAIGN_ID } from "../lib/validation-plan";
+const base={campaign:CAMPAIGN_ID,kind:"events",items:[{type:"a",at:"1"},{type:"b",at:"2"}]};
+test("event continuation preserves original history and requires matching overlap",()=>{const tail={campaign:CAMPAIGN_ID,kind:"events",offset:1,items:[{at:"2",type:"b"},{type:"c",at:"3"}]};const out=mergeEventExport(base,tail);assert.deepEqual(out.items,[...base.items,{type:"c",at:"3"}]);assert.equal(base.items.length,2);});
+test("event continuation refuses a gap, changed prefix, truncated overlap or other campaign",()=>{for(const tail of [{offset:2,items:[]},{offset:1,items:[{type:"changed",at:"2"}]},{offset:0,items:[]},{offset:1,items:[base.items[1]],campaign:"other"}])assert.throws(()=>mergeEventExport(base,{campaign:CAMPAIGN_ID,kind:"events",...tail}));});

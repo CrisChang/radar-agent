@@ -26,6 +26,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
   const [clientReady, setClientReady] = useState(false);
   const [recoveryIntent, setRecoveryIntent] = useState<PlannedPayment>(), [renewalConsent, setRenewalConsent] = useState(false);
   const [replayConsent, setReplayConsent] = useState(false);
+  const [eventExportOffset, setEventExportOffset] = useState("0");
   const selectedProvider = useRef<EIP1193Provider | undefined>(undefined);
   const walletReady = wallet?.toLowerCase() === payer.toLowerCase() && connectedChain === 5042;
   const stop = useRef(false), bootId = useRef("");
@@ -201,8 +202,9 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
     const url = URL.createObjectURL(new Blob([value], { type: mime })), a = document.createElement("a");
     a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  async function privateExport(kind: "receipts" | "events") {
-    const client = await account(), all: unknown[] = []; let offset: number | null = 0;
+  async function privateExport(kind: "receipts" | "events", startOffset = 0) {
+    if (!Number.isInteger(startOffset) || startOffset < 0 || startOffset > 100000 || (kind !== "events" && startOffset !== 0)) throw new Error("事件起点无效，未读取记录。");
+    const client = await account(), all: unknown[] = []; let offset: number | null = startOffset;
     while (offset !== null) {
       const url: URL = new URL(`/api/validation/export?kind=${kind}&offset=${offset}`, location.origin), timestamp = Math.floor(Date.now() / 1000).toString();
       const signature = await client.signMessage({ message: billingMessage({ url: url.toString(), network: arc.network, wallet: payer, timestamp }) });
@@ -210,8 +212,8 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       if (!response.ok) throw new Error("私有记录导出未完成，不能当成完整导出。");
       const body: { items: unknown[]; next_offset: number | null } = await response.json(); all.push(...body.items); offset = body.next_offset;
     }
-    download(`${CAMPAIGN_ID}-${kind}-private.json`, JSON.stringify({ campaign: CAMPAIGN_ID, kind, items: all }, null, 2), "application/json");
-    setMessage(`已完整导出 ${all.length} 条${kind === "events" ? "事件" : "账单"}，包含私有归属信息，请妥善保存。`);
+    download(`${CAMPAIGN_ID}-${kind}${startOffset ? `-from-${startOffset}` : ""}-private.json`, JSON.stringify({ campaign: CAMPAIGN_ID, kind, offset: startOffset, complete: startOffset === 0, items: all }, null, 2), "application/json");
+    setMessage(startOffset ? `已导出从 offset ${startOffset} 开始的 ${all.length} 条事件。这是追加片段，需与原完整导出核对重叠部分后合并；不是完整历史。请妥善保存。` : `已完整导出 ${all.length} 条${kind === "events" ? "事件" : "账单"}，包含私有归属信息，请妥善保存。`);
   }
   const next = STAGES.find(s => s.stage === (state?.stage ?? 0) + 1), current = STAGES.find(s => s.stage === state?.stage);
   const rows = report?.rows ?? [], visible = rows.slice(page * 50, page * 50 + 50);
@@ -262,7 +264,7 @@ export default function ValidationTools({ arc, payer, seller }: { arc: ArcConfig
       <div className="tool-actions"><button disabled={!report} onClick={() => download(`${CAMPAIGN_ID}-public.json`, JSON.stringify(report, null, 2), "application/json")}>下载公开结果 JSON</button>
       <button disabled={!report} onClick={() => { const cols = ["intent", "stage", "scenario", "amount_usdc", "amount_atomic", "money_difference_atomic", "scenario_passed", "local_state", "transfer_status", "batch_hash", "proof", "http_attempts", "verification_rejections", "verification_rejection_reasons", "same_nonce_renewal_checks", "supplemental_replay_attempts", "concurrent_evidence"] as const;
         const csv = [cols.join(","), ...rows.map(row => cols.map(k => `"${String(row[k] ?? "").replaceAll('"', '""')}"`).join(","))].join("\r\n"); download(`${CAMPAIGN_ID}-public.csv`, csv, "text/csv"); }}>下载全部结果 CSV</button>
-      <button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("receipts"))}>签名导出全部私有账单</button><button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("events"))}>签名导出全部尝试和状态事件</button></div>
+      <button disabled={!walletReady || busy} onClick={() => void perform(() => privateExport("receipts"))}>签名导出全部私有账单</button><label>事件导出起点 offset（0 为全部）<input type="number" min="0" max="100000" step="1" value={eventExportOffset} onChange={e => setEventExportOffset(e.target.value)} disabled={busy}/></label><button disabled={!walletReady || busy || !/^\d+$/.test(eventExportOffset)} onClick={() => void perform(() => privateExport("events", Number(eventExportOffset)))}>{Number(eventExportOffset) === 0 ? "签名导出全部尝试和状态事件" : `签名导出从 ${eventExportOffset} 开始的事件`}</button></div>
       <div className="table-scroll"><table><thead><tr><th>意图 / 金额</th><th>场景 / 请求次数</th><th>服务端 / Gateway</th><th>批次 / 核查</th></tr></thead><tbody>{visible.map(row => <tr key={row.intent}><td>{row.intent}<br/>{row.amount_usdc} USDC</td><td>{row.scenario}<br/>{row.http_attempts} 次请求<br/>场景：{row.scenario_passed === true ? "通过" : row.scenario_passed === false ? "待补证据" : "未运行"}{row.concurrent_evidence === "settled_receipt_replay" && <><br/>已结算账单并发补测</>}</td><td>{row.local_state}<br/>{row.transfer_status ?? "待核查"}</td><td>{row.batch_hash ? <a href={`${arc.explorerUrl}/tx/${row.batch_hash}`} target="_blank" rel="noreferrer">{row.batch_hash.slice(0, 12)}…</a> : "尚无批次哈希"}<br/>{row.proof}</td></tr>)}</tbody></table></div>
       {!rows.length && <p>本轮尚无已核查结果。没有用示例数据填充成功记录。</p>}
       <div className="tool-actions"><button disabled={page === 0} onClick={() => setPage(p => p - 1)}>上一页</button><span>{page + 1} / {Math.max(1, Math.ceil(rows.length / 50))}</span><button disabled={(page + 1) * 50 >= rows.length} onClick={() => setPage(p => p + 1)}>下一页</button></div>
