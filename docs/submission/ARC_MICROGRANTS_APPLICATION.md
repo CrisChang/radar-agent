@@ -64,6 +64,6 @@ Radar Agent 聚焦 Agent 付费 API 调用的账务与恢复：报价和预算�
 
 ## Application handling
 
-The authenticated application page remains Under Review; management fields are locked. The public Build short profile and rich-text details above were saved successfully, reloaded and visually verified on October 15. Original application and private contacts remain intact. Do not withdraw and resubmit, accept new legal terms or message the organizer without a specific need and authorization. Private contacts are excluded from source.
+The authenticated application page remains Under Review; management fields are locked. The public Build short profile and rich-text details above were saved successfully, reloaded and visually verified on October 15. A full competition-list reload also displayed the new short profile. Original application and private contacts remain intact. Do not withdraw and resubmit, accept new legal terms or message the organizer without a specific need and authorization. Private contacts are excluded from source.
 
 Official requirements and deadline: https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq. Deadline October 15, 2026, 11:59 Asia/Shanghai. Optional mainnet video is not recorded. Historical testnet video must not be presented as current mainnet evidence.

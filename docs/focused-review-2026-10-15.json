@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-10-14T16:41:46.040925+00:00",
-  "source_commit": "57fd5d8",
-  "deployment_url": "https://radar-agent-5tr2bemfm-chris-6239.vercel.app",
+  "checked_at": "2026-10-15T00:06:03.608835+00:00",
+  "source_commit": "a9b8e958fd8aa4e617368fb822e197dce0bacfac",
+  "deployment_url": "https://radar-agent-cfiocw6o7-chris-6239.vercel.app",
   "production_url": "https://radar-agent-ivory.vercel.app",
   "tests": {
-    "passed": 150,
+    "passed": 152,
     "typecheck": "passed",
     "production_build": "passed"
   },
@@ -47,6 +47,14 @@
     },
     {
       "name": "audit boundary preserved",
+      "passed": true
+    },
+    {
+      "name": "complete state and attempt ledger",
+      "passed": true
+    },
+    {
+      "name": "measured server timing is displayed",
       "passed": true
     },
     {
@@ -95,7 +103,21 @@
   "chain_payments": 1000,
   "scenario_passes": 993,
   "money_difference_atomic": "0",
-  "browser_visual_verification": "pending: host locked",
-  "dorahacks_public_copy_saved": false,
-  "private_server_event_export_audit_complete": false
+  "browser_visual_verification": "passed: native Chrome desktop and 390px responsive screenshots, with public-page interactions",
+  "dorahacks_public_copy_saved": true,
+  "private_server_event_export_audit_complete": true,
+  "browser_checks": [
+    "homepage visual layout",
+    "real scenario switch",
+    "delivery stage details",
+    "intent deep link and filter",
+    "25-row pagination",
+    "free quote copy feedback",
+    "FAQ disclosure",
+    "390px responsive homepage navigation and receipt card",
+    "production evidence refresh without signature/payment",
+    "deployed full-audit scope and 181/262 ms values"
+  ],
+  "dorahacks_build_url": "https://dorahacks.io/build/49626",
+  "dorahacks_verification": "Both Save Changes actions showed Saved successfully. Public Build reload retained profile/details/links; a full competition-list reload also displayed the new summary. Submission remains Under Review."
 }

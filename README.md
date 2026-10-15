@@ -99,7 +99,7 @@ npm run build
 
 Production is hosted on Vercel with durable Upstash Redis. Missing storage fails closed. Operator-only pilot, funding and validation controls are excluded from public navigation and search indexing; their existing URLs remain available to the owner. Hiding a page is not authentication.
 
-Validation for this revision: **152 tests passed**, TypeScript, production build and **20 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
+Validation for this revision: **152 tests passed**, TypeScript, production build and **22 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
 
 ## Source map
 
