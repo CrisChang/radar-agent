@@ -4,15 +4,21 @@ The campaign plan contains exactly 1,000 logical payments, ten atomic-amount tie
 
 The public reconciliation has verified all 1,000 payments in 32 shared Arc batches. Seven concurrent-overlap cases remain open in the October 14 snapshot; payment success and scenario completeness are separate results.
 
-## Completed public/local audit
+## Completed owner-export audit — October 15, 2026
 
-The independent read-only audit fetched provider history again, checked all 1,000 published plan rows and stored response digests, and matched 1,000 completed provider transfers by exact amount/batch group. It individually matched the 900 local authorization nonces and response hashes. All 32 Arc batches were re-read and decoded; both wallet differences remained zero. Expected and actual principal were exactly 232600 atomic units.
+All **1,000 owner-authenticated billing records** were individually matched to completed Gateway transfers by original nonce, exact amount, parties, network and acceptance reference. Another **900 original local authorizations** were compared with the server fingerprint, request identity and response digest. The first 100 browser authorization journals were unavailable locally; their authenticated server bills were individually matched to the provider.
 
-The first 100 browser rows currently rely on published server attribution and matching provider amount/batch groups, not an independent comparison of their private nonce values. The report marks `private_export_audit_complete: false`. Original server interval analysis remains unmeasured until the existing private exports arrive.
+All **32 Arc batches** were independently re-read and decoded with canonical confirmations. Both wallet deltas match all relevant provider movements, including movements outside the campaign sharing the same batch. Expected and actual campaign principal are **232600 atomic units**, with **zero difference** and no duplicate provider charges for these authorizations.
 
-Reproduce this scope with `tsx scripts/audit-public-mainnet.mts`. It reads only public status, provider history, Arc RPC and the existing private local journals; it publishes no authorization or nonce values.
+All **5,507 exported events** were inspected, including 1,000 unique claims and 2,000 state transitions. Every one of 1,241 request starts has exactly one matching finish: **1,204 HTTP 200**, **5 HTTP 402**, **32 HTTP 409**. The 241 additional attempts include intentional retry tests and 36 settled-receipt supplement reads; they are not additional payments. Failed attempts remain in the evidence.
 
-## Additional audit procedure
+Server-observed request intervals: p50 **181 ms**, p95 **262 ms**, p99 **401 ms**, max **3,281 ms**. Acceptance/receipt-save intervals: p50 **88 ms**, p95 **130 ms**. Neither measure is chain settlement latency or end-to-end call latency; client networking, quote roundtrips and signing are excluded.
+
+The published output sets `mode: owner_export_full` and `private_export_audit_complete: true`. Payment checks passed; scenario checks remain **993/1,000**, with seven missing concurrent-overlap proofs. This result does not upgrade incomplete scenarios.
+
+The earlier public/local group-matching audit can be reproduced with `tsx scripts/audit-public-mainnet.mts`; it has a narrower scope than the completed owner-export audit.
+
+## Reproduce the complete audit
 
 The owner uses the existing wallet-authenticated export buttons on `/validation` to download all private receipts and all attempt/state events. These APIs already exist; the audit does not create a new data-access capability. Files stay local.
 

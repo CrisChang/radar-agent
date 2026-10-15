@@ -8,7 +8,7 @@
   "batch_transactions": 32,
   "money_difference_atomic": "0",
   "overall_passed": null,
-  "generated_at": "2026-10-14T15:21:05.079Z",
+  "generated_at": "2026-10-14T23:50:56.612Z",
   "independent_customer_revenue": false,
   "rows": [
     {
@@ -20583,6 +20583,6 @@
     "schedule_respected": true,
     "eligible_for_completion": true
   },
-  "elapsed_hours": 32.469387777777776,
-  "event_count": 5506
+  "elapsed_hours": 40.967034166666664,
+  "event_count": 5507
 }

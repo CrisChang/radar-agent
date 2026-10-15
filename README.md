@@ -76,7 +76,7 @@ The [live evidence page](https://radar-agent-ivory.vercel.app/evidence) always s
 
 The experiment uses isolated payment-test receipts between two owner-controlled wallets. It is separate from the earlier live 0.001 USDC ETH API purchase. It does not establish independent customers or revenue. Gateway supplies per-payment attribution; Arc independently proves the shared batches and aggregate wallet changes. Supplemental concurrency after settlement covers cached receipt retrieval, not an initial settlement race. The owner explicitly accelerated the remaining schedule, so this is not completion of the original 24-hour plan.
 
-The additional public/local audit re-read all 32 Arc batches and matched 900 local authorizations individually. The first 100 browser rows were compared through public server attribution and provider amount/batch groups; full private server/event exports remain an additional audit step. Observed gas for the 32 shared batches totals 0.075440811423012694 native USDC, paid by their submitters and not allocated to this campaign.
+The complete October 15 audit individually matched all 1,000 authenticated server bills to Gateway by nonce and acceptance reference, compared 900 original local authorizations and re-read all 32 Arc batches. All 5,507 exported events were inspected: 1,241 paired HTTP attempts (1,204 × 200, 5 × 402, 32 × 409), with no unmatched starts. Server handler intervals were p50 181 ms and p95 262 ms; these exclude client networking, quotes and signing. Observed gas for the 32 shared batches totals 0.075440811423012694 native USDC, paid by their submitters and not allocated to this campaign.
 
 **Zero principal variance is not zero cost.** Funding/approval gas, shared-batch gas, provider fees, hosting and API costs are separate categories. Unmeasured values are shown as unknown. Server-observed timings exclude client networking and signing.
 
@@ -99,7 +99,7 @@ npm run build
 
 Production is hosted on Vercel with durable Upstash Redis. Missing storage fails closed. Operator-only pilot, funding and validation controls are excluded from public navigation and search indexing; their existing URLs remain available to the owner. Hiding a page is not authentication.
 
-Validation for this revision: **150 tests passed**, TypeScript, production build and **20 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
+Validation for this revision: **152 tests passed**, TypeScript, production build and **20 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
 
 ## Source map
 

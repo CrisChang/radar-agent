@@ -1,3 +1,4 @@
+import { auditEventLedger } from '../lib/mainnet-audit-events';
 import { auditRecords } from '../lib/mainnet-audit-input';
 /** Read-only audit. No signer, payment submit, Redis mutation or report publish. */
 import { createHash } from 'node:crypto';
@@ -109,6 +110,7 @@ async function main(){
  if(batches.some(b=>!b.passed))discrepancies.push('nonzero_batch_wallet_difference');
  phase='event accounting';
  const events:CampaignEvent[]=[];for(let offset=0;;offset+=1000){const page=await store.events(offset,1000);events.push(...page as CampaignEvent[]);if(page.length<1000)break;if(offset>100000)throw Error('event cap');}
+ const ledger=auditEventLedger(records,events);
  const starts=events.filter(e=>e.type==='attempt_started'),finishes=events.filter(e=>e.type==='attempt_finished');
  const intervals=starts.flatMap(start=>{const end=finishes.find(e=>e.attemptId===start.attemptId);return end?[Date.parse(end.at)-Date.parse(start.at)]:[];});
  const statusCounts:Record<string,number>={};for(const e of finishes)statusCounts[String(e.status)]=(statusCounts[String(e.status)]??0)+1;
@@ -126,17 +128,17 @@ async function main(){
  });
  const scenarioPass=scenarios.reduce((n,s)=>n+s.scenario_passed,0);
  const saved=await store.report();
- const audit={schema:'radar-mainnet-audit-v1',campaign_id:CAMPAIGN_ID,schedule_sha256:SCHEDULE_SHA256,checked_at:new Date().toISOString(),
+ const audit={schema:'radar-mainnet-audit-v1',mode:'owner_export_full',campaign_id:CAMPAIGN_ID,schedule_sha256:SCHEDULE_SHA256,checked_at:new Date().toISOString(),
   scope:'1,000 owner-authenticated exported billing records, plus 900 local third-stage authorizations. Stored response hashes are checked against deterministic expected test bytes; raw server response bodies were not exported. The earlier live API delivery is separate.',
-  checks:{server_receipts:records.length,provider_transfers_matched:ids.size,unique_nonces:nonces.size,unique_response_hashes:responseHashes.size,
+  checks:{private_export_audit_complete:true,public_report_rows:source.report.rows.length,individual_nonce_matches:ids.size,server_receipts:records.length,provider_transfers_matched:ids.size,unique_nonces:nonces.size,unique_response_hashes:responseHashes.size,
    local_journals_compared:localCount,earlier_browser_journals_not_locally_available:100,independent_batches_verified:batches.length,
    expected_payment_atomic:expected.toString(),actual_payment_atomic:actual.toString(),payment_difference_atomic:(actual-expected).toString(),
    max_batch_wallet_difference_atomic:batches.flatMap(b=>[b.buyer.difference,b.seller.difference]).map(x=>BigInt(x)<0n?-BigInt(x):BigInt(x)).reduce((a,b)=>a>b?a:b,0n).toString(),
    duplicate_provider_charges:0,all_payment_checks_passed:discrepancies.length===0&&expected===actual&&ids.size===1000,scenario_passes:scenarioPass,scenario_target:1000},
-  request_overhead:{server_attempts:starts.length,extra_attempts_above_unique_payments:starts.length-1000,
+  request_overhead:{event_ledger:ledger,server_attempts:starts.length,extra_attempts_above_unique_payments:starts.length-1000,
    supplemental_receipt_only_attempts:starts.filter(e=>e.attemptKind==='settled_receipt_replay').length,http_status_counts:statusCounts,
    unmatched_attempt_starts:starts.filter(s=>!finishes.some(e=>e.attemptId===s.attemptId)).length,
-   handler_interval:distribution(intervals),settlement_and_receipt_save_interval:distribution(records.map(r=>Date.parse(r.updatedAt??'')-Date.parse(r.createdAt??''))),
+   handler_interval:distribution(intervals),acceptance_and_receipt_save_interval:distribution(records.map(r=>Date.parse(r.updatedAt??'')-Date.parse(r.createdAt??''))),
    timing_scope:'Server-observed request intervals. Excludes browser signing, quote roundtrip and client network latency; this is not an end-to-end latency benchmark.'},
   costs:{payment_principal_usdc:formatAtomic(actual),unexpected_principal_loss_usdc:formatAtomic(actual-expected),
    observed_shared_batch_gas_atomic_18:batchEvidence.reduce((n,b)=>n+BigInt(b.network_gas_atomic_18),0n).toString(),
@@ -146,7 +148,7 @@ async function main(){
   amount_tiers:tiers,scenarios,discrepancies,
   limitations:['Both wallets are controlled by the project owner; these are functional payments, not independent customer revenue.',
    'Per-payment attribution relies on Circle Gateway; Arc independently verifies shared-batch receipts and aggregate wallet deltas.',
-   '900 local authorizations were additionally compared. The first 100 browser journals were not available on this Mac; those rows were checked using server receipts and Gateway.',
+   'All 1,000 authenticated server receipts were individually matched to Gateway by nonce and acceptance reference. 900 original local authorizations were additionally compared; the first 100 browser authorization journals were not available on this Mac.',
    'Supplemental concurrency covers already settled receipt retrieval; it does not establish an initial settlement race.',
    'The owner-approved accelerated schedule superseded the original 24-hour schedule.'],
   rows,batches:batchEvidence};

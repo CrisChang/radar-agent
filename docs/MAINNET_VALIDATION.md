@@ -152,3 +152,8 @@ Public results distinguish chain-verified payments from payments whose scenarios
 ## Owner-run macOS handoff
 
 For stage-three continuation without individual browser prompts, see [the macOS local runner guide](LOCAL_RUNNER_MACOS.md). The owner must prepare the original-browser handoff and personally supply their test-wallet key through hidden local terminal input. The runner preserves existing records, timing, limits and expiry; it does not deposit or approve tokens.
+
+
+## Complete original-record audit — October 15
+
+The owner downloaded the existing authenticated private receipt and event exports. The local read-only audit individually matched all 1,000 server bills to completed Gateway transfers, additionally compared 900 original local authorizations, and re-read all 32 Arc batches. Exact principal: 0.232600 USDC; principal and batch wallet variance: zero. All 5,507 events were checked, with 1,241 paired HTTP attempts and no unmatched starts. Detailed counts, measured server intervals and cost boundaries are in [MAINNET_AUDIT.md](MAINNET_AUDIT.md). No original authorization or private nonce is published.
