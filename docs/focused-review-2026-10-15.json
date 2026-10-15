@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-10-15T00:06:03.608835+00:00",
-  "source_commit": "a9b8e958fd8aa4e617368fb822e197dce0bacfac",
-  "deployment_url": "https://radar-agent-cfiocw6o7-chris-6239.vercel.app",
+  "checked_at": "2026-10-15T02:54:17.648158+00:00",
+  "source_commit": "bb5a4025f8e255629248b96151e52023b6615227",
+  "deployment_url": "https://radar-agent-ap0ku2vky-chris-6239.vercel.app",
   "production_url": "https://radar-agent-ivory.vercel.app",
   "tests": {
-    "passed": 152,
+    "passed": 156,
     "typecheck": "passed",
     "production_build": "passed"
   },
@@ -58,6 +58,34 @@
       "passed": true
     },
     {
+      "name": "all declared scenarios passed",
+      "passed": true
+    },
+    {
+      "name": "supplemental scope and original timing remain disclosed",
+      "passed": true
+    },
+    {
+      "name": "seven owner funding transactions all linked",
+      "passed": true
+    },
+    {
+      "name": "exact owner gas and wallet debit reconciliation",
+      "passed": true
+    },
+    {
+      "name": "principal fully credited with pilot separated",
+      "passed": true
+    },
+    {
+      "name": "infrastructure meter is not a final invoice",
+      "passed": true
+    },
+    {
+      "name": "cost ledger visibly rendered",
+      "passed": true
+    },
+    {
       "name": "all CSV rows and exact amount total",
       "passed": true
     },
@@ -101,11 +129,14 @@
   "payment_attempted": false,
   "wallet_signature_created": false,
   "chain_payments": 1000,
-  "scenario_passes": 993,
+  "scenario_passes": 1000,
   "money_difference_atomic": "0",
-  "browser_visual_verification": "passed: native Chrome desktop and 390px responsive screenshots, with public-page interactions",
+  "browser_visual_verification": "passed: native Chrome desktop screenshots and interactions",
   "dorahacks_public_copy_saved": true,
   "private_server_event_export_audit_complete": true,
+  "all_declared_scenarios_passed": true,
+  "funding_cost_audit_complete": true,
+  "actual_final_infrastructure_invoice_available": false,
   "browser_checks": [
     "homepage visual layout",
     "real scenario switch",
@@ -114,10 +145,12 @@
     "25-row pagination",
     "free quote copy feedback",
     "FAQ disclosure",
-    "390px responsive homepage navigation and receipt card",
-    "production evidence refresh without signature/payment",
-    "deployed full-audit scope and 181/262 ms values"
+    "fresh production evidence page: 1,000 payment and scenario passes",
+    "funding cost section: seven transaction links and exact wallet reconciliation",
+    "Vercel resource-meter and final-invoice boundary visibly displayed"
   ],
   "dorahacks_build_url": "https://dorahacks.io/build/49626",
-  "dorahacks_verification": "Both Save Changes actions showed Saved successfully. Public Build reload retained profile/details/links; a full competition-list reload also displayed the new summary. Submission remains Under Review."
+  "dorahacks_verification": "Final public Build details saved and reloaded with 1,000/1,000 declared scenario results, 38 regular/12 settled-replay distinction and actual funding costs. Submission remains Under Review.",
+  "final_browser_checked_at": "2026-10-15T03:13:47.076885+00:00",
+  "browser_cache_note": "Previously open tab retained old content; a fresh canonical page navigation displayed the current report and deployed cost ledger."
 }

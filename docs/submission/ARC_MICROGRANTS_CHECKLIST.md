@@ -4,7 +4,7 @@
 - [x] Public source points to the current `codex/arc-microgrants` branch.
 - [x] Product focus: agent API payments, receipts, recovery and accounting.
 - [x] One canonical integration page and durable reference client; free live quote checked.
-- [x] 156 tests, TypeScript, production build and 22 anonymous production checks passed.
+- [x] 156 tests, TypeScript, production build and 29 anonymous production checks passed.
 - [x] Read-only evidence page separates principal variance, scenarios and costs.
 - [x] 1,000 / 1,000 payment confirmations; 0.232600 USDC; 32 shared batches; zero atomic-unit batch wallet difference.
 - [x] All declared scenario evidence: final 1,000 / 1,000; 38 regular-endpoint overlaps and 12 settled-receipt supplements separately disclosed.
