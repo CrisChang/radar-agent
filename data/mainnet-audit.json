@@ -3,7 +3,7 @@
   "mode": "owner_export_full",
   "campaign_id": "arc-mainnet-reliability-1000-v1",
   "schedule_sha256": "1adde180d066de78188bdad2066463e0a56b00f17e55ffb752d03880c00ec779",
-  "checked_at": "2026-10-14T23:56:33.132Z",
+  "checked_at": "2026-10-15T02:28:50.242Z",
   "scope": "1,000 owner-authenticated exported billing records, plus 900 local third-stage authorizations. Stored response hashes are checked against deterministic expected test bytes; raw server response bodies were not exported. The earlier live API delivery is separate.",
   "checks": {
     "private_export_audit_complete": true,
@@ -22,30 +22,30 @@
     "max_batch_wallet_difference_atomic": "0",
     "duplicate_provider_charges": 0,
     "all_payment_checks_passed": true,
-    "scenario_passes": 993,
+    "scenario_passes": 1000,
     "scenario_target": 1000
   },
   "request_overhead": {
     "event_ledger": {
-      "events": 5507,
+      "events": 5587,
       "unique_claims": 1000,
       "state_transitions": 2000,
-      "paired_attempts": 1241,
+      "paired_attempts": 1279,
       "unmatched_starts": 0
     },
-    "server_attempts": 1241,
-    "extra_attempts_above_unique_payments": 241,
-    "supplemental_receipt_only_attempts": 36,
+    "server_attempts": 1279,
+    "extra_attempts_above_unique_payments": 279,
+    "supplemental_receipt_only_attempts": 74,
     "http_status_counts": {
-      "200": 1204,
+      "200": 1242,
       "402": 5,
       "409": 32
     },
     "unmatched_attempt_starts": 0,
     "handler_interval": {
-      "samples": 1241,
-      "p50_ms": 181,
-      "p95_ms": 262,
+      "samples": 1279,
+      "p50_ms": 177,
+      "p95_ms": 261,
       "p99_ms": 401,
       "max_ms": 3281
     },
@@ -63,11 +63,15 @@
     "unexpected_principal_loss_usdc": "0.000000",
     "observed_shared_batch_gas_atomic_18": "75440811423012694",
     "gas_scope": "Total network gas of 32 shared batches, paid by their submitters; not allocated to this campaign or individual callers.",
-    "campaign_funding_gas_usdc": null,
-    "per_request_gas_usdc": null,
-    "provider_fee_usdc": null,
+    "campaign_funding_gas_usdc": "0.004296607945231586",
     "total_caller_cost_usdc": null,
-    "excluded": "Funding/approval/revocation gas, provider fees, hosting and external API costs are not established by this audit; unknown is not zero."
+    "excluded": "Funding gas is independently established in the companion 7-transaction audit. Shared-batch gas is not charged here to each request. Final infrastructure invoices, credit adjustments, shared subscription allocation and any separate provider invoice are not inferred from chain balances.",
+    "shared_bootstrap_gas_usdc": "0.003625820206034072",
+    "total_funding_and_allowance_gas_usdc": "0.007922428151265658",
+    "funding_audit_checked_at": "2026-10-15T02:17:33.821Z",
+    "observed_transfer_deduction_atomic": "0",
+    "per_request_protocol_gas_usdc": "0",
+    "provider_separate_invoice_usdc": null
   },
   "amount_tiers": [
     {
@@ -170,16 +174,8 @@
       "scenario": "concurrent_same_authorization_replay",
       "planned": 50,
       "payments_completed": 50,
-      "scenario_passed": 43,
-      "pending": [
-        "planned-0127",
-        "planned-0212",
-        "planned-0229",
-        "planned-0240",
-        "planned-0321",
-        "planned-0340",
-        "planned-0885"
-      ]
+      "scenario_passed": 50,
+      "pending": []
     },
     {
       "scenario": "serial_same_authorization_replay",

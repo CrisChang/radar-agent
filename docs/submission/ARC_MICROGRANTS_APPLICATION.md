@@ -42,9 +42,11 @@ The seller runs on Vercel with durable Redis. Circle Gateway accepts exact USDC 
 
 The October 15, 2026 audit individually matched all 1,000 owner-exported billing records to completed Gateway transfers and independently re-read all 32 shared Arc batches. Another 900 local authorization journals were compared. Ten amount tiers contain 100 payments each, totaling exactly 0.232600 USDC. Expected and actual principal match; the maximum batch wallet difference is 0 atomic units, with zero tolerance. No duplicate provider charges were found for the campaign authorizations.
 
-The six scenarios cover sequential calls (600), separate sessions (200), serial retries (100), concurrent retries (50), controlled lost acknowledgements (25) and client restarts (25). Payments completed: 1,000/1,000. Payment-and-scenario evidence passed: 993/1,000. Seven concurrent-overlap cases remain open despite completed payments. The evidence page retains failures and separates these outcomes.
+The six scenarios cover sequential calls (600), separate sessions (200), serial retries (100), concurrent retries (50), controlled lost acknowledgements (25) and client restarts (25). Payments completed: 1,000/1,000. Payment-and-scenario evidence passed: 1,000/1,000 under the declared timing amendment and replay scope. Of 50 concurrent cases, 38 have regular payment-endpoint overlap and 12 rely on explicitly labelled settled-receipt supplements. Original failed attempts remain visible; supplemental reads do not prove an initial-settlement race.
 
-The exported event history contains 1,241 HTTP attempts: 1,204 returned 200, five returned 402 and 32 returned 409. Extra attempts are request overhead, not additional charges. Server-observed handler intervals have p50 181 ms and p95 262 ms; these exclude client networking, quotes and signing and are not end-to-end latency benchmarks.
+The exported event history contains 1,279 HTTP attempts: 1,242 returned 200, five returned 402 and 32 returned 409. Extra attempts are request overhead, not additional charges. Server-observed handler intervals have p50 177 ms and p95 261 ms; these exclude client networking, quotes and signing and are not end-to-end latency benchmarks.
+
+Actual funding costs were also reconciled: all seven owner-paid approval, deposit and revocation transactions consumed 0.007922428151265658 USDC gas. Campaign incremental funding/recovery gas was 0.004296607945231586 USDC; shared bootstrap costs are separate. The payer wallet debit equals 0.233600 USDC deposits plus gas, with zero native-unit difference. Gateway balances show the full 0.233600 USDC credited to the recipient, covering the separate pilot and campaign. Vercel project-period resource usage was metered at 0.260709 USD before final billing/credits, including builds and other traffic; Redis is on the observed Free plan. No invoice total or per-call infrastructure allocation is invented.
 
 ### What this evidence establishes
 
@@ -60,7 +62,7 @@ This is a working mainnet prototype for agent developers. Historical testnet tre
 
 Radar Agent 聚焦 Agent 付费 API 调用的账务与恢复：报价和预算、原授权、请求与响应摘要、失败重试、Gateway 付款和 Arc 批次核验，均按同一逻辑请求串联。ETH 行情是现有演示内容，主方向是看清调用花了多少、重试了多少，以及实际结算是否与预期一致。
 
-1,000 笔主网付款均已链上核验，合计 0.232600 USDC、32 个共享批次，批次内钱包金额偏差为零。当前场景证据快照通过 993/1,000，七个并发重叠场景仍待证据；实际付款已完成。资金均来自本人控制钱包，补测读取及快速时间变更均单独披露。
+1,000 笔主网付款均已链上核验，合计 0.232600 USDC、32 个共享批次，批次内钱包金额偏差为零。最终付款及已披露场景均通过 1,000/1,000；50 个并发场景中，38 个有常规付款接口重叠，12 个通过结算后回执补测验证。原失败尝试保留，补测不等同首次结算并发证明。资金均来自本人控制钱包，补测读取及快速时间变更均单独披露。
 
 ## Application handling
 

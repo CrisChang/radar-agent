@@ -1,3 +1,4 @@
+import fundingCosts from '../data/mainnet-funding-costs.json';
 import { mergeEventExport } from '../lib/mainnet-audit-tail';
 import { auditEventLedger } from '../lib/mainnet-audit-events';
 import { auditRecords } from '../lib/mainnet-audit-input';
@@ -145,8 +146,8 @@ async function main(){
   costs:{payment_principal_usdc:formatAtomic(actual),unexpected_principal_loss_usdc:formatAtomic(actual-expected),
    observed_shared_batch_gas_atomic_18:batchEvidence.reduce((n,b)=>n+BigInt(b.network_gas_atomic_18),0n).toString(),
    gas_scope:'Total network gas of 32 shared batches, paid by their submitters; not allocated to this campaign or individual callers.',
-   campaign_funding_gas_usdc:null,per_request_gas_usdc:null,provider_fee_usdc:null,total_caller_cost_usdc:null,
-   excluded:'Funding/approval/revocation gas, provider fees, hosting and external API costs are not established by this audit; unknown is not zero.'},
+   campaign_funding_gas_usdc:fundingCosts.campaign_incremental_funding_gas_usdc,shared_bootstrap_gas_usdc:fundingCosts.shared_bootstrap_gas_usdc,total_funding_and_allowance_gas_usdc:fundingCosts.total_funding_and_allowance_gas_usdc,funding_audit_checked_at:fundingCosts.checked_at,observed_transfer_deduction_atomic:"0",per_request_protocol_gas_usdc:"0",provider_separate_invoice_usdc:null,total_caller_cost_usdc:null,
+   excluded:'Funding gas is independently established in the companion 7-transaction audit. Shared-batch gas is not charged here to each request. Final infrastructure invoices, credit adjustments, shared subscription allocation and any separate provider invoice are not inferred from chain balances.'},
   amount_tiers:tiers,scenarios,discrepancies,
   limitations:['Both wallets are controlled by the project owner; these are functional payments, not independent customer revenue.',
    'Per-payment attribution relies on Circle Gateway; Arc independently verifies shared-batch receipts and aggregate wallet deltas.',

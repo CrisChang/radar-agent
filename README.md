@@ -52,7 +52,7 @@ Wallet-scoped receipts use a five-minute read signature and support CSV export. 
 
 ## Mainnet validation
 
-The dated public reconciliation on October 14, 2026 records:
+The final public reconciliation on October 15, 2026 records:
 
 | Measurement | Observed |
 | --- | --- |
@@ -61,7 +61,7 @@ The dated public reconciliation on October 14, 2026 records:
 | Amount tiers | Ten tiers, 100 payments each, from 0.000001 to 0.001000 USDC |
 | Shared Arc batches | 32 |
 | Maximum aggregate-wallet amount difference per batch | 0 USDC atomic units; tolerance is exactly zero |
-| Payment and scenario evidence | 993 / 1,000; seven concurrent-overlap cases remain open in this snapshot |
+| Payment and scenario evidence | 1,000 / 1,000 under the declared amended timing and replay scope |
 
 The [live evidence page](https://radar-agent-ivory.vercel.app/evidence) always shows the latest saved reconciliation and its timestamp. The public JSON/CSV includes all 1,000 rows, scenario status, response hashes and batch links. A stale or missing report is never converted into a pass.
 
@@ -70,15 +70,15 @@ The [live evidence page](https://radar-agent-ivory.vercel.app/evidence) always s
 | Sequential calls | 600 | 600 |
 | Cross-session continuation | 200 | 200 |
 | Serial original-authorization replay | 100 | 100 |
-| Concurrent original-authorization replay | 50 | 43 |
+| Concurrent original-authorization replay | 50 | 50 |
 | Controlled response loss | 25 | 25 |
 | Real client restart | 25 | 25 |
 
 The experiment uses isolated payment-test receipts between two owner-controlled wallets. It is separate from the earlier live 0.001 USDC ETH API purchase. It does not establish independent customers or revenue. Gateway supplies per-payment attribution; Arc independently proves the shared batches and aggregate wallet changes. Supplemental concurrency after settlement covers cached receipt retrieval, not an initial settlement race. The owner explicitly accelerated the remaining schedule, so this is not completion of the original 24-hour plan.
 
-The complete October 15 audit individually matched all 1,000 authenticated server bills to Gateway by nonce and acceptance reference, compared 900 original local authorizations and re-read all 32 Arc batches. All 5,507 exported events were inspected: 1,241 paired HTTP attempts (1,204 × 200, 5 × 402, 32 × 409), with no unmatched starts. Server handler intervals were p50 181 ms and p95 262 ms; these exclude client networking, quotes and signing. Observed gas for the 32 shared batches totals 0.075440811423012694 native USDC, paid by their submitters and not allocated to this campaign.
+The complete October 15 audit individually matched all 1,000 authenticated server bills to Gateway by nonce and acceptance reference, compared 900 original local authorizations and re-read all 32 Arc batches. All 5,587 exported events were inspected: 1,279 paired HTTP attempts (1,242 × 200, 5 × 402, 32 × 409), with no unmatched starts. Server handler intervals were p50 177 ms and p95 261 ms; these exclude client networking, quotes and signing. Observed gas for the 32 shared batches totals 0.075440811423012694 native USDC, paid by their submitters and not allocated to this campaign.
 
-**Zero principal variance is not zero cost.** Funding/approval gas, shared-batch gas, provider fees, hosting and API costs are separate categories. Unmeasured values are shown as unknown. Server-observed timings exclude client networking and signing.
+**Zero principal variance is not zero cost.** All seven owner funding/allowance transactions reconcile exactly: 0.233600 USDC deposits + 0.007922428151265658 USDC gas = 0.241522428151265658 USDC wallet debit. Campaign incremental funding/recovery gas is 0.004296607945231586 USDC; shared bootstrap gas is shown separately. The project-period Vercel resource meter is 0.260709 USD before final billing/credits, includes builds, and is not a campaign-only invoice. Redis is on the observed Free plan. USD and USDC totals are not silently combined. [Full cost ledger](docs/MAINNET_AUDIT.md#actual-funding-and-cost-reconciliation--october-15). Server-observed timings exclude client networking and signing.
 
 [Method and limits](docs/MAINNET_VALIDATION.md) · [Independent audit and its scope](docs/MAINNET_AUDIT.md) · [Live API baseline](docs/mainnet-pilot-2026-10-12.json)
 
@@ -99,7 +99,7 @@ npm run build
 
 Production is hosted on Vercel with durable Upstash Redis. Missing storage fails closed. Operator-only pilot, funding and validation controls are excluded from public navigation and search indexing; their existing URLs remain available to the owner. Hiding a page is not authentication.
 
-Validation for this revision: **152 tests passed**, TypeScript, production build and **22 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
+Validation for this revision: **156 tests passed**, TypeScript, production build and **22 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
 
 ## Source map
 

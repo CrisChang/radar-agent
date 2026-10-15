@@ -12,9 +12,9 @@ The focused product links a priced API request, exact USDC authorization, delive
 
 ## Actual evidence
 
-The public October 14 report verifies **1,000 / 1,000 payments**, ten amount tiers, **0.232600 USDC** principal, **32 shared Arc batches** and **zero atomic-unit batch wallet difference**. Scenario evidence is **993 / 1,000** in the saved snapshot, with seven concurrent-overlap cases pending. The live page displays the latest timestamp and counts rather than promoting a partial scenario result to a final pass.
+The final October 15 report verifies **1,000 / 1,000 payments**, ten amount tiers, **0.232600 USDC** principal, **32 shared Arc batches** and **zero atomic-unit batch wallet difference**. Scenario evidence is **1,000 / 1,000** under the declared amended timing and replay scope. The live page displays the latest timestamp and counts rather than promoting a partial scenario result to a final pass.
 
-The October 15 owner-export audit individually matched all 1,000 bills to completed Gateway transfers, compared 900 local authorizations and independently re-read the 32 batches. The 5,507 state/attempt events contain 1,241 complete HTTP intervals; p50 was 181 ms and p95 262 ms, excluding client networking and signing. Public output is redacted.
+The October 15 owner-export audit individually matched all 1,000 bills to completed Gateway transfers, compared 900 local authorizations and independently re-read the 32 batches. The 5,587 state/attempt events contain 1,279 complete HTTP intervals; p50 was 177 ms and p95 261 ms, excluding client networking and signing. Public output is redacted.
 
 An earlier separate baseline completed one live ETH query for 0.001 USDC, response SHA-256 verification, wallet-scoped receipt reads and owner-confirmed CSV export. [Baseline evidence](mainnet-pilot-2026-10-12.json).
 

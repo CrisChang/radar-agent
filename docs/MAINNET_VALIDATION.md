@@ -1,6 +1,6 @@
 # Mainnet payment reliability campaign
 
-Status updated October 15, 2026 (Asia/Shanghai): all **1,000 payments are chain verified**, totaling **0.232600 USDC** in **32 shared batches**, with **zero atomic-unit wallet difference**. The dated public snapshot has **993/1,000 payment-and-scenario passes**, with seven concurrent-overlap cases still open. [Read-only public evidence](https://radar-agent-ivory.vercel.app/evidence) separates those results and includes its latest reconciliation timestamp.
+Status updated October 15, 2026 (Asia/Shanghai): all **1,000 payments are chain verified**, totaling **0.232600 USDC** in **32 shared batches**, with **zero atomic-unit wallet difference**. The final public snapshot has **1,000/1,000 payment-and-scenario passes** under the declared timing amendment and replay scope; 12 concurrency cases rely on settled-receipt supplements. [Read-only public evidence](https://radar-agent-ivory.vercel.app/evidence) separates those results and includes its latest reconciliation timestamp.
 
 The owner activated an explicit accelerated timing amendment from payment 332. The original 24-hour schedule was not completed. Operator controls remain at `/validation` and are excluded from main navigation and indexing.
 
@@ -156,4 +156,4 @@ For stage-three continuation without individual browser prompts, see [the macOS 
 
 ## Complete original-record audit — October 15
 
-The owner downloaded the existing authenticated private receipt and event exports. The local read-only audit individually matched all 1,000 server bills to completed Gateway transfers, additionally compared 900 original local authorizations, and re-read all 32 Arc batches. Exact principal: 0.232600 USDC; principal and batch wallet variance: zero. All 5,507 events were checked, with 1,241 paired HTTP attempts and no unmatched starts. Detailed counts, measured server intervals and cost boundaries are in [MAINNET_AUDIT.md](MAINNET_AUDIT.md). No original authorization or private nonce is published.
+The owner downloaded the existing authenticated private receipt and event exports. The local read-only audit individually matched all 1,000 server bills to completed Gateway transfers, additionally compared 900 original local authorizations, and re-read all 32 Arc batches. Exact principal: 0.232600 USDC; principal and batch wallet variance: zero. All 5,587 events were checked, with 1,279 paired HTTP attempts and no unmatched starts. Detailed counts, measured server intervals and cost boundaries are in [MAINNET_AUDIT.md](MAINNET_AUDIT.md). No original authorization or private nonce is published.

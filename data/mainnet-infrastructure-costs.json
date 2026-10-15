@@ -1,0 +1,124 @@
+{
+  "period": {
+    "from": "2026-10-12T00:00:00Z",
+    "to": "2026-10-15T02:17:00Z"
+  },
+  "currency": "USD",
+  "project": "radar-agent",
+  "metered_resource_cost_usd": 0.2607093034138307,
+  "services": [
+    {
+      "name": "Build CPU Minutes",
+      "product": "buildCpuMinutes",
+      "quantity": 60,
+      "unit": "minute",
+      "cost": 0.21000000000000002,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Fast Data Transfer",
+      "product": "fastDataTransfer",
+      "quantity": 0.17189442700000002,
+      "unit": "gigabyte",
+      "cost": 0.027463299939999998,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Observability Events",
+      "product": "observabilityEvent",
+      "quantity": 8582,
+      "unit": "Events",
+      "cost": 0.0102984,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "CDN Requests",
+      "product": "edgeRequest",
+      "quantity": 2161,
+      "unit": "Requests",
+      "cost": 0.0058438,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Fluid Active CPU",
+      "product": "fluidCpuDuration",
+      "quantity": 0.0240166667,
+      "unit": "hour",
+      "cost": 0.0030741333333333333,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Fast Origin Transfer",
+      "product": "fastOriginTransfer",
+      "quantity": 0.019472262000000004,
+      "unit": "gigabyte",
+      "cost": 0.00138742326,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Fluid Provisioned Memory",
+      "product": "fluidDuration",
+      "quantity": 0.0930139022,
+      "unit": "gigabyte-hour",
+      "cost": 0.0009859473635555555,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Function Invocations",
+      "product": "functionInvocation",
+      "quantity": 1585,
+      "unit": "Invocations",
+      "cost": 0.000951,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Function Storage",
+      "product": "deploymentLambdaStorage",
+      "quantity": 0.12226805299999999,
+      "unit": "gigabyte",
+      "cost": 0.00040755610106490005,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "Deployment Storage",
+      "product": "deploymentStorage",
+      "quantity": 0.067123696,
+      "unit": "gigabyte",
+      "cost": 0.0002237434158768,
+      "included": false,
+      "category": "usage"
+    },
+    {
+      "name": "CDN Requests - Additional CPU Duration",
+      "product": "edgeRequestAdditionalCpuDuration",
+      "quantity": 0.0001833334,
+      "unit": "hour",
+      "cost": 7.400000000000001e-05,
+      "included": false,
+      "category": "usage"
+    }
+  ],
+  "invoice_or_cash_payment_confirmed": false,
+  "boundary": "Usage meter before final billing and possible credits; project period includes development, builds and other API operations, not just the campaign.",
+  "redis": {
+    "plan": "Free",
+    "separate_paid_charge_established": false,
+    "evidence": "Authenticated Vercel Storage resource card showed Upstash for Redis / Free; no paid upgrade performed.",
+    "verified_date": "2026-10-15"
+  },
+  "external_feed": {
+    "source": "Coinbase Exchange public candles endpoint",
+    "paid_api_credential_used": false,
+    "separate_paid_charge_observed": false
+  },
+  "metered_until_utc": "2026-10-15T02:17:00Z"
+}
