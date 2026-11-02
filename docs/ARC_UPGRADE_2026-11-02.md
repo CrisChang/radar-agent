@@ -6,7 +6,7 @@
 
 | 机会 | 核实到的状态 | 对本项目的决定 |
 | --- | --- | --- |
-| [Circle Developer Grants](https://www.circle.com/grant) | 官方当前提供 [Questbook 申请入口](https://circle.questbook.app/)，按里程碑资助；关注 Arc/Circle 集成、团队交付能力及使用或落地路径。Agent 经济活动是明确方向。 | 作为升级主线准备材料。官网没有公布本轮固定截止日或统一资助金额；未核实登录后的完整申请字段，也未提交申请。 |
+| [Circle Developer Grants](https://www.circle.com/grant) | 官方当前提供 [Questbook 申请入口](https://circle.questbook.app/)，按里程碑资助；关注 Arc/Circle 集成、团队交付能力及使用或落地路径。Agent 经济活动是明确方向。 | 作为升级主线准备材料。官网没有公布本轮固定截止日或统一资助金额；已核查 Circle 2026 Cohort 2 的完整申请表，允许未注册公司，当前仍为草稿。 |
 | [ETHGlobal Mumbai · Arc](https://ethglobal.com/events/mumbai/prizes/arc) | Arc 奖池 $15,000，其中 Continuity Track 为 $3,000，接受现有项目添加新集成。必须使用 Arc Studio 起步，提交 Studio 分享链接、演示、可运行产品、架构图和代码。 | [官方活动列表](https://ethglobal.com/events)列出 11 月 5–7 日孟买线下活动。没有线下参赛安排时不作为本轮主目标。参加还须符合 Continuity Track 和活动构建时间规则，不能把现有代码冒充赛期新作。 |
 | [Arc Microgrants 2](https://dorahacks.io/hackathon/arc-microgrants-2/detail) | [标注组织者为 DoraHacks 的活动公告](https://www.eventbrite.com/e/httpsdorahacksiohackathonarc-microgrants-2detail-tickets-2003559137314)写明 11 月 1 日截止、8 份各 $500，强调 Arc Studio 起步和主网 USDC。 | 公布日期已过；DoraHacks 详情未成功读取，未确认延期，不能当作当前可报名项目。 |
 
@@ -67,4 +67,10 @@
 - `npm run demo:recovery`：通过；3 个进程，1 个模拟签名，2 次带授权请求，1 次模拟计费，结果摘要一致。
 - `npm run typecheck`：通过。
 - 自动测试：整合及 Next.js 补丁后完整运行，共 157 项通过。没有执行真实付款。
-- 生产构建：Next.js 16.4.1 构建通过，包含 TypeScript 检查。部署后的只读检查和申请提交状态单独核验；原主网报告不变。
+- 生产构建：Next.js 16.4.1 构建通过，包含 TypeScript 检查。Vercel 生产部署已达到 Ready，构建代码为 `f8e2b68772f0551e1f679e6de4d405427e0543a1`，生产地址仍为 https://radar-agent-ivory.vercel.app 。本机命令行访问部署域名出现连接重置/超时，浏览器锁屏使部署后的页面核验暂未完成；不能把部署 Ready 等同于运行时检查通过。原主网报告不变。
+
+## 申请材料准备状态
+
+- 已制作 6 页可编辑介绍材料及 PDF，3 分 33 秒技术演示、逐产品代码图片和文字稿。视频展示固定版本的真实代码摘录、实际离线演示输出和已发布的历史主网页面，使用合成旁白；未新增付款。
+- 材料中的未来日期是拟议目标，外部开发者试接是招募目标，均非已完成成果。
+- 2026-11-02 申请仍未提交。需恢复浏览器访问、上传材料并核对公开访问权限，再完成表单提交；此记录不代表已报名成功或获得资助。
