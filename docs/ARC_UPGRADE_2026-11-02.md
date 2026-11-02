@@ -67,7 +67,7 @@
 - `npm run demo:recovery`：通过；3 个进程，1 个模拟签名，2 次带授权请求，1 次模拟计费，结果摘要一致。
 - `npm run typecheck`：通过。
 - 自动测试：整合及 Next.js 补丁后完整运行，共 157 项通过。没有执行真实付款。
-- 生产构建：Next.js 16.4.1 构建通过，包含 TypeScript 检查。Vercel 生产部署已达到 Ready，构建代码为 `f8e2b68772f0551e1f679e6de4d405427e0543a1`，生产地址仍为 https://radar-agent-ivory.vercel.app 。本机命令行访问部署域名出现连接重置/超时，浏览器锁屏使部署后的页面核验暂未完成；不能把部署 Ready 等同于运行时检查通过。原主网报告不变。
+- 生产构建：Next.js 16.4.1 构建通过，包含 TypeScript 检查。Vercel 生产部署已达到 Ready，构建代码为 `f8e2b68772f0551e1f679e6de4d405427e0543a1`，生产地址仍为 https://radar-agent-ivory.vercel.app 。部署后已通过浏览器核查首页及接入页；使用现有本机代理运行 `check:deployment --network mainnet --check-feed` 也已通过：健康接口 HTTP 200、未付款报价 HTTP 402、报价金额 0.001 USDC、网络 5042、Coinbase 数据源为 live 且时间新鲜。核验时间为 2026-11-02 21:46:59（北京时间）。此次仅只读核查，未签名或付款；付款存储的健康字段仍为 not_probed，不将配置检查称为新一次完整付款闭环。原主网报告不变。
 
 ## 申请材料准备状态
 
