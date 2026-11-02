@@ -17,7 +17,7 @@ interface CallDependencies {
 /** One durable paid-call identity. No funding, treasury action, fresh nonce on
  * uncertainty, transport retry, or claim that API acceptance is a chain proof. */
 export async function agentCall(d:CallDependencies){
- const fetcher=d.fetcher??fetch;let j=await d.load();
+ const fetcher=d.fetcher??fetch;let j=await d.load();const recovered=!!j;
  if(!/^[0-9a-f-]{36}$/i.test(d.requestId)||d.signer.address.toLowerCase()!==d.payer.toLowerCase()||d.payer.toLowerCase()===d.seller.toLowerCase())throw Error("Invalid caller identity");
  if(j&&(j.requestId!==d.requestId||j.endpoint!==d.endpoint.toString()||j.payer.toLowerCase()!==d.payer.toLowerCase()||j.seller.toLowerCase()!==d.seller.toLowerCase()||BigInt(j.amountAtomic)>BigInt(d.maximumAtomic)))throw Error("Saved call scope differs; keep the original record");
  if(j?.paymentHeader){
@@ -43,7 +43,7 @@ export async function agentCall(d:CallDependencies){
   j.paymentHeader=encodeProtocolJson({...created,accepted:quote.selected,resource:quote.resource});j.signingMs=Date.now()-signStart;j.state="signed";
   await d.save(j); // Exact authorization is durable before the first paid HTTP request.
  }
- const active=j,recovered=active.attempts.length>0;active.state="submitted";await d.save(active);const started=Date.now();let status:number|null=null;
+ const active=j;active.state="submitted";await d.save(active);const started=Date.now();let status:number|null=null;
  try{
   const response=await fetcher(d.endpoint,{cache:"no-store",redirect:"error",signal:AbortSignal.timeout(30000),headers:{"x-radar-request-id":active.requestId,"payment-signature":active.paymentHeader!}});
   status=response.status;if(!response.ok)throw Error("Uncertain paid response");

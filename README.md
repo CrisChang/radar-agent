@@ -7,8 +7,19 @@ The working service uses a 0.001 USDC ETH observation as its example. The produc
 
 [Live app](https://radar-agent-ivory.vercel.app) · [Agent integration](https://radar-agent-ivory.vercel.app/integrate) · [Mainnet evidence](https://radar-agent-ivory.vercel.app/evidence) · [OpenAPI](https://radar-agent-ivory.vercel.app/api/openapi)
 
-Current source: [`codex/arc-microgrants`](https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants).
-The main branch retains the earlier hackathon prototype.
+Submitted baseline: [`codex/arc-microgrants`](https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants).
+This development branch, `codex/arc-recovery`, adds a reproducible recovery demo and prepares the next Arc/Circle milestone. The main branch retains the earlier hackathon prototype.
+
+## Try recovery without a wallet
+
+```bash
+npm ci
+npm run demo:recovery
+```
+
+The real reference client writes its journal to disk. A synthetic provider accepts a purchase, then the client process exits before receiving the result. A new process reuses the exact authorization to recover it; a third process reads the saved result. Assertions verify one simulated charge and signature, two paid-request attempts, and matching response bytes.
+
+The demo is **offline and synthetic**: no funds, private keys, production requests or chain verification. Its provider explicitly supports idempotency; it does not prove recovery works with every x402 seller. Temporary records are removed after the run. See [the opportunity review and upgrade milestones](docs/ARC_UPGRADE_2026-11-02.md).
 
 ## One entry point for an agent
 
@@ -99,7 +110,9 @@ npm run build
 
 Production is hosted on Vercel with durable Upstash Redis. Missing storage fails closed. Operator-only pilot, funding and validation controls are excluded from public navigation and search indexing; their existing URLs remain available to the owner. Hiding a page is not authentication.
 
-Validation for this revision: **156 tests passed**, TypeScript, production build and **29 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The new focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for this revision. Private call journals live under `~/.radar-agent-api/`.
+Validation for the submitted October 15 baseline: **156 tests passed**, TypeScript, production build and **29 anonymous production checks** passed ([deployment check record](docs/focused-review-2026-10-15.json)); the canonical no-payment client obtained a real 0.001 USDC Arc quote. The focused client's paid/recovery behavior was tested with synthetic fixtures; no additional mainnet purchase was made for that revision. Private call journals live under `~/.radar-agent-api/`.
+
+November 2 development update: **157 tests passed** across the suite and a rerun of sandbox-blocked local Redis/proxy tests; TypeScript and the offline three-process recovery demo passed. No new production build, deployment, production probe or mainnet validation is claimed for this update.
 
 ## Source map
 
@@ -116,7 +129,7 @@ docs/                   methodology, audit and submission materials
 ## Submission
 
 The project continues earlier Encode Club × Circle work for [Arc Microgrants](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq).
-The owner submitted Radar Agent on October 12; the [DoraHacks project](https://dorahacks.io/build/49626) remains under review. No award or funding is claimed.
+The owner submitted Radar Agent on October 12; the [DoraHacks project](https://dorahacks.io/build/49626) is the historical submission. Its live status must be checked on DoraHacks; this development branch does not claim an award, funding, or a new application.
 See [the current submission pack](docs/ARC_MICROGRANTS.md).
 
 The earlier testnet treasury/decision demo and historical deck remain available for provenance. They are outside the current agent API-payment product focus.

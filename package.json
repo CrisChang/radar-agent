@@ -23,6 +23,7 @@
     "validation:run": "tsx scripts/validation.mts",
     "build:local-runner": "node scripts/build-local-runner.mjs",
     "agent:call": "tsx examples/external-agent/call.mts",
+    "demo:recovery": "node --import tsx examples/recovery-demo/run.mts",
     "audit:mainnet": "tsx scripts/audit-mainnet.mts"
   },
   "dependencies": {
