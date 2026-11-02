@@ -1,0 +1,3 @@
+# Exclude macOS folder metadata without deleting the owner's local files.
+.DS_Store
+**/.DS_Store

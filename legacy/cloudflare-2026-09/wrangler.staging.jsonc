@@ -1,0 +1,29 @@
+// Owner-approved independent staging. Never deploy over the historical demo.
+// Historical testnet seller is discovery metadata only; payment acceptance is OFF.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "account_id": "79bcc4ddd9361af6c9c70466045256aa",
+  "name": "radar-agent-integration-staging",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.js", "**/*.mjs"] }],
+  "assets": { "directory": "dist/client" },
+  "d1_databases": [{
+    "binding": "RADAR_PAYMENTS",
+    "database_name": "radar-payments-staging",
+    "database_id": "0e20babb-e633-46f9-8201-015536766ac9",
+    "migrations_dir": "migrations"
+  }],
+  "vars": {
+    "RADAR_NETWORK": "testnet",
+    "RADAR_ACCEPT_PAYMENTS": "false",
+    "SELLER_ADDRESS": "0x00902065f410A5B9Af8e80BF663790744D378a0C",
+    "SIGNAL_PRICE_USDC": "0.001",
+    "RADAR_ALLOW_DEMO_SIGNALS": "false",
+    "NEXT_PUBLIC_SITE_URL": "https://radar-agent-integration-staging.chrischang2026.workers.dev"
+  }
+}

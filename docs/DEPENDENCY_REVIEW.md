@@ -1,4 +1,21 @@
-# Dependency review — October 9, 2026
+# Dependency review
+
+## November 2, 2026 release
+
+Updated Next.js 16.4.0 to the official 16.4.1 security patch. The production
+build and all 157 tests pass after this change. The original build stopped on
+the framework advisory; it was not bypassed. References:
+
+- https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw
+- https://github.com/advisories/GHSA-p3m5-59mp-jv5r
+- https://github.com/advisories/GHSA-673q-mjm6-r5xr
+
+The npm audit still reports transitive dependency issues, including the legacy
+Circle App Kit dependency tree, Zod and follow-redirects. This release does not
+claim a clean dependency audit or independent security review. Do not force a
+Zod major-version change through a payment SDK without compatibility review.
+
+## October 9, 2026 baseline
 
 The Vercel build reported audit findings in the existing lockfile. The deployed
 framework is upgraded from Next.js 16.2.12 to 16.4.0. Compatible updates also

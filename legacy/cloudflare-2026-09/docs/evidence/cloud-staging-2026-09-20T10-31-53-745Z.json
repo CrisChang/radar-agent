@@ -1,0 +1,78 @@
+{
+  "capturedAt": "2026-09-20T10:31:53.745Z",
+  "kind": "cloud_staging_discovery_smoke",
+  "targetOrigin": "https://radar-agent-integration-staging.chrischang2026.workers.dev",
+  "health": {
+    "service": "radar-agent",
+    "status": "ok",
+    "network": "Arc Testnet",
+    "chainId": 5042002,
+    "paid_endpoint": "/api/signals/latest",
+    "proof_endpoint": "/api/proof",
+    "openapi_endpoint": "/api/openapi",
+    "deployment": "discovery-only",
+    "mainnet_execution_enabled": false,
+    "payment_execution": "disabled",
+    "durable_payment_store": "schema_read_verified",
+    "proof_scope": "historical_testnet_fixture_replay"
+  },
+  "observations": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "elapsedMs": 613,
+      "syntheticHeader": false
+    },
+    {
+      "path": "/api/openapi",
+      "status": 200,
+      "elapsedMs": 121,
+      "syntheticHeader": false
+    },
+    {
+      "path": "/api/signals/latest?symbol=ETH-USD",
+      "status": 402,
+      "elapsedMs": 109,
+      "syntheticHeader": false
+    },
+    {
+      "path": "/api/signals/latest?symbol=BTC-USD",
+      "status": 402,
+      "elapsedMs": 471,
+      "syntheticHeader": false
+    },
+    {
+      "path": "/api/signals/latest?symbol=INVALID",
+      "status": 400,
+      "elapsedMs": 104,
+      "syntheticHeader": false
+    },
+    {
+      "path": "/api/signals/latest?symbol=ETH-USD&demo=sharp_drop",
+      "status": 400,
+      "elapsedMs": 122,
+      "syntheticHeader": false
+    },
+    {
+      "path": "/api/signals/latest?symbol=ETH-USD",
+      "status": 503,
+      "elapsedMs": 103,
+      "syntheticHeader": true
+    }
+  ],
+  "tests": {
+    "schemaRead": "passed",
+    "discoveryOnly": "passed",
+    "unpaidEthQuote": "passed",
+    "unpaidBtcQuote": "passed",
+    "invalidQuery": "passed",
+    "demoDisabled": "passed",
+    "syntheticPaymentHeaderBlocked": "passed"
+  },
+  "signedRequests": 0,
+  "acceptedPayments": 0,
+  "deliveredPaidSignals": 0,
+  "transactions": 0,
+  "caller": "project-owned no-wallet test program",
+  "note": "Public HTTP + D1 schema-read evidence only; not cloud paid-response recovery, third-party adoption, paid delivery or onchain settlement. The negative-test header is not a payment authorization."
+}

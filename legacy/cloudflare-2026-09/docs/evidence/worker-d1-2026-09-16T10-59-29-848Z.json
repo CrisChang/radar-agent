@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-09-16T10:59:29.848Z",
+  "kind": "local_worker_d1_smoke",
+  "runtime": "Miniflare/workerd",
+  "tests": {
+    "migration": "passed",
+    "atomicClaim": "passed",
+    "savedResponse": "passed",
+    "requestBinding": "passed",
+    "health": 200,
+    "openapi": 200,
+    "unpaidQuote": 402,
+    "invalidQuery": 400
+  },
+  "outboundNetwork": "disabled",
+  "payments": 0,
+  "signatures": 0,
+  "transactions": 0,
+  "note": "Local runtime + storage fixture; not paid delivery, cloud deployment, external adoption or chain settlement."
+}

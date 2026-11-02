@@ -7,8 +7,8 @@ The working service uses a 0.001 USDC ETH observation as its example. The produc
 
 [Live app](https://radar-agent-ivory.vercel.app) · [Agent integration](https://radar-agent-ivory.vercel.app/integrate) · [Mainnet evidence](https://radar-agent-ivory.vercel.app/evidence) · [OpenAPI](https://radar-agent-ivory.vercel.app/api/openapi)
 
-Submitted baseline: [`codex/arc-microgrants`](https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants).
-This development branch, `codex/arc-recovery`, adds a reproducible recovery demo and prepares the next Arc/Circle milestone. The main branch retains the earlier hackathon prototype.
+The default [`main`](https://github.com/CrisChang/radar-agent) branch contains the current Vercel application, reconciled mainnet evidence and recovery demo. Continue new development from this baseline.
+The October submission remains on [`codex/arc-microgrants`](https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants). The September Cloudflare implementation is preserved in [the legacy archive](legacy/README.md) and in Git history; it is excluded from the active build and deployment.
 
 ## Try recovery without a wallet
 
@@ -129,7 +129,7 @@ docs/                   methodology, audit and submission materials
 ## Submission
 
 The project continues earlier Encode Club × Circle work for [Arc Microgrants](https://community.arc.io/public/events/arc-microgrants-f8tijfjhyq).
-The owner submitted Radar Agent on October 12; the [DoraHacks project](https://dorahacks.io/build/49626) is the historical submission. Its live status must be checked on DoraHacks; this development branch does not claim an award, funding, or a new application.
+The owner submitted Radar Agent on October 12; the [DoraHacks project](https://dorahacks.io/build/49626) is the historical submission. Its live status must be checked on DoraHacks. This repository does not claim an award or funding. The November Circle Grants application is tracked separately from the earlier submission.
 See [the current submission pack](docs/ARC_MICROGRANTS.md).
 
 The earlier testnet treasury/decision demo and historical deck remain available for provenance. They are outside the current agent API-payment product focus.
