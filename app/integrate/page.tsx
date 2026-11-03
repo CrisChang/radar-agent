@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import SiteNav from "../site-nav";
 import CopyCommand from "./copy-command";
+import SkillEntry from "../skill-entry";
 export const metadata: Metadata = { title: "Integrate an agent | Radar Agent", description: "One paid API endpoint, one stable request ID and recoverable USDC receipts on Arc." };
 const source="https://github.com/CrisChang/radar-agent/blob/main";
 export default function Integrate() {return <main><SiteNav/><div className="tool-shell integration-shell">
- <p className="eyebrow">ONE CANONICAL START</p><h1>A paid call.<br/>A traceable receipt.</h1><p className="lede">Use the ETH observation endpoint to integrate your agent. Start with a free quote; the 402 is expected.</p>
+ <p className="eyebrow">THE RADAR AGENT INTEGRATION</p><h1>Connect your agent.<br/>Keep the payment record.</h1><p className="lede">Start with the Radar Skill: one guide to the cost, result and retries of a paid API call.</p><div style={{maxWidth:680,margin:"28px 0 40px"}}><SkillEntry showGuide={false}/></div><h2>Prefer to integrate by hand?</h2><p>The same reference flow starts with a free ETH observation quote. HTTP 402 is expected; no payment has been made.</p>
  <CopyCommand command={'curl -i "https://radar-agent-ivory.vercel.app/api/signals/latest?symbol=ETH-USD"'}/>
  <div className="integration-steps"><article><b>1. Check</b><p>Decode <code>payment-required</code>. Pin Arc 5042, USDC, the expected seller and a maximum of 0.001 USDC.</p></article><article><b>2. Call</b><p>Create a stable <code>x-radar-request-id</code>. Reserve the budget, save the exact authorization, and send it in <code>payment-signature</code>.</p></article><article><b>3. Account</b><p>Verify the response SHA-256 and payment receipt. Keep unknown outcomes reserved; recover with the same request and original authorization.</p></article></div>
  <section className="tool-card"><h2>Use the working reference client</h2><p>One entry point. Without flags it checks readiness and the quote without a key or payment.</p><pre>{`npm ci

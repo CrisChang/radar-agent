@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Radar Agent — Agent API payments and accounting on Arc",
+  title: "Radar Agent — Know what your agent paid for",
   description:
-    "Paid API calls for agents with spending limits, recoverable receipts, retry accounting and verified Arc mainnet payment evidence.",
+    "Trace the cost, result and retries of agent API payments. Recover original receipts and reconcile USDC payments on Arc.",
 };
 
 export default function RootLayout({

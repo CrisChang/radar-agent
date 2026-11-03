@@ -1,6 +1,8 @@
 # Agent integration: one paid call and its accounting trail
 
-Start here: https://radar-agent-ivory.vercel.app/integrate.
+Agent entry: https://radar-agent-ivory.vercel.app/skills/radar-agent/SKILL.md.
+Human-readable guide: https://radar-agent-ivory.vercel.app/integrate.
+The skill defaults to unpaid checks; loading it does not authorize a payment.
 Canonical service example: `GET /api/signals/latest?symbol=ETH-USD`, priced at 0.001 USDC on Arc Mainnet 5042.
 
 ## One reference entry

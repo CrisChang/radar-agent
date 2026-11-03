@@ -1,11 +1,13 @@
 # Radar Agent
 
-**Paid API calls for agents, with spending limits, recoverable receipts and USDC reconciliation on Arc.**
+**Know what your agent paid for.**
+
+Record the cost, result and retries of each paid API call; recover original receipts and reconcile USDC payments on Arc.
 
 One logical request connects the quote, authorization, delivered response, retries and settlement evidence.
 The working service uses a 0.001 USDC ETH observation as its example. The product focus is API-payment accounting and recovery.
 
-[Live app](https://radar-agent-ivory.vercel.app) · [Agent integration](https://radar-agent-ivory.vercel.app/integrate) · [Mainnet evidence](https://radar-agent-ivory.vercel.app/evidence) · [OpenAPI](https://radar-agent-ivory.vercel.app/api/openapi)
+[Live app](https://radar-agent-ivory.vercel.app) · [Agent Skill](https://radar-agent-ivory.vercel.app/skills/radar-agent/SKILL.md) · [Developer guide](https://radar-agent-ivory.vercel.app/integrate) · [Mainnet evidence](https://radar-agent-ivory.vercel.app/evidence) · [OpenAPI](https://radar-agent-ivory.vercel.app/api/openapi)
 
 The default [`main`](https://github.com/CrisChang/radar-agent) branch contains the current Vercel application, reconciled mainnet evidence and recovery demo. Continue new development from this baseline.
 The October submission remains on [`codex/arc-microgrants`](https://github.com/CrisChang/radar-agent/tree/codex/arc-microgrants). The September Cloudflare implementation is preserved in [the legacy archive](legacy/README.md) and in Git history; it is excluded from the active build and deployment.
@@ -22,6 +24,14 @@ The real reference client writes its journal to disk. A synthetic provider accep
 The demo is **offline and synthetic**: no funds, private keys, production requests or chain verification. Its provider explicitly supports idempotency; it does not prove recovery works with every x402 seller. Temporary records are removed after the run. See [the opportunity review and upgrade milestones](docs/ARC_UPGRADE_2026-11-02.md).
 
 ## One entry point for an agent
+
+Give your coding agent the public [Radar Agent Skill](public/skills/radar-agent/SKILL.md):
+
+```text
+Read https://radar-agent-ivory.vercel.app/skills/radar-agent/SKILL.md and help me integrate Radar Agent. Start with the free quote and offline recovery demo; do not make a payment.
+```
+
+The skill is a plain Markdown integration guide, not a wallet connection or permission to spend. It uses the same reference client below.
 
 Start without a wallet or spending:
 

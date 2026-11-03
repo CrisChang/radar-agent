@@ -1,0 +1,12 @@
+.nav { width:calc(100% - 64px); max-width:1200px; margin:24px auto 0; padding:17px 24px; display:flex; align-items:center; justify-content:space-between; gap:24px; color:#fff; background:#111b30; border:1px solid #29354b; border-radius:16px; position:relative; z-index:2; box-shadow:0 10px 30px #1420340a; }
+.brand { display:flex; align-items:center; gap:9px; color:white; text-decoration:none; font-size:21px; font-weight:750; letter-spacing:-.9px; white-space:nowrap; }
+.brand svg { color:#8ab6ff; }
+.brandLight { font-weight:400; color:#c4d3ec; }
+.links { display:flex; align-items:center; gap:28px; }
+.links a { font-size:13px; color:#c4cee0; text-decoration:none; transition:color .2s; }
+.links a:hover { color:white; }
+.start { display:flex; align-items:center; gap:25px; padding:10px 14px; border-radius:8px; background:#e2edff; color:#15223a; font-size:12px; font-weight:700; text-decoration:none; }
+.start:hover { background:white; }
+.start span { font-size:17px; }
+@media(max-width:700px) { .nav { width:calc(100% - 32px); margin-top:16px; padding:15px 18px; gap:16px; flex-wrap:wrap; }.links{gap:18px;order:3;width:100%;border-top:1px solid #344056;padding-top:15px;justify-content:space-between}.start{margin-left:auto;gap:12px}.brand{font-size:19px}.brand svg{width:26px;height:26px} }
+@media(prefers-reduced-motion:reduce) { .links a { transition:none; } }
